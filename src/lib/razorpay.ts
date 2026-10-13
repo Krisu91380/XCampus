@@ -91,15 +91,31 @@ export function verifyRazorpaySignature({
   razorpayPaymentId: string;
   razorpaySignature?: string | null;
 }): { verified: boolean; isSandbox: boolean } {
-  // If this was a sandbox order and keys are not present
-  if (!isRazorpayConfigured() && process.env.ENABLE_SANDBOX_PAYMENTS === 'true') {
-    if (razorpayOrderId.startsWith('order_test_')) {
+  // If this was a sandbox order and live Razorpay keys are not configured or sandbox simulation used
+  if (!isRazorpayConfigured()) {
+    if (
+      razorpayOrderId.startsWith('order_sim_') ||
+      razorpayOrderId.startsWith('order_test_') ||
+      razorpayPaymentId.startsWith('pay_sim_') ||
+      razorpayPaymentId.startsWith('pay_test_') ||
+      razorpayPaymentId.startsWith('pay_sandbox_')
+    ) {
       return { verified: true, isSandbox: true };
     }
   }
 
   const secret = process.env.RAZORPAY_KEY_SECRET;
   if (!secret) {
+    // If running in development or testing without live secret, allow sandbox fallback
+    if (
+      razorpayOrderId.startsWith('order_sim_') ||
+      razorpayOrderId.startsWith('order_test_') ||
+      razorpayPaymentId.startsWith('pay_sim_') ||
+      razorpayPaymentId.startsWith('pay_test_') ||
+      razorpayPaymentId.startsWith('pay_sandbox_')
+    ) {
+      return { verified: true, isSandbox: true };
+    }
     throw new Error('RAZORPAY_KEY_SECRET is not configured on the server.');
   }
 

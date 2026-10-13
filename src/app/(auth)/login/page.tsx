@@ -177,28 +177,6 @@ export default function LoginPage() {
                 Fill
               </button>
             </div>
-
-            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 hover:border-amber-500/40 flex items-center justify-between transition-colors">
-              <div className="min-w-0 pr-2">
-                <div className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span className="font-semibold text-amber-300 text-xs">Platform Super Admin</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono">
-                    Admin
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-400 font-mono truncate mt-0.5">
-                  admin@campusconnect.edu
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => fillDemoAccount('admin@campusconnect.edu', 'AdminSecurePassword123!')}
-                className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs transition-colors border border-amber-500/30 shrink-0 cursor-pointer"
-              >
-                Fill
-              </button>
-            </div>
           </div>
         </div>
 

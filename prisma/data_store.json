@@ -359,7 +359,7 @@
         "isPopular": false,
         "isActive": true,
         "createdAt": "2026-10-13T11:51:06.441Z",
-        "updatedAt": "2026-10-13T11:51:06.441Z"
+        "updatedAt": "2026-10-13T12:25:27.946Z"
       }
     ],
     [
@@ -373,21 +373,21 @@
         "isPopular": true,
         "isActive": true,
         "createdAt": "2026-10-13T11:51:06.442Z",
-        "updatedAt": "2026-10-13T11:51:06.442Z"
+        "updatedAt": "2026-10-13T12:25:27.953Z"
       }
     ],
     [
       "pkg-3",
       {
         "id": "pkg-3",
-        "name": "Super Connector",
-        "credits": 10,
-        "priceInInr": 49,
-        "description": "10 Conversation credits. Maximum savings across campus networks (₹4.9/chat).",
+        "name": "Semester Pass",
+        "credits": 15,
+        "priceInInr": 69,
+        "description": "15 Conversation credits. Maximum value across campus networks (₹4.6/chat).",
         "isPopular": false,
         "isActive": true,
         "createdAt": "2026-10-13T11:51:06.444Z",
-        "updatedAt": "2026-10-13T11:51:06.444Z"
+        "updatedAt": "2026-10-13T12:25:27.953Z"
       }
     ]
   ],

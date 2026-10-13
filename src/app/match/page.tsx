@@ -37,24 +37,6 @@ export default function MatchmakingPage() {
   const [matchResult, setMatchResult] = useState<any>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [simulatingMatch, setSimulatingMatch] = useState(false);
-  const [simResult, setSimResult] = useState<any>(null);
-
-  const handleSimulateDevMatch = async () => {
-    setSimulatingMatch(true);
-    setErrorMessage(null);
-    setSimResult(null);
-    try {
-      const res = await fetch('/api/match/dev-simulate', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.message || 'Simulation failed');
-      setSimResult(data);
-    } catch (err: any) {
-      setErrorMessage(err.message);
-    } finally {
-      setSimulatingMatch(false);
-    }
-  };
 
   const eventSourceRef = useRef<EventSource | null>(null);
 
@@ -518,65 +500,6 @@ export default function MatchmakingPage() {
           )}
         </div>
       )}
-
-      {/* Developer Simulation & Multi-Browser Guidance Card */}
-      <div className="mt-8 p-5 rounded-2xl bg-navy-900 border border-navy-750 text-xs space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-electric-400 font-bold">
-            <ShieldCheck className="w-4 h-4" />
-            <span>Developer Matching Engine Verification & Testing Guide</span>
-          </div>
-          <span className="px-2 py-0.5 rounded bg-electric-500/10 text-electric-300 text-[10px] font-mono">
-            DEV MODE
-          </span>
-        </div>
-        <p className="text-slate-400 text-[11px] leading-relaxed">
-          <strong>💡 Testing with 2 real student accounts on localhost:</strong> Open Student A in your standard browser and Student B in an <em>Incognito / Private Window</em> (or a separate browser like Chrome / Edge / Firefox). Because browser cookies are scoped to the entire <code className="text-slate-300">localhost:3000</code> domain, logging in on two tabs in the same window will overwrite the session cookie, causing both tabs to search as the same student.
-        </p>
-
-        <div className="pt-1 flex flex-col sm:flex-row items-center gap-3">
-          <button
-            type="button"
-            onClick={handleSimulateDevMatch}
-            disabled={simulatingMatch}
-            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-md shadow-purple-600/20"
-          >
-            {simulatingMatch ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            )}
-            <span>Simulate 2-Student Match (Aarav &amp; Pooja)</span>
-          </button>
-
-          {simResult && (
-            <Link
-              href={`/chat/${simResult.conversationId}`}
-              className="text-xs font-semibold text-emerald-400 hover:underline flex items-center gap-1"
-            >
-              <span>Open Verified Chat ({simResult.conversationId.slice(0, 16)}...) ↗</span>
-            </Link>
-          )}
-        </div>
-
-        {simResult && (
-          <div className="p-3 bg-navy-950 rounded-xl border border-emerald-500/30 text-[11px] text-emerald-300 font-mono space-y-1">
-            <p className="font-bold flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span>{simResult.message}</span>
-            </p>
-            <p className="text-slate-400">
-              Student 1: {simResult.student1?.name} ({simResult.student1?.gender}) • Credits Left: {simResult.student1?.creditsAfterMatch}
-            </p>
-            <p className="text-slate-400">
-              Student 2: {simResult.student2?.name} ({simResult.student2?.gender}) • Credits Left: {simResult.student2?.creditsAfterMatch}
-            </p>
-            <p className="text-electric-400">
-              Mutual Conversation ID: {simResult.conversationId}
-            </p>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

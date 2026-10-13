@@ -8,7 +8,7 @@ import {
   ShieldCheck,
   CheckCircle,
   History,
-  QrCode,
+  CreditCard,
   Sparkles,
   ArrowRight,
   HelpCircle,
@@ -17,7 +17,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import QRCodeCheckoutModal from '@/components/QRCodeCheckoutModal';
+import PaymentCheckoutModal from '@/components/PaymentCheckoutModal';
 
 function PricingContent() {
   const searchParams = useSearchParams();
@@ -66,10 +66,10 @@ function PricingContent() {
           },
           {
             id: 'pkg-3',
-            name: 'Super Connector',
-            credits: 10,
-            priceInInr: 49,
-            description: '10 Conversation credits. Maximum savings across campus networks (₹4.9/chat).',
+            name: 'Semester Pass',
+            credits: 15,
+            priceInInr: 69,
+            description: '15 Conversation credits. Maximum value across campus networks (₹4.6/chat).',
             isPopular: false,
           },
         ]);
@@ -121,7 +121,7 @@ function PricingContent() {
       <div className="text-center max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold mb-3">
           <Coins className="w-4 h-4 text-amber-400" />
-          <span>Pay Per Connection • Instant UPI QR Codes</span>
+          <span>Pay Per Connection • Instant Online Checkout</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-white">
           Chat Passes & Credit Packages
@@ -184,13 +184,13 @@ function PricingContent() {
               </div>
             </div>
 
-            {/* Buy Now Button with QR Code Checkout */}
+            {/* Buy Now Button with Payment Gateway Checkout */}
             <button
               type="button"
               onClick={() => handleBuyNow(pkg)}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white font-bold text-xs shadow-lg shadow-brand-purple/25 hover:opacity-95 transition-all flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white font-bold text-xs shadow-lg shadow-brand-purple/25 hover:opacity-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              <QrCode className="w-4 h-4" />
+              <CreditCard className="w-4 h-4" />
               <span>Buy Now • ₹{pkg.priceInInr}</span>
             </button>
           </div>
@@ -255,9 +255,9 @@ function PricingContent() {
         </div>
       )}
 
-      {/* QR Code Checkout Modal */}
+      {/* Online Payment Gateway Checkout Modal */}
       {selectedPackage && (
-        <QRCodeCheckoutModal
+        <PaymentCheckoutModal
           packageId={selectedPackage.id}
           packageName={selectedPackage.name}
           priceInInr={selectedPackage.priceInInr}

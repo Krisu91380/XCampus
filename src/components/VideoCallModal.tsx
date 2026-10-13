@@ -35,9 +35,9 @@ export default function VideoCallModal({
   isOpen,
   onClose,
 }: VideoCallModalProps) {
-  // Call States: 'STARTING' | 'CALLING' | 'CONNECTING' | 'CONNECTED' | 'ENDED'
+  // Call States: 'STARTING' | 'CALLING' | 'RINGING' | 'CONNECTING' | 'CONNECTED' | 'RECONNECTING' | 'ENDED'
   const [callState, setCallState] = useState<
-    'STARTING' | 'CALLING' | 'CONNECTING' | 'CONNECTED' | 'ENDED'
+    'STARTING' | 'CALLING' | 'RINGING' | 'CONNECTING' | 'CONNECTED' | 'RECONNECTING' | 'ENDED'
   >('STARTING');
 
   const [isMicMuted, setIsMicMuted] = useState(false);
@@ -223,6 +223,7 @@ export default function VideoCallModal({
         pc.ontrack = (event) => {
           if (remoteVideoRef.current && event.streams[0]) {
             remoteVideoRef.current.srcObject = event.streams[0];
+            remoteVideoRef.current.play().catch((e) => console.warn('Remote video play error:', e));
             setCallState('CONNECTED');
             if (connectionTimeoutRef.current) {
               clearTimeout(connectionTimeoutRef.current);
@@ -249,6 +250,8 @@ export default function VideoCallModal({
               clearTimeout(connectionTimeoutRef.current);
               connectionTimeoutRef.current = null;
             }
+          } else if (pc.iceConnectionState === 'disconnected') {
+            setCallState('RECONNECTING');
           } else if (pc.iceConnectionState === 'failed') {
             setErrorMessage(
               'ICE negotiation failed. Direct peer-to-peer connection could not be established. Network or firewall restrictions may require a TURN relay.'
@@ -264,12 +267,12 @@ export default function VideoCallModal({
               clearTimeout(connectionTimeoutRef.current);
               connectionTimeoutRef.current = null;
             }
+          } else if (pc.connectionState === 'disconnected') {
+            setCallState('RECONNECTING');
           } else if (pc.connectionState === 'failed') {
             setErrorMessage(
               'WebRTC connection failed. Please check your internet connection or firewall settings.'
             );
-          } else if (pc.connectionState === 'disconnected') {
-            handleEndCall();
           }
         };
 
@@ -288,7 +291,7 @@ export default function VideoCallModal({
 
         // 3. Negotiate Role: Initiator or Receiver
         if (isInitiator) {
-          setCallState('CALLING');
+          setCallState('RINGING');
           await sendSignal('call-request');
 
           // Create WebRTC Offer
@@ -328,10 +331,8 @@ export default function VideoCallModal({
                 }
 
                 if (sig.type === 'call-accept' && isInitiator) {
-                  // Partner accepted call. Re-send offer if ready to ensure reliable sync
-                  if (pc.localDescription) {
-                    await sendSignal('offer', pc.localDescription);
-                  }
+                  // Partner accepted call. Wait for ICE and answer negotiation without duplicating offer
+                  setCallState('CONNECTING');
                 }
 
                 if (sig.type === 'offer' && !isInitiator) {
@@ -555,7 +556,9 @@ export default function VideoCallModal({
                       <span>
                         {callState === 'STARTING' && 'Preparing camera and audio...'}
                         {callState === 'CALLING' && 'Calling partner student...'}
+                        {callState === 'RINGING' && 'Ringing partner student...'}
                         {callState === 'CONNECTING' && 'Securing WebRTC peer connection...'}
+                        {callState === 'RECONNECTING' && 'Reconnecting WebRTC stream...'}
                       </span>
                     </p>
                   </div>
