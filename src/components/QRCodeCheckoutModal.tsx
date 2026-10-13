@@ -13,11 +13,8 @@ import {
   Clock,
   Sparkles,
   ArrowRight,
-  Upload,
-  FileCheck,
   UserCheck,
   Info,
-  Building2,
 } from 'lucide-react';
 
 interface QRCodeCheckoutModalProps {
@@ -44,24 +41,15 @@ export default function QRCodeCheckoutModal({
   const [paymentStatus, setPaymentStatus] = useState<
     'AWAITING' | 'PENDING_VERIFICATION' | 'PAID' | 'REJECTED' | 'CANCELLED' | 'FAILED'
   >('AWAITING');
-  const [timeLeftSeconds, setTimeLeftSeconds] = useState(900); // 15 minutes window
+  const [timeLeftSeconds, setTimeLeftSeconds] = useState(900); // 15-minute window
   const [copiedVpa, setCopiedVpa] = useState(false);
   const [copiedRef, setCopiedRef] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [verifiedBalance, setVerifiedBalance] = useState<number | null>(null);
-
-  // Manual UTR submission states
-  const [utrNumber, setUtrNumber] = useState('');
-  const [utrSubmitting, setUtrSubmitting] = useState(false);
-  const [utrError, setUtrError] = useState<string | null>(null);
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [receiptUploading, setReceiptUploading] = useState(false);
-  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
-  const [submittedUtr, setSubmittedUtr] = useState<string | null>(null);
+  const [submittingPayment, setSubmittingPayment] = useState(false);
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const receiptInputRef = useRef<HTMLInputElement | null>(null);
 
   // Initialize Order & QR Code on Open
   useEffect(() => {
@@ -69,12 +57,8 @@ export default function QRCodeCheckoutModal({
       setOrderData(null);
       setPaymentStatus('AWAITING');
       setErrorMessage(null);
-      setUtrNumber('');
-      setReceiptFile(null);
-      setReceiptUrl(null);
-      setSubmittedUtr(null);
+      setSubmittingPayment(false);
       setRejectionReason(null);
-      setUtrError(null);
       return;
     }
 
@@ -83,12 +67,8 @@ export default function QRCodeCheckoutModal({
     setPaymentStatus('AWAITING');
     setTimeLeftSeconds(900);
     setErrorMessage(null);
-    setUtrNumber('');
-    setReceiptFile(null);
-    setReceiptUrl(null);
-    setSubmittedUtr(null);
+    setSubmittingPayment(false);
     setRejectionReason(null);
-    setUtrError(null);
 
     const initOrder = async () => {
       try {
@@ -122,7 +102,7 @@ export default function QRCodeCheckoutModal({
     };
   }, [isOpen, packageId]);
 
-  // Countdown Timer (Only active while Awaiting or Pending Verification)
+  // Countdown Timer
   useEffect(() => {
     if (!isOpen || (paymentStatus !== 'AWAITING' && paymentStatus !== 'PENDING_VERIFICATION')) return;
 
@@ -149,7 +129,12 @@ export default function QRCodeCheckoutModal({
       return;
     }
 
-    if (paymentStatus === 'PAID' || paymentStatus === 'REJECTED' || paymentStatus === 'CANCELLED' || paymentStatus === 'FAILED') {
+    if (
+      paymentStatus === 'PAID' ||
+      paymentStatus === 'REJECTED' ||
+      paymentStatus === 'CANCELLED' ||
+      paymentStatus === 'FAILED'
+    ) {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       return;
     }
@@ -171,14 +156,13 @@ export default function QRCodeCheckoutModal({
             setRejectionReason(data.rejectionReason || 'Payment could not be verified in UPI account.');
           } else if (data.status === 'PENDING_VERIFICATION') {
             setPaymentStatus('PENDING_VERIFICATION');
-            if (data.utrNumber) setSubmittedUtr(data.utrNumber);
           } else if (data.status === 'CANCELLED' || data.status === 'FAILED') {
             if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
             setPaymentStatus(data.status);
           }
         }
       } catch {
-        // network retry
+        // Network retry
       }
     }, 2500);
 
@@ -221,59 +205,12 @@ export default function QRCodeCheckoutModal({
     }
   };
 
-  const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Simplified "I have paid" submission
+  const handleIHavePaid = async () => {
+    if (!orderData?.orderId || submittingPayment) return;
 
-    if (!file.type.startsWith('image/')) {
-      setUtrError('Only image files (PNG, JPG, WebP) are accepted as payment receipts.');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setUtrError('Receipt screenshot must be under 5MB.');
-      return;
-    }
-
-    setReceiptFile(file);
-    setReceiptUploading(true);
-    setUtrError(null);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const res = await fetch('/api/payments/upload-receipt', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Receipt upload failed');
-      }
-
-      setReceiptUrl(data.fileUrl);
-    } catch (err: any) {
-      setUtrError(err.message || 'Failed to upload receipt');
-      setReceiptFile(null);
-    } finally {
-      setReceiptUploading(false);
-    }
-  };
-
-  const handleSubmitUtr = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!orderData?.orderId) return;
-
-    const trimmed = utrNumber.trim();
-    if (trimmed.length < 4) {
-      setUtrError('Please enter a valid 12-digit UTR or transaction reference number.');
-      return;
-    }
-
-    setUtrSubmitting(true);
-    setUtrError(null);
+    setSubmittingPayment(true);
+    setErrorMessage(null);
 
     try {
       const res = await fetch('/api/payments/submit-utr', {
@@ -281,22 +218,19 @@ export default function QRCodeCheckoutModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId: orderData.orderId,
-          utrNumber: trimmed,
-          receiptUrl: receiptUrl || undefined,
         }),
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Failed to submit payment reference');
+        throw new Error(data.message || 'Failed to submit payment confirmation');
       }
 
       setPaymentStatus('PENDING_VERIFICATION');
-      setSubmittedUtr(trimmed);
     } catch (err: any) {
-      setUtrError(err.message || 'Error submitting payment reference');
+      setErrorMessage(err.message || 'Error submitting payment confirmation');
     } finally {
-      setUtrSubmitting(false);
+      setSubmittingPayment(false);
     }
   };
 
@@ -319,13 +253,14 @@ export default function QRCodeCheckoutModal({
             <Smartphone className="w-5 h-5 text-brand-purple" />
             <div>
               <h3 className="text-sm font-bold text-white">UPI QR Payment Gate</h3>
-              <p className="text-[10px] text-slate-400">Personal Direct UPI Transfer</p>
+              <p className="text-[10px] text-slate-400">Direct UPI Scan & Pay</p>
             </div>
           </div>
           {paymentStatus !== 'PAID' && (
             <button
               onClick={handleCancelPayment}
               className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-navy-800 transition-colors"
+              title="Close payment window"
             >
               <X className="w-5 h-5" />
             </button>
@@ -344,7 +279,7 @@ export default function QRCodeCheckoutModal({
               <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
                 <AlertCircle className="w-6 h-6" />
               </div>
-              <h4 className="text-sm font-bold text-white">Order Creation Issue</h4>
+              <h4 className="text-sm font-bold text-white">Payment Issue</h4>
               <p className="text-xs text-rose-300 max-w-xs mx-auto">{errorMessage}</p>
               <button
                 onClick={onClose}
@@ -416,9 +351,9 @@ export default function QRCodeCheckoutModal({
                 {rejectionReason || 'The administrator could not verify this payment in their bank or UPI account.'}
               </p>
               <div className="p-3 bg-navy-850 rounded-xl border border-navy-750 text-left text-xs text-slate-400">
-                <p className="text-[11px] text-slate-300 font-semibold mb-1">What happened?</p>
+                <p className="text-[11px] text-slate-300 font-semibold mb-1">Notice</p>
                 <p className="text-[10px]">
-                  Zero credits were added. If you were debited, verify your 12-digit UTR number or contact the admin with your bank reference.
+                  Zero credits were deducted or added. If you were debited, please contact the administrator with your transaction details.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -426,7 +361,7 @@ export default function QRCodeCheckoutModal({
                   onClick={() => setPaymentStatus('AWAITING')}
                   className="flex-1 py-2.5 rounded-xl bg-navy-800 hover:bg-navy-750 text-xs font-semibold text-white"
                 >
-                  Try Again / Resubmit
+                  Try Again
                 </button>
                 <button
                   onClick={onClose}
@@ -447,7 +382,7 @@ export default function QRCodeCheckoutModal({
               </h4>
               <p className="text-xs text-slate-400 max-w-xs mx-auto">
                 {paymentStatus === 'CANCELLED'
-                  ? 'The transaction was cancelled. Zero credits were added or deducted.'
+                  ? 'The transaction was cancelled. Zero credits were added.'
                   : 'The payment window has expired. No charges were made.'}
               </p>
               <button
@@ -463,14 +398,14 @@ export default function QRCodeCheckoutModal({
               {/* Package Details Header */}
               <div className="flex items-center justify-between pb-3 border-b border-navy-800">
                 <div>
-                  <h4 className="font-bold text-white text-sm">{orderData.packageName}</h4>
+                  <h4 className="font-bold text-white text-sm">{orderData?.packageName}</h4>
                   <p className="text-[11px] text-slate-400">
-                    {orderData.credits} Chat Pass Credits
+                    {orderData?.credits} Chat Pass Credits
                   </p>
                 </div>
                 <div className="text-right">
-                  <span className="text-2xl font-extrabold text-white">₹{orderData.amountInInr}</span>
-                  <p className="text-[10px] text-slate-500 uppercase">One-time UPI</p>
+                  <span className="text-2xl font-extrabold text-white">₹{orderData?.amountInInr}</span>
+                  <p className="text-[10px] text-emerald-400 font-semibold uppercase">Exact Amount</p>
                 </div>
               </div>
 
@@ -483,11 +418,11 @@ export default function QRCodeCheckoutModal({
                       <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
                     </span>
                     <span className="font-bold text-amber-300 text-xs">
-                      Awaiting payment verification
+                      Awaiting Administrator Verification
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-300 pl-4.5">
-                    Your UTR <span className="font-mono font-bold text-white bg-navy-950 px-1 py-0.5 rounded">{submittedUtr || utrNumber}</span> has been submitted. The admin is verifying the receipt in their UPI account. This screen updates automatically once approved.
+                    Your payment confirmation has been submitted to the administrator for review. Credits will be credited automatically once verified.
                   </p>
                 </div>
               ) : (
@@ -521,13 +456,13 @@ export default function QRCodeCheckoutModal({
                 )}
                 <div className="mt-2 space-y-0.5">
                   <p className="text-xs font-bold text-slate-900 tracking-wide uppercase">
-                    SCAN TO PAY ₹{orderData.amountInInr}
+                    SCAN TO PAY ₹{orderData?.amountInInr}
                   </p>
                   <p className="text-[11px] font-semibold text-brand-purple">
-                    Receiver: {orderData.receiverName || 'KRISH SO ANIL KUMAR'}
+                    Receiver: {orderData?.receiverName || 'KRISH SO ANIL KUMAR'}
                   </p>
                   <p className="text-[9px] text-slate-500">
-                    PhonePe • Google Pay • Paytm • BHIM • Amazon Pay
+                    PhonePe • Google Pay • Paytm • BHIM • Navi
                   </p>
                 </div>
               </div>
@@ -542,10 +477,10 @@ export default function QRCodeCheckoutModal({
                       Payment Receiver:
                     </span>
                     <span className="font-bold text-white text-xs block">
-                      {orderData.receiverName || 'KRISH SO ANIL KUMAR'}
+                      {orderData?.receiverName || 'KRISH SO ANIL KUMAR'}
                     </span>
                   </div>
-                  {orderData.merchantVpa && (
+                  {orderData?.merchantVpa && (
                     <button
                       type="button"
                       onClick={handleCopyVpa}
@@ -562,7 +497,7 @@ export default function QRCodeCheckoutModal({
                   <div className="space-y-0.5">
                     <span className="text-[10px] text-slate-400">Order Reference:</span>
                     <span className="font-mono text-xs text-slate-200 block truncate max-w-[240px]">
-                      {orderData.razorpayOrderId}
+                      {orderData?.razorpayOrderId}
                     </span>
                   </div>
                   <button
@@ -576,7 +511,7 @@ export default function QRCodeCheckoutModal({
                 </div>
 
                 {/* Instructions */}
-                {orderData.instructions && (
+                {orderData?.instructions && (
                   <div className="p-3 rounded-xl bg-navy-950/60 border border-navy-800 text-[11px] text-slate-400 whitespace-pre-line leading-relaxed">
                     <div className="flex items-center gap-1.5 font-bold text-slate-300 mb-1 text-[11px]">
                       <Info className="w-3.5 h-3.5 text-brand-purple" />
@@ -587,128 +522,40 @@ export default function QRCodeCheckoutModal({
                 )}
               </div>
 
-              {/* Student UTR & Receipt Submission Form */}
-              <div className="p-4 rounded-2xl bg-navy-850 border border-navy-750 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h5 className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    <span>Submit Payment Proof for Verification</span>
-                  </h5>
-                  <span className="text-[10px] text-slate-400">Step 2 of 2</span>
-                </div>
-
-                {utrError && (
-                  <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px] flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{utrError}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmitUtr} className="space-y-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                      12-Digit UTR / UPI Transaction Reference Number <span className="text-rose-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 423188992011"
-                      value={utrNumber}
-                      onChange={(e) => setUtrNumber(e.target.value)}
-                      disabled={paymentStatus === 'PENDING_VERIFICATION' || utrSubmitting}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-navy-900 border border-navy-700 text-white placeholder-slate-500 text-xs font-mono focus:outline-none focus:border-brand-purple transition-colors disabled:opacity-60"
-                      required
-                    />
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      Found in your UPI app receipt under "UPI Transaction ID" or "UTR".
-                    </p>
-                  </div>
-
-                  {/* Optional Screenshot Upload */}
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                      Upload Payment Screenshot (Optional but speeds up verification)
-                    </label>
-                    <input
-                      type="file"
-                      ref={receiptInputRef}
-                      onChange={handleReceiptUpload}
-                      accept="image/*"
-                      className="hidden"
-                      disabled={paymentStatus === 'PENDING_VERIFICATION' || receiptUploading}
-                    />
-                    
-                    {receiptUrl ? (
-                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs">
-                        <div className="flex items-center gap-2 truncate">
-                          <FileCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                          <span className="text-[11px] truncate font-medium">Receipt screenshot attached</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setReceiptUrl(null);
-                            setReceiptFile(null);
-                          }}
-                          className="text-[10px] text-slate-400 hover:text-white"
-                        >
-                          Change
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => receiptInputRef.current?.click()}
-                        disabled={paymentStatus === 'PENDING_VERIFICATION' || receiptUploading}
-                        className="w-full py-2.5 px-3 rounded-xl border border-dashed border-navy-700 hover:border-navy-600 bg-navy-900/60 hover:bg-navy-900 text-slate-300 text-xs flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-                      >
-                        {receiptUploading ? (
-                          <>
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            <span>Uploading screenshot...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="w-3.5 h-3.5 text-brand-purple" />
-                            <span>Upload Payment Screenshot (PNG, JPG, max 5MB)</span>
-                          </>
-                        )}
-                      </button>
-                    )}
-                  </div>
-
+              {/* Action Buttons: "I have paid" & "Cancel" */}
+              <div className="pt-2 space-y-2">
+                {paymentStatus !== 'PENDING_VERIFICATION' ? (
                   <button
-                    type="submit"
-                    disabled={utrSubmitting || !utrNumber.trim()}
-                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white font-bold text-xs shadow-lg shadow-brand-purple/20 hover:opacity-95 disabled:opacity-50 flex items-center justify-center gap-2 transition-all"
+                    type="button"
+                    onClick={handleIHavePaid}
+                    disabled={submittingPayment}
+                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-electric-500 text-white font-bold text-sm shadow-xl shadow-emerald-500/20 hover:opacity-95 disabled:opacity-50 flex items-center justify-center gap-2 transition-all"
                   >
-                    {utrSubmitting ? (
+                    {submittingPayment ? (
                       <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Submitting for Admin Review...</span>
-                      </>
-                    ) : paymentStatus === 'PENDING_VERIFICATION' ? (
-                      <>
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Resubmit / Update Reference</span>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Notifying Administrator...</span>
                       </>
                     ) : (
                       <>
-                        <ShieldCheck className="w-3.5 h-3.5" />
-                        <span>Submit Payment for Verification</span>
+                        <ShieldCheck className="w-4 h-4" />
+                        <span>I have paid ₹{orderData?.amountInInr}</span>
                       </>
                     )}
                   </button>
-                </form>
-              </div>
+                ) : (
+                  <div className="p-3 rounded-xl bg-navy-850 border border-navy-750 text-center text-xs text-amber-300 flex items-center justify-center gap-2 font-semibold">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Awaiting administrator verification...</span>
+                  </div>
+                )}
 
-              {/* Cancel Button */}
-              <div className="pt-1 flex items-center justify-between gap-3">
                 <button
                   type="button"
                   onClick={handleCancelPayment}
                   className="w-full py-2.5 rounded-xl border border-navy-750 hover:bg-navy-850 text-xs text-slate-400 hover:text-white font-medium transition-colors"
                 >
-                  Cancel Transaction
+                  Cancel Payment
                 </button>
               </div>
             </div>

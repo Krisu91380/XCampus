@@ -118,6 +118,18 @@ export default function Navbar() {
               </Link>
 
               <Link
+                href="/messages"
+                className={`transition-colors flex items-center gap-1.5 ${
+                  pathname === '/messages' || pathname.startsWith('/chat')
+                    ? 'text-electric-400 font-bold'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                <MessageSquare className="w-4 h-4" />
+                Messages
+              </Link>
+
+              <Link
                 href="/dashboard"
                 className={`transition-colors flex items-center gap-1.5 ${
                   pathname === '/dashboard' ? 'text-brand-purple' : 'text-slate-300 hover:text-white'
@@ -243,9 +255,16 @@ export default function Navbar() {
           {user ? (
             <div className="pt-3 border-t border-navy-800 space-y-2">
               <Link
-                href="/match"
+                href="/messages"
                 onClick={() => setMobileMenuOpen(false)}
                 className="block py-2 text-electric-400 font-medium"
+              >
+                💬 Messages & Chats
+              </Link>
+              <Link
+                href="/match"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block py-2 text-slate-300 font-medium"
               >
                 ⚡ Matchmaking Room
               </Link>

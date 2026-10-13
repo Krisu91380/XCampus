@@ -216,7 +216,7 @@ model CreditPackage {
 model UserCreditBalance {
   id        String   @id @default(uuid())
   userId    String   @unique
-  credits   Int      @default(0)
+  credits   Int      @default(5)
   updatedAt DateTime @updatedAt
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)

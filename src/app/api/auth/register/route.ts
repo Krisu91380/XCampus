@@ -83,11 +83,13 @@ export async function POST(req: NextRequest) {
       update: {},
     });
 
-    // Initialize user credit balance to 0 credits (must purchase credits before paid matching/chat)
-    await db.userCreditBalance.upsert({
-      where: { userId: user.id },
-      create: { userId: user.id, credits: 0 },
-      update: {},
+    // Grant 5 free sign-up credits recorded in immutable ledger
+    await addCredits({
+      userId: user.id,
+      amount: 5,
+      reason: 'SIGNUP_BONUS',
+      referenceId: `signup_bonus_${user.id}`,
+      metadata: { note: 'Welcome bonus: 5 free chat credits for new student registration' },
     });
 
     // Check if university email automatically matches approved domains
@@ -132,7 +134,7 @@ export async function POST(req: NextRequest) {
           displayName,
           role: autoVerified ? 'VERIFIED_STUDENT' : 'USER',
           universityName: uni.name,
-          credits: 2,
+          credits: 5,
         },
       },
       { status: 201 }

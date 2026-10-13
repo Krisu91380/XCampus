@@ -43,12 +43,13 @@ export async function GET(req: NextRequest) {
         };
       }
 
-      // Fetch last message
+      // Fetch messages ordered desc to get latest
       const messages = await db.message.findMany({
         where: { conversationId: conv.id },
         orderBy: { createdAt: 'desc' },
       });
-      const lastMessage = messages[messages.length - 1] || null;
+      const lastMessage = messages[0] || null;
+      const unreadCount = messages.filter((m) => m.senderId !== session.userId && !m.isRead).length;
 
       conversations.push({
         id: conv.id,
@@ -63,7 +64,8 @@ export async function GET(req: NextRequest) {
               isMine: lastMessage.senderId === session.userId,
             }
           : null,
-        hasUnread: p.hasUnread,
+        hasUnread: p.hasUnread || unreadCount > 0,
+        unreadCount: unreadCount > 0 ? unreadCount : p.hasUnread ? 1 : 0,
       });
     }
 

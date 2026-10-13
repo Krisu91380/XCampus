@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   Send,
   ShieldCheck,
@@ -25,6 +25,8 @@ import VideoCallModal from '@/components/VideoCallModal';
 export default function ChatRoomPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const autoAccept = searchParams.get('autoAccept') === 'true';
   const conversationId = params?.id ? decodeURIComponent(params.id as string) : '';
 
   const [conversation, setConversation] = useState<any>(null);
@@ -70,6 +72,14 @@ export default function ChatRoomPage() {
   useEffect(() => {
     fetchInitialData();
   }, [conversationId]);
+
+  useEffect(() => {
+    if (autoAccept && conversation && !isVideoCallOpen) {
+      setIsCallInitiator(false);
+      setIsVideoCallOpen(true);
+      setIncomingCall(false);
+    }
+  }, [autoAccept, conversation, isVideoCallOpen]);
 
   useEffect(() => {
     scrollToBottom();

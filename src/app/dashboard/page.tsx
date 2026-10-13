@@ -136,6 +136,14 @@ export default function DashboardPage() {
           </Link>
 
           <Link
+            href="/messages"
+            className="px-4 py-2.5 rounded-2xl bg-navy-850 border border-navy-700 text-white text-xs font-bold hover:border-electric-500/60 transition-colors flex items-center gap-1.5"
+          >
+            <MessageSquare className="w-4 h-4 text-electric-400" />
+            <span>Messages</span>
+          </Link>
+
+          <Link
             href="/match"
             className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-brand-purple to-electric-500 text-white text-xs font-bold shadow-lg shadow-brand-purple/25 hover:opacity-95 transition-opacity flex items-center gap-1.5"
           >
@@ -156,12 +164,28 @@ export default function DashboardPage() {
             </h3>
 
             <Link
+              href="/messages"
+              className="w-full p-4 rounded-xl bg-gradient-to-r from-electric-500/15 to-navy-850 border border-electric-500/30 hover:border-electric-500 text-left flex items-center justify-between group transition-all"
+            >
+              <div>
+                <div className="text-sm font-bold text-white flex items-center gap-1.5">
+                  <MessageSquare className="w-4 h-4 text-electric-400" />
+                  Messages & Active Chats
+                </div>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  View your conversations, messages & live call history
+                </p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-white transition-colors" />
+            </Link>
+
+            <Link
               href="/match"
               className="w-full p-4 rounded-xl bg-gradient-to-r from-brand-purple/20 to-navy-850 border border-brand-purple/40 hover:border-brand-purple text-left flex items-center justify-between group transition-all"
             >
               <div>
                 <div className="text-sm font-bold text-white flex items-center gap-1.5">
-                  <MessageSquare className="w-4 h-4 text-electric-400" />
+                  <Sparkles className="w-4 h-4 text-brand-purple" />
                   Instant Matchmaking
                 </div>
                 <p className="text-[11px] text-slate-400 mt-0.5">

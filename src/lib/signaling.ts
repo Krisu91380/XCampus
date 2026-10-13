@@ -143,3 +143,34 @@ export function clearSignals(conversationId: string) {
     if (fs.existsSync(file)) fs.unlinkSync(file);
   } catch {}
 }
+
+/**
+ * Checks if there is an active incoming call for currentUserId in the specified conversation.
+ * Active means a call-request occurred within the last 45 seconds and has not been terminated/answered.
+ */
+export function getActiveCallSignal(
+  conversationId: string,
+  currentUserId: string
+): SignalMessage | null {
+  const signals = getMergedSignals(conversationId);
+  const now = Date.now();
+  let latestCallRequest: SignalMessage | null = null;
+  let hasTerminated = false;
+
+  for (const s of signals) {
+    if (s.createdAt < now - 45000) continue;
+    if (s.type === 'call-request' && s.fromUserId !== currentUserId) {
+      latestCallRequest = s;
+      hasTerminated = false;
+    } else if (
+      (s.type === 'call-end' || s.type === 'call-reject' || s.type === 'call-accept') &&
+      latestCallRequest &&
+      s.createdAt >= latestCallRequest.createdAt
+    ) {
+      hasTerminated = true;
+    }
+  }
+
+  return !hasTerminated && latestCallRequest ? latestCallRequest : null;
+}
+

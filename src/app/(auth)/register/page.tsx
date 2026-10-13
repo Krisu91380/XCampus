@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Shield, AlertCircle, CheckCircle2, Loader2, ArrowRight } from 'lucide-react';
+import { Sparkles, Shield, AlertCircle, CheckCircle2, Loader2, ArrowRight, Eye, EyeOff, Coins } from 'lucide-react';
 import { APP_CONFIG } from '@/lib/config';
 
 export default function RegisterPage() {
@@ -12,6 +12,7 @@ export default function RegisterPage() {
   const [loadingUnis, setLoadingUnis] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -112,11 +113,22 @@ export default function RegisterPage() {
         </div>
         <h1 className="text-3xl font-extrabold text-white">Join {APP_CONFIG.name}</h1>
         <p className="text-xs text-slate-400 mt-2">
-          Strictly for university students aged 18 and older. Get 2 free chat credits upon sign-up.
+          Strictly for university students aged 18 and older. Get 5 free chat credits upon sign-up.
         </p>
       </div>
 
       <div className="glass-card rounded-2xl p-6 sm:p-8 border border-navy-750 shadow-2xl">
+        {/* Welcome Bonus Callout */}
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-brand-purple/15 to-electric-500/15 border border-amber-500/30 flex items-center gap-3 mb-6">
+          <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+            <Coins className="w-5 h-5" />
+          </div>
+          <div className="text-xs">
+            <p className="font-bold text-amber-300">Welcome Bonus: 5 Free Credits</p>
+            <p className="text-[11px] text-slate-300">Every new student account starts with 5 free chat passes automatically!</p>
+          </div>
+        </div>
+
         {errorMessage && (
           <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2.5 mb-6 animate-fade-in">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -163,14 +175,24 @@ export default function RegisterPage() {
             <label className="block text-slate-300 font-semibold mb-1.5">
               Secure Password *
             </label>
-            <input
-              type="password"
-              required
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              placeholder="Min 8 characters, 1 uppercase, 1 number"
-              className="w-full px-4 py-2.5 rounded-xl bg-navy-900 border border-navy-700 text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple transition-colors"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder="Min 8 characters, 1 uppercase, 1 number"
+                className="w-full px-4 py-2.5 pr-11 rounded-xl bg-navy-900 border border-navy-700 text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple transition-colors"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 rounded-lg transition-colors focus:outline-none"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           {/* Date of Birth (Age Gate 18+) */}
