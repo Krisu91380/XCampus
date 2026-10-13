@@ -34,8 +34,10 @@ function ChatRoomContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const roomParam = searchParams.get('room');
   const isMatchMode = searchParams.get('match') === 'true' || searchParams.get('autoCall') === 'true';
   const conversationId = params?.id ? decodeURIComponent(params.id as string) : '';
+  const callSessionIdRef = useRef<string>('');
 
   // Auth & Conversation State
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -59,6 +61,7 @@ function ChatRoomContent() {
 
   // Friend State
   const [isFriend, setIsFriend] = useState(false);
+  const isMoneyRoom = isFriend || roomParam === 'money';
   const [friendRequestPending, setFriendRequestPending] = useState(false);
   const [addingFriend, setAddingFriend] = useState(false);
 
@@ -181,7 +184,13 @@ function ChatRoomContent() {
         await fetch(`/api/chat/${conversationId}/signaling`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type, payload }),
+          body: JSON.stringify({
+            type,
+            payload: {
+              sessionId: callSessionIdRef.current,
+              data: payload,
+            },
+          }),
         });
       } catch (e) {
         console.warn('Signaling error:', e);
@@ -304,9 +313,12 @@ function ChatRoomContent() {
 
         pc.ontrack = (event) => {
           if (remoteVideoRef.current && event.streams[0]) {
-            remoteVideoRef.current.srcObject = event.streams[0];
-            remoteVideoRef.current.play().catch(() => {});
-            setCallState('CONNECTED');
+            const tracks = event.streams[0].getTracks();
+            if (tracks.length > 0) {
+              remoteVideoRef.current.srcObject = event.streams[0];
+              remoteVideoRef.current.play().catch(() => {});
+              setCallState('CONNECTED');
+            }
           }
         };
 
@@ -318,7 +330,9 @@ function ChatRoomContent() {
 
         pc.onconnectionstatechange = () => {
           if (pc.connectionState === 'connected') {
-            setCallState('CONNECTED');
+            if (remoteVideoRef.current?.srcObject) {
+              setCallState('CONNECTED');
+            }
           } else if (pc.connectionState === 'disconnected') {
             setCallState('RECONNECTING');
           } else if (pc.connectionState === 'failed') {
@@ -352,6 +366,19 @@ function ChatRoomContent() {
 
                 lastSignalTimeRef.current = Math.max(lastSignalTimeRef.current, sig.createdAt);
 
+                const rawPayload = sig.payload;
+                const sigSessionId = rawPayload?.sessionId;
+                const payloadData = rawPayload?.data !== undefined ? rawPayload.data : rawPayload;
+
+                // Stale signal rejection: ignore signals from previous call sessions
+                if (sigSessionId && callSessionIdRef.current && sigSessionId !== callSessionIdRef.current) {
+                  if (sig.type === 'offer' && !isInitiator) {
+                    callSessionIdRef.current = sigSessionId;
+                  } else {
+                    continue;
+                  }
+                }
+
                 // Partner skipped to next match!
                 if (sig.type === 'call-next') {
                   setCallState('PARTNER_SKIPPED');
@@ -370,7 +397,7 @@ function ChatRoomContent() {
                   if (pc.signalingState !== 'stable') {
                     await pc.setLocalDescription({ type: 'rollback' } as any).catch(() => {});
                   }
-                  await pc.setRemoteDescription(new RTCSessionDescription(sig.payload));
+                  await pc.setRemoteDescription(new RTCSessionDescription(payloadData));
                   await flushIceQueue(pc);
 
                   const answer = await pc.createAnswer();
@@ -381,18 +408,18 @@ function ChatRoomContent() {
 
                 if (sig.type === 'answer' && isInitiator) {
                   if (pc.signalingState === 'have-local-offer') {
-                    await pc.setRemoteDescription(new RTCSessionDescription(sig.payload));
+                    await pc.setRemoteDescription(new RTCSessionDescription(payloadData));
                     await flushIceQueue(pc);
                     setCallState('CONNECTING');
                   }
                 }
 
-                if (sig.type === 'ice-candidate' && sig.payload) {
+                if (sig.type === 'ice-candidate' && payloadData) {
                   if (!pc.remoteDescription) {
-                    iceCandidatesQueueRef.current.push(sig.payload);
+                    iceCandidatesQueueRef.current.push(payloadData);
                   } else {
                     try {
-                      await pc.addIceCandidate(new RTCIceCandidate(sig.payload));
+                      await pc.addIceCandidate(new RTCIceCandidate(payloadData));
                     } catch {}
                   }
                 }
@@ -408,6 +435,9 @@ function ChatRoomContent() {
       }
     };
 
+    if (!callSessionIdRef.current || callState === 'IDLE' || callState === 'ENDED') {
+      callSessionIdRef.current = 'call_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    }
     startWebRTC();
 
     return () => {
@@ -715,13 +745,15 @@ function ChatRoomContent() {
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
                 </span>
               )}
-              {isFriend ? (
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold">
-                  ✓ Friends
+              {isMoneyRoom ? (
+                <span className="px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-bold flex items-center gap-1 shadow-sm">
+                  <Sparkles className="w-3 h-3 text-amber-400" />
+                  <span>Money Room</span>
                 </span>
               ) : (
-                <span className="px-2 py-0.5 rounded-full bg-electric-500/10 border border-electric-500/30 text-electric-300 text-[10px] font-semibold">
-                  Matched Peer
+                <span className="px-2.5 py-0.5 rounded-full bg-electric-500/20 border border-electric-500/40 text-electric-300 text-[10px] font-bold flex items-center gap-1 shadow-sm">
+                  <Sparkles className="w-3 h-3 text-electric-400" />
+                  <span>Match Room</span>
                 </span>
               )}
             </div>
@@ -768,7 +800,7 @@ function ChatRoomContent() {
             <button
               onClick={() => setIsVideoActive(true)}
               className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 hover:opacity-95 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-brand-purple/20 transition-all cursor-pointer"
-              title="Start Live Omegle Video Feed"
+              title="Start Live Video Feed"
             >
               <Video className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Start Video</span>
@@ -784,15 +816,17 @@ function ChatRoomContent() {
             </button>
           )}
 
-          {/* Omegle Next Match Button */}
-          <button
-            onClick={handleNextMatch}
-            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-95 text-navy-950 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
-            title="End this session and automatically match with the next student"
-          >
-            <FastForward className="w-3.5 h-3.5" />
-            <span>Next Match</span>
-          </button>
+          {/* Omegle Next Match Button (Only in Match Room, NEVER in Money Room) */}
+          {!isMoneyRoom && (
+            <button
+              onClick={handleNextMatch}
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-95 text-navy-950 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+              title="End this session and automatically match with the next student"
+            >
+              <FastForward className="w-3.5 h-3.5" />
+              <span>Next Match</span>
+            </button>
+          )}
 
           {/* Three-dot dropdown menu */}
           <div className="relative">
@@ -884,24 +918,37 @@ function ChatRoomContent() {
 
             {/* Video Streams Container */}
             <div className="relative flex-1 w-full h-full bg-navy-950 flex items-center justify-center overflow-hidden">
-              {/* Partner Skipped Overlay */}
+              {/* Partner Skipped / Call Ended Overlay */}
               {callState === 'PARTNER_SKIPPED' ? (
                 <div className="p-6 text-center space-y-4 z-10 animate-fade-in">
                   <div className="w-16 h-16 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
                     <FastForward className="w-8 h-8" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-white">Partner Skipped</h3>
+                    <h3 className="text-lg font-bold text-white">
+                      {isMoneyRoom ? 'Call Ended' : 'Partner Skipped'}
+                    </h3>
                     <p className="text-xs text-slate-300 mt-1">
-                      {partner?.displayName || 'Student'} skipped to the next match.
+                      {isMoneyRoom
+                        ? `${partner?.displayName || 'Your friend'} has ended the video call. Your chat and friendship remain active.`
+                        : `${partner?.displayName || 'Student'} skipped to the next match.`}
                     </p>
                   </div>
-                  <button
-                    onClick={() => router.push('/match?autoSearch=true')}
-                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white font-bold text-xs shadow-xl shadow-brand-purple/30 hover:opacity-95 transition-all cursor-pointer"
-                  >
-                    Find Next Student Match
-                  </button>
+                  {isMoneyRoom ? (
+                    <button
+                      onClick={() => setIsVideoActive(false)}
+                      className="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white font-bold text-xs shadow-xl shadow-brand-purple/30 hover:opacity-95 transition-all cursor-pointer"
+                    >
+                      Return to Chat
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => router.push('/match?autoSearch=true')}
+                      className="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white font-bold text-xs shadow-xl shadow-brand-purple/30 hover:opacity-95 transition-all cursor-pointer"
+                    >
+                      Find Next Student Match
+                    </button>
+                  )}
                 </div>
               ) : videoError ? (
                 <div className="p-6 text-center space-y-3 z-10 animate-fade-in max-w-sm">
@@ -937,7 +984,11 @@ function ChatRoomContent() {
                         <h4 className="text-base font-bold text-white">{partner?.displayName}</h4>
                         <p className="text-xs text-slate-400 mt-1 flex items-center justify-center gap-1.5">
                           <Loader2 className="w-3.5 h-3.5 animate-spin text-electric-400" />
-                          <span>Establishing live Omegle video connection...</span>
+                          <span>
+                            {isMoneyRoom
+                              ? 'Establishing secure Money Room video feed...'
+                              : 'Establishing live Match Room video connection...'}
+                          </span>
                         </p>
                       </div>
                     </div>
@@ -983,15 +1034,17 @@ function ChatRoomContent() {
                 {isMicMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </button>
 
-              {/* Next Match Skip Button */}
-              <button
-                onClick={handleNextMatch}
-                className="px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-95 text-navy-950 font-bold text-xs flex items-center gap-1.5 shadow-xl shadow-amber-500/30 hover:scale-105 transition-all cursor-pointer"
-                title="Skip to next match (Omegle style)"
-              >
-                <FastForward className="w-4 h-4" />
-                <span>Next Match</span>
-              </button>
+              {/* Next Match Skip Button (Only in Match Room) */}
+              {!isMoneyRoom && (
+                <button
+                  onClick={handleNextMatch}
+                  className="px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-95 text-navy-950 font-bold text-xs flex items-center gap-1.5 shadow-xl shadow-amber-500/30 hover:scale-105 transition-all cursor-pointer"
+                  title="Skip to next match (Omegle style)"
+                >
+                  <FastForward className="w-4 h-4" />
+                  <span>Next Match</span>
+                </button>
+              )}
 
               {/* Camera On/Off Button */}
               <button

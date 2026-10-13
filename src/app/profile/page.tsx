@@ -85,6 +85,42 @@ export default function ProfilePage() {
         throw new Error(profileData.message || 'Failed to load profile');
       }
 
+      if (profileData.profile?.avatarUrl) {
+        try {
+          localStorage.setItem('campusconnect_avatar_' + profileData.profile.userId, profileData.profile.avatarUrl);
+          localStorage.setItem('campusconnect_avatar', profileData.profile.avatarUrl);
+        } catch {}
+      } else {
+        // Auto-heal from localStorage if cold boot container missed avatar
+        try {
+          const cachedAvatar =
+            localStorage.getItem('campusconnect_avatar_' + profileData.profile.userId) ||
+            localStorage.getItem('campusconnect_avatar');
+          if (cachedAvatar) {
+            profileData.profile.avatarUrl = cachedAvatar;
+            // Background sync back to database
+            fetch('/api/profile', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                displayName: profileData.profile.displayName,
+                avatarUrl: cachedAvatar,
+                gender: profileData.profile.gender,
+                bio: profileData.profile.bio,
+                course: profileData.profile.course,
+                branch: profileData.profile.branch,
+                academicYear: profileData.profile.academicYear,
+                semester: profileData.profile.semester,
+                language: profileData.profile.language,
+                interests: profileData.profile.interests,
+                skills: profileData.profile.skills,
+                socialLinks: profileData.profile.socialLinks,
+              }),
+            }).catch(() => {});
+          }
+        } catch {}
+      }
+
       setProfile(profileData.profile);
       if (authData.authenticated && authData.user) {
         setCredits(authData.user.credits || 0);
@@ -155,6 +191,12 @@ export default function ProfilePage() {
       }
 
       setProfile((prev: any) => ({ ...prev, avatarUrl: data.avatarUrl }));
+      try {
+        if (profile?.userId) {
+          localStorage.setItem('campusconnect_avatar_' + profile.userId, data.avatarUrl);
+        }
+        localStorage.setItem('campusconnect_avatar', data.avatarUrl);
+      } catch {}
       setMessage({ type: 'success', text: 'Profile photo updated successfully!' });
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Failed to upload photo.' });
@@ -177,6 +219,12 @@ export default function ProfilePage() {
       }
 
       setProfile((prev: any) => ({ ...prev, avatarUrl: null }));
+      try {
+        if (profile?.userId) {
+          localStorage.removeItem('campusconnect_avatar_' + profile.userId);
+        }
+        localStorage.removeItem('campusconnect_avatar');
+      } catch {}
       setMessage({ type: 'success', text: 'Profile photo removed.' });
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Failed to remove photo.' });

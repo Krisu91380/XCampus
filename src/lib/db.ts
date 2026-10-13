@@ -544,6 +544,95 @@ class InMemoryStore {
       }
     });
 
+    // 5. Seed Mutual Permanent Friendships & Initial Conversations for Krish Barak & Demo Students
+    const seedFriendships = [
+      {
+        id: 'fr-krish-aarav',
+        senderId: 'user-student-1',
+        receiverId: 'user-student-krish',
+        status: 'ACCEPTED' as const,
+        convId: 'conv_user-student-1__user-student-krish__5f26ba590eb70a6f',
+        firstMsg: 'Hey Krish! Great connecting on CampusConnect.',
+      },
+      {
+        id: 'fr-krish-priya',
+        senderId: 'user-student-2',
+        receiverId: 'user-student-krish',
+        status: 'ACCEPTED' as const,
+        convId: 'conv_user-student-2__user-student-krish__693362988835865e',
+        firstMsg: 'Hi Krish! Welcome to CampusConnect. Looking forward to collaborating on campus projects.',
+      },
+      {
+        id: 'fr-aarav-priya',
+        senderId: 'user-student-1',
+        receiverId: 'user-student-2',
+        status: 'ACCEPTED' as const,
+        convId: 'conv_user-student-1__user-student-2__2793898ef75c35e1',
+        firstMsg: 'Hey Priya, let us discuss the tech symposium next week!',
+      },
+    ];
+
+    seedFriendships.forEach((f) => {
+      if (!this.friendRequests.has(f.id)) {
+        this.friendRequests.set(f.id, {
+          id: f.id,
+          senderId: f.senderId,
+          receiverId: f.receiverId,
+          status: f.status,
+          createdAt: new Date('2026-10-12T10:00:00Z'),
+          updatedAt: new Date('2026-10-12T10:05:00Z'),
+        });
+      }
+
+      if (!this.conversations.has(f.convId)) {
+        this.conversations.set(f.convId, {
+          id: f.convId,
+          status: 'ACTIVE',
+          creditDeducted: true,
+          startedAt: new Date('2026-10-12T10:05:00Z'),
+          endedAt: null,
+        });
+      }
+
+      const p1Key = `${f.convId}:${f.senderId}`;
+      if (!this.conversationParticipants.has(p1Key)) {
+        this.conversationParticipants.set(p1Key, {
+          id: `part-${f.convId}-${f.senderId}`,
+          conversationId: f.convId,
+          userId: f.senderId,
+          hasUnread: false,
+          joinedAt: new Date('2026-10-12T10:05:00Z'),
+          clearedAt: null,
+          hidden: false,
+        });
+      }
+
+      const p2Key = `${f.convId}:${f.receiverId}`;
+      if (!this.conversationParticipants.has(p2Key)) {
+        this.conversationParticipants.set(p2Key, {
+          id: `part-${f.convId}-${f.receiverId}`,
+          conversationId: f.convId,
+          userId: f.receiverId,
+          hasUnread: false,
+          joinedAt: new Date('2026-10-12T10:05:00Z'),
+          clearedAt: null,
+          hidden: false,
+        });
+      }
+
+      const msgId = `msg-${f.id}-init`;
+      if (!this.messages.has(msgId)) {
+        this.messages.set(msgId, {
+          id: msgId,
+          conversationId: f.convId,
+          senderId: f.senderId,
+          content: f.firstMsg,
+          isRead: true,
+          createdAt: new Date('2026-10-12T10:06:00Z'),
+        });
+      }
+    });
+
     this.initialized = true;
   }
 }
@@ -857,9 +946,11 @@ export const db = {
   },
 
   conversationParticipant: {
-    findMany: async ({ where }: { where: { userId?: string; conversationId?: string; hidden?: boolean } }): Promise<ConversationParticipant[]> => {
+    findMany: async (args?: { where?: { userId?: string; conversationId?: string; hidden?: boolean } }): Promise<ConversationParticipant[]> => {
       store.syncFromDiskIfNeeded();
       const all = Array.from(store.conversationParticipants.values());
+      const where = args?.where;
+      if (!where) return all;
       return all.filter((p) => {
         if (where.userId && p.userId !== where.userId) return false;
         if (where.conversationId && p.conversationId !== where.conversationId) return false;

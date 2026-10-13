@@ -50,8 +50,13 @@ export async function verifyAndResolveParticipants(
         .update(`${sorted[0]}:${sorted[1]}`)
         .digest('hex')
         .slice(0, 16);
+      const fallbackHmac = crypto
+        .createHmac('sha256', SECRET_FALLBACK)
+        .update(`${sorted[0]}:${sorted[1]}`)
+        .digest('hex')
+        .slice(0, 16);
 
-      if (sig === expectedHmac) {
+      if (sig === expectedHmac || sig === fallbackHmac) {
         // Cryptographically verified! Now verify current user is one of the participants
         if (currentUserId === u1 || currentUserId === u2) {
           const partnerId = currentUserId === u1 ? u2 : u1;

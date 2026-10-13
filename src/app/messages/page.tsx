@@ -55,6 +55,10 @@ export default function MessagesPage() {
   const [loadingBlocked, setLoadingBlocked] = useState(false);
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
 
+  // Partner Profile Modal & Dropdown Menus
+  const [profileModalUser, setProfileModalUser] = useState<any | null>(null);
+  const [openItemMenuId, setOpenItemMenuId] = useState<string | null>(null);
+
   // Active chat state
   const [messages, setMessages] = useState<any[]>([]);
   const [loadingChat, setLoadingChat] = useState(false);
@@ -99,7 +103,11 @@ export default function MessagesPage() {
         }
         return;
       }
-      setConversations(data.conversations || []);
+      const list = data.conversations || [];
+      setConversations(list);
+      try {
+        localStorage.setItem('campusconnect_cached_conversations', JSON.stringify(list));
+      } catch {}
     } catch {
       //
     } finally {
@@ -141,6 +149,16 @@ export default function MessagesPage() {
   };
 
   useEffect(() => {
+    try {
+      const cached = localStorage.getItem('campusconnect_cached_conversations');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setConversations(parsed);
+          setLoadingList(false);
+        }
+      }
+    } catch {}
     fetchConversations();
     fetchFriends();
     const interval = setInterval(() => {
@@ -150,21 +168,33 @@ export default function MessagesPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Filter conversations by search query
+  // Filter conversations by search query & ensure active chat is visible
   useEffect(() => {
+    let baseList = [...conversations];
+    if (selectedConvId && chatPartner && !baseList.some((c) => c.id === selectedConvId)) {
+      baseList.unshift({
+        id: selectedConvId,
+        status: 'ACTIVE',
+        startedAt: new Date().toISOString(),
+        partner: chatPartner,
+        lastMessage: messages.length > 0 ? messages[messages.length - 1] : null,
+        unreadCount: 0,
+      });
+    }
+
     if (!searchQuery.trim()) {
-      setFilteredConversations(conversations);
+      setFilteredConversations(baseList);
       return;
     }
     const q = searchQuery.toLowerCase();
-    const filtered = conversations.filter(
+    const filtered = baseList.filter(
       (c) =>
         c.partner?.displayName?.toLowerCase().includes(q) ||
         c.partner?.universityName?.toLowerCase().includes(q) ||
         c.partner?.course?.toLowerCase().includes(q)
     );
     setFilteredConversations(filtered);
-  }, [conversations, searchQuery]);
+  }, [conversations, searchQuery, selectedConvId, chatPartner, messages]);
 
   // Auto-select first conversation on desktop if none selected
   useEffect(() => {
@@ -320,14 +350,15 @@ export default function MessagesPage() {
     }
   };
 
-  const handleSendFriendRequest = async () => {
-    if (!chatPartner?.id || addingFriend) return;
+  const handleSendFriendRequest = async (targetPartner?: any) => {
+    const p = targetPartner || chatPartner;
+    if (!p?.id || addingFriend) return;
     setAddingFriend(true);
     try {
       const res = await fetch('/api/friends/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetUserId: chatPartner.id }),
+        body: JSON.stringify({ targetUserId: p.id }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -335,24 +366,34 @@ export default function MessagesPage() {
       }
 
       if (data.status === 'ACCEPTED') {
-        setChatPartner((prev: any) => ({ ...prev, isFriend: true }));
+        if (chatPartner?.id === p.id) {
+          setChatPartner((prev: any) => ({ ...prev, isFriend: true }));
+        }
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.partner?.id === p.id ? { ...c, partner: { ...c.partner, isFriend: true } } : c
+          )
+        );
         showToast('You are now connected as friends!');
       } else {
-        showToast('Friend request sent to ' + chatPartner.displayName);
+        showToast('Friend request sent to ' + p.displayName);
       }
       fetchFriends();
+      fetchConversations();
     } catch (err: any) {
       showToast(err.message);
     } finally {
       setAddingFriend(false);
+      setOpenItemMenuId(null);
     }
   };
 
-  const handleRemoveFriend = async () => {
-    if (!chatPartner?.id) return;
+  const handleRemoveFriend = async (targetPartner?: any) => {
+    const p = targetPartner || chatPartner;
+    if (!p?.id) return;
     if (
       !confirm(
-        `Are you sure you want to remove ${chatPartner.displayName} from your friends list? Your chat history will be kept.`
+        `Are you sure you want to remove ${p.displayName} from your friends list? Your chat history will be kept.`
       )
     ) {
       return;
@@ -362,27 +403,37 @@ export default function MessagesPage() {
       const res = await fetch('/api/friends/remove', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetUserId: chatPartner.id }),
+        body: JSON.stringify({ targetUserId: p.id }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(data.message || 'Failed to remove friend');
       }
 
-      setChatPartner((prev: any) => ({ ...prev, isFriend: false }));
+      if (chatPartner?.id === p.id) {
+        setChatPartner((prev: any) => ({ ...prev, isFriend: false }));
+      }
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.partner?.id === p.id ? { ...c, partner: { ...c.partner, isFriend: false } } : c
+        )
+      );
       setActiveMenuOpen(false);
-      showToast(`${chatPartner.displayName} removed from friends.`);
+      setOpenItemMenuId(null);
+      showToast(`${p.displayName} removed from friends.`);
       fetchFriends();
+      fetchConversations();
     } catch (err: any) {
       alert(err.message);
     }
   };
 
-  const handleBlockUser = async () => {
-    if (!chatPartner?.id) return;
+  const handleBlockUser = async (targetPartner?: any) => {
+    const p = targetPartner || chatPartner;
+    if (!p?.id) return;
     if (
       !confirm(
-        `Are you sure you want to block ${chatPartner.displayName}? They will not be able to send messages, call, or match with you again.`
+        `Are you sure you want to block ${p.displayName}? They will not be able to send messages, call, or match with you again.`
       )
     ) {
       return;
@@ -392,7 +443,7 @@ export default function MessagesPage() {
       const res = await fetch('/api/friends/block', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetUserId: chatPartner.id }),
+        body: JSON.stringify({ targetUserId: p.id }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -400,17 +451,21 @@ export default function MessagesPage() {
       }
 
       setActiveMenuOpen(false);
-      setSelectedConvId(null);
-      setChatPartner(null);
-      showToast(`${chatPartner.displayName} blocked.`);
+      setOpenItemMenuId(null);
+      if (chatPartner?.id === p.id) {
+        setSelectedConvId(null);
+        setChatPartner(null);
+      }
+      showToast(`${p.displayName} blocked.`);
       await Promise.all([fetchConversations(), fetchFriends()]);
     } catch (err: any) {
       alert(err.message);
     }
   };
 
-  const handleDeleteChat = async () => {
-    if (!selectedConvId) return;
+  const handleDeleteChat = async (convId?: string) => {
+    const idToDelete = convId || selectedConvId;
+    if (!idToDelete) return;
     if (
       !confirm(
         'Are you sure you want to delete this chat? The conversation will be removed from your list, but your friend can still message you.'
@@ -420,15 +475,18 @@ export default function MessagesPage() {
     }
 
     try {
-      const res = await fetch(`/api/chat/${selectedConvId}/delete`, { method: 'POST' });
+      const res = await fetch(`/api/chat/${idToDelete}/delete`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(data.message || 'Failed to delete chat');
       }
 
       setActiveMenuOpen(false);
-      setSelectedConvId(null);
-      setChatPartner(null);
+      setOpenItemMenuId(null);
+      if (selectedConvId === idToDelete) {
+        setSelectedConvId(null);
+        setChatPartner(null);
+      }
       showToast('Conversation deleted.');
       fetchConversations();
     } catch (err: any) {
@@ -510,17 +568,6 @@ export default function MessagesPage() {
               </div>
 
               <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => {
-                    fetchBlockedUsers();
-                    setShowBlockedModal(true);
-                  }}
-                  className="p-1.5 rounded-xl bg-navy-850 hover:bg-navy-800 text-slate-400 hover:text-white text-xs border border-navy-750 transition-colors"
-                  title="Manage Blocked Users"
-                >
-                  <Ban className="w-3.5 h-3.5" />
-                </button>
-
                 <Link
                   href="/match"
                   className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 hover:opacity-90 text-white text-xs font-semibold flex items-center gap-1 shadow-sm"
@@ -667,76 +714,147 @@ export default function MessagesPage() {
                 const isSelected = conv.id === selectedConvId;
                 const partner = conv.partner;
                 return (
-                  <button
+                  <div
                     key={conv.id}
-                    onClick={() => handleSelectConversation(conv.id)}
-                    className={`w-full p-3.5 sm:p-4 text-left flex items-start gap-3 transition-colors ${
+                    className={`w-full p-3.5 sm:p-4 text-left flex items-start justify-between gap-2.5 transition-colors group relative ${
                       isSelected
                         ? 'bg-electric-500/15 border-l-4 border-electric-500'
                         : 'hover:bg-navy-850/60'
                     }`}
                   >
-                    <div className="relative shrink-0">
-                      {partner?.avatarUrl ? (
-                        <img
-                          src={partner.avatarUrl}
-                          alt={partner.displayName}
-                          className="w-11 h-11 rounded-full object-cover border border-navy-700"
-                        />
-                      ) : (
-                        <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center text-white font-bold text-sm shadow">
-                          {partner?.displayName?.[0] || 'S'}
-                        </div>
-                      )}
-                      {partner?.isOnline && (
-                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-navy-900" />
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1 mb-0.5">
-                        <span className="text-xs font-bold text-white truncate flex items-center gap-1">
-                          <span>{partner?.displayName || 'Student'}</span>
-                          {partner?.isVerified && (
-                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                          )}
-                          {partner?.isFriend && (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-400 font-semibold">
-                              Friend
-                            </span>
-                          )}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono shrink-0">
-                          {formatConversationTime(conv.lastMessage?.createdAt || conv.startedAt)}
-                        </span>
-                      </div>
-
-                      <p className="text-[11px] text-slate-400 truncate mb-1">
-                        {partner?.universityName || 'Verified University Student'}
-                      </p>
-
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-[11px] text-slate-300 truncate">
-                          {conv.lastMessage?.content ? (
-                            <span>
-                              {conv.lastMessage.isMine && (
-                                <span className="text-slate-400 font-medium">You: </span>
-                              )}
-                              {conv.lastMessage.content}
-                            </span>
-                          ) : (
-                            <span className="italic text-slate-500">Connected. Say hello!</span>
-                          )}
-                        </p>
-
-                        {conv.unreadCount > 0 && (
-                          <span className="px-1.5 py-0.5 rounded-full bg-electric-500 text-white font-bold text-[9px] shrink-0">
-                            {conv.unreadCount}
-                          </span>
+                    {/* Clickable Area for Chat Selection */}
+                    <div
+                      onClick={() => handleSelectConversation(conv.id)}
+                      className="flex items-start gap-3 flex-1 min-w-0 cursor-pointer"
+                    >
+                      <div className="relative shrink-0">
+                        {partner?.avatarUrl ? (
+                          <img
+                            src={partner.avatarUrl}
+                            alt={partner.displayName}
+                            className="w-11 h-11 rounded-full object-cover border border-navy-700"
+                          />
+                        ) : (
+                          <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center text-white font-bold text-sm shadow">
+                            {partner?.displayName?.[0] || 'S'}
+                          </div>
+                        )}
+                        {partner?.isOnline && (
+                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-navy-900" />
                         )}
                       </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1 mb-0.5">
+                          <span className="text-xs font-bold text-white truncate flex items-center gap-1">
+                            <span>{partner?.displayName || 'Student'}</span>
+                            {partner?.isVerified && (
+                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            )}
+                            {partner?.isFriend && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-400 font-semibold">
+                                Friend
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                            {formatConversationTime(conv.lastMessage?.createdAt || conv.startedAt)}
+                          </span>
+                        </div>
+
+                        <p className="text-[11px] text-slate-400 truncate mb-1">
+                          {partner?.universityName || 'Verified University Student'}
+                        </p>
+
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[11px] text-slate-300 truncate">
+                            {conv.lastMessage?.content ? (
+                              <span>
+                                {conv.lastMessage.isMine && (
+                                  <span className="text-slate-400 font-medium">You: </span>
+                                )}
+                                {conv.lastMessage.content}
+                              </span>
+                            ) : (
+                              <span className="italic text-slate-500">Connected. Say hello!</span>
+                            )}
+                          </p>
+
+                          {conv.unreadCount > 0 && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-electric-500 text-white font-bold text-[9px] shrink-0">
+                              {conv.unreadCount}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </button>
+
+                    {/* Three-Dot Dropdown Menu for This Conversation Item */}
+                    <div className="relative shrink-0 pt-0.5">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenItemMenuId(openItemMenuId === conv.id ? null : conv.id);
+                        }}
+                        className="p-1 rounded-lg text-slate-500 hover:text-white hover:bg-navy-800 transition-colors"
+                        title="Chat options"
+                      >
+                        <MoreVertical className="w-3.5 h-3.5" />
+                      </button>
+
+                      {openItemMenuId === conv.id && (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute right-0 top-full mt-1 w-44 rounded-2xl bg-navy-900 border border-navy-750 shadow-2xl py-1.5 z-40 text-xs"
+                        >
+                          <button
+                            onClick={() => {
+                              setOpenItemMenuId(null);
+                              setProfileModalUser(partner);
+                            }}
+                            className="w-full px-3.5 py-2 text-left text-slate-300 hover:bg-navy-800 hover:text-white flex items-center gap-2"
+                          >
+                            <User className="w-3.5 h-3.5 text-electric-400" />
+                            <span>View Profile</span>
+                          </button>
+
+                          {partner?.isFriend ? (
+                            <button
+                              onClick={() => handleRemoveFriend(partner)}
+                              className="w-full px-3.5 py-2 text-left text-slate-300 hover:bg-navy-800 hover:text-white flex items-center gap-2"
+                            >
+                              <UserMinus className="w-3.5 h-3.5 text-amber-400" />
+                              <span>Remove Friend</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleSendFriendRequest(partner)}
+                              className="w-full px-3.5 py-2 text-left text-slate-300 hover:bg-navy-800 hover:text-white flex items-center gap-2"
+                            >
+                              <UserPlus className="w-3.5 h-3.5 text-emerald-400" />
+                              <span>Add Friend</span>
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleDeleteChat(conv.id)}
+                            className="w-full px-3.5 py-2 text-left text-slate-300 hover:bg-navy-800 hover:text-white flex items-center gap-2"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Delete Chat</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleBlockUser(partner)}
+                            className="w-full px-3.5 py-2 text-left text-rose-400 hover:bg-rose-950/40 flex items-center gap-2"
+                          >
+                            <Ban className="w-3.5 h-3.5" />
+                            <span>Block User</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 );
               })
             )}
@@ -823,13 +941,25 @@ export default function MessagesPage() {
                     <span className="hidden sm:inline">Video Call</span>
                   </button>
 
-                  <Link
-                    href={`/chat/${selectedConvId}?match=true`}
-                    className="px-2.5 py-1.5 rounded-xl border border-navy-750 hover:bg-navy-850 text-slate-300 text-xs transition-colors"
-                    title="Open Omegle room view"
-                  >
-                    Omegle Room
-                  </Link>
+                  {chatPartner.isFriend ? (
+                    <Link
+                      href={`/chat/${selectedConvId}?room=money&autoCall=true`}
+                      className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all"
+                      title="Enter private Money Room for live video call with friend"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Money Room</span>
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/chat/${selectedConvId}?room=match&match=true&autoCall=true`}
+                      className="px-2.5 py-1.5 rounded-xl border border-navy-750 hover:bg-navy-850 text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                      title="Open Match Room view"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-electric-400" />
+                      <span>Match Room</span>
+                    </Link>
+                  )}
 
                   {/* Three-dot dropdown menu */}
                   <div className="relative">
@@ -842,24 +972,42 @@ export default function MessagesPage() {
 
                     {activeMenuOpen && (
                       <div className="absolute right-0 top-full mt-1 w-44 rounded-2xl bg-navy-900 border border-navy-750 shadow-2xl py-1.5 z-40 text-xs">
-                        {chatPartner.isFriend && (
+                        <button
+                          onClick={() => {
+                            setActiveMenuOpen(false);
+                            setProfileModalUser(chatPartner);
+                          }}
+                          className="w-full px-3.5 py-2 text-left text-slate-300 hover:bg-navy-800 hover:text-white flex items-center gap-2"
+                        >
+                          <User className="w-3.5 h-3.5 text-electric-400" />
+                          <span>View Profile</span>
+                        </button>
+                        {chatPartner.isFriend ? (
                           <button
-                            onClick={handleRemoveFriend}
+                            onClick={() => handleRemoveFriend()}
                             className="w-full px-3.5 py-2 text-left text-slate-300 hover:bg-navy-800 hover:text-white flex items-center gap-2"
                           >
                             <UserMinus className="w-3.5 h-3.5 text-amber-400" />
                             <span>Remove Friend</span>
                           </button>
+                        ) : (
+                          <button
+                            onClick={() => handleSendFriendRequest()}
+                            className="w-full px-3.5 py-2 text-left text-slate-300 hover:bg-navy-800 hover:text-white flex items-center gap-2"
+                          >
+                            <UserPlus className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Add Friend</span>
+                          </button>
                         )}
                         <button
-                          onClick={handleDeleteChat}
+                          onClick={() => handleDeleteChat()}
                           className="w-full px-3.5 py-2 text-left text-slate-300 hover:bg-navy-800 hover:text-white flex items-center gap-2"
                         >
                           <Trash2 className="w-3.5 h-3.5 text-slate-400" />
                           <span>Delete Chat</span>
                         </button>
                         <button
-                          onClick={handleBlockUser}
+                          onClick={() => handleBlockUser()}
                           className="w-full px-3.5 py-2 text-left text-rose-400 hover:bg-rose-950/40 flex items-center gap-2"
                         >
                           <Ban className="w-3.5 h-3.5" />
@@ -1034,6 +1182,104 @@ export default function MessagesPage() {
           isOpen={isVideoModalOpen}
           onClose={() => setIsVideoModalOpen(false)}
         />
+      )}
+
+      {/* Student Profile Quick View Modal */}
+      {profileModalUser && (
+        <div
+          className="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setProfileModalUser(null)}
+        >
+          <div
+            className="w-full max-w-md bg-navy-900 border border-navy-750 rounded-3xl p-6 shadow-2xl space-y-5 animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3.5">
+                <div className="relative">
+                  {profileModalUser.avatarUrl ? (
+                    <img
+                      src={profileModalUser.avatarUrl}
+                      alt={profileModalUser.displayName}
+                      className="w-16 h-16 rounded-full object-cover border-2 border-brand-purple shadow-md"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center text-white text-xl font-bold shadow-md">
+                      {profileModalUser.displayName?.[0] || 'S'}
+                    </div>
+                  )}
+                  {profileModalUser.isOnline && (
+                    <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-navy-900" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-1.5">
+                    <span>{profileModalUser.displayName}</span>
+                    {profileModalUser.isVerified && (
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    )}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {profileModalUser.universityName || 'Verified University Student'}
+                  </p>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    {profileModalUser.isFriend ? (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold">
+                        ✓ Connected Friend
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full bg-electric-500/10 border border-electric-500/30 text-electric-300 text-[10px] font-semibold">
+                        Campus Peer
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setProfileModalUser(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-navy-800 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs bg-navy-950/60 p-4 rounded-2xl border border-navy-800">
+              {profileModalUser.course && (
+                <div className="flex items-center justify-between py-1 border-b border-navy-800/60">
+                  <span className="text-slate-400">Course / Program</span>
+                  <span className="text-white font-medium">{profileModalUser.course}</span>
+                </div>
+              )}
+              {profileModalUser.branch && (
+                <div className="flex items-center justify-between py-1 border-b border-navy-800/60">
+                  <span className="text-slate-400">Branch / Specialization</span>
+                  <span className="text-white font-medium">{profileModalUser.branch}</span>
+                </div>
+              )}
+              {profileModalUser.academicYear && (
+                <div className="flex items-center justify-between py-1 border-b border-navy-800/60">
+                  <span className="text-slate-400">Academic Year</span>
+                  <span className="text-white font-medium">{profileModalUser.academicYear}</span>
+                </div>
+              )}
+              {profileModalUser.bio && (
+                <div className="pt-1">
+                  <span className="text-slate-400 block mb-1">About Student</span>
+                  <p className="text-slate-200 leading-relaxed italic">{profileModalUser.bio}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button
+                onClick={() => setProfileModalUser(null)}
+                className="px-4 py-2 rounded-xl bg-navy-850 hover:bg-navy-800 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

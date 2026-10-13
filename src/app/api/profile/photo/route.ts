@@ -54,22 +54,27 @@ export async function POST(req: NextRequest) {
       avatarUrl = await uploadProfilePhotoToSupabase(session.userId, buffer, file.type);
     }
 
-    // 2. If Supabase is not configured or failed, save locally or as resilient base64 data URI
+    // 2. If Supabase is not configured or in Vercel serverless, store as resilient data URI
+    // Dynamic uploads to public/ are not served on Vercel and return 404
     if (!avatarUrl) {
-      try {
-        const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'avatars');
-        if (!fs.existsSync(uploadsDir)) {
-          fs.mkdirSync(uploadsDir, { recursive: true });
-        }
-        const ext = file.type.includes('png') ? 'png' : file.type.includes('webp') ? 'webp' : 'jpg';
-        const fileName = `user_${session.userId}_${Date.now()}.${ext}`;
-        const filePath = path.join(uploadsDir, fileName);
-        fs.writeFileSync(filePath, buffer);
-        avatarUrl = `/uploads/avatars/${fileName}`;
-      } catch {
-        // Fallback to data URI to survive serverless container rotations
+      if (process.env.VERCEL) {
         const base64 = buffer.toString('base64');
         avatarUrl = `data:${file.type};base64,${base64}`;
+      } else {
+        try {
+          const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'avatars');
+          if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+          }
+          const ext = file.type.includes('png') ? 'png' : file.type.includes('webp') ? 'webp' : 'jpg';
+          const fileName = `user_${session.userId}_${Date.now()}.${ext}`;
+          const filePath = path.join(uploadsDir, fileName);
+          fs.writeFileSync(filePath, buffer);
+          avatarUrl = `/uploads/avatars/${fileName}`;
+        } catch {
+          const base64 = buffer.toString('base64');
+          avatarUrl = `data:${file.type};base64,${base64}`;
+        }
       }
     }
 

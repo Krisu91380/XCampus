@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { generateSignedConversationId, ensureConversationAndParticipants } from '@/lib/conversation';
 
 export async function POST(req: NextRequest) {
   try {
@@ -85,9 +86,12 @@ export async function POST(req: NextRequest) {
             where: { id: existing.id },
             data: { status: 'ACCEPTED' },
           });
+          const conversationId = generateSignedConversationId(existing.senderId, existing.receiverId);
+          await ensureConversationAndParticipants(conversationId, existing.senderId, existing.receiverId);
           return NextResponse.json({
             success: true,
             status: 'ACCEPTED',
+            conversationId,
             message: 'Mutual request accepted! You are now connected.',
             request: updated,
           });

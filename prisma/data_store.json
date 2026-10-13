@@ -111,9 +111,9 @@
         ],
         "isOnline": true,
         "isDiscoverable": false,
-        "lastSeenAt": "2026-10-13T11:51:06.637Z",
+        "lastSeenAt": "2026-10-13T18:31:36.296Z",
         "createdAt": "2026-10-13T11:51:06.637Z",
-        "updatedAt": "2026-10-13T11:51:06.637Z"
+        "updatedAt": "2026-10-13T18:31:36.296Z"
       }
     ],
     [
@@ -258,8 +258,8 @@
         ],
         "isActive": true,
         "verificationRequirements": "Official @lpu.in email address or valid physical Student ID card",
-        "createdAt": "2026-10-13T11:51:06.433Z",
-        "updatedAt": "2026-10-13T11:51:06.433Z"
+        "createdAt": "2026-10-13T18:31:18.739Z",
+        "updatedAt": "2026-10-13T18:31:18.739Z"
       }
     ],
     [
@@ -276,8 +276,8 @@
         ],
         "isActive": true,
         "verificationRequirements": "University Roll Number and official college email or Student ID",
-        "createdAt": "2026-10-13T11:51:06.437Z",
-        "updatedAt": "2026-10-13T11:51:06.437Z"
+        "createdAt": "2026-10-13T18:31:18.741Z",
+        "updatedAt": "2026-10-13T18:31:18.741Z"
       }
     ],
     [
@@ -295,8 +295,8 @@
         ],
         "isActive": true,
         "verificationRequirements": "Official @vitstudent.ac.in student ID or VTOP profile snapshot",
-        "createdAt": "2026-10-13T11:51:06.438Z",
-        "updatedAt": "2026-10-13T11:51:06.438Z"
+        "createdAt": "2026-10-13T18:31:18.744Z",
+        "updatedAt": "2026-10-13T18:31:18.744Z"
       }
     ],
     [
@@ -315,8 +315,8 @@
         ],
         "isActive": true,
         "verificationRequirements": "Official BITS email account verification",
-        "createdAt": "2026-10-13T11:51:06.439Z",
-        "updatedAt": "2026-10-13T11:51:06.439Z"
+        "createdAt": "2026-10-13T18:31:18.747Z",
+        "updatedAt": "2026-10-13T18:31:18.747Z"
       }
     ]
   ],
@@ -331,9 +331,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-13T11:51:06.828Z",
-        "createdAt": "2026-10-13T11:51:06.828Z",
-        "updatedAt": "2026-10-13T11:51:06.828Z"
+        "reviewedAt": "2026-10-13T18:31:18.931Z",
+        "createdAt": "2026-10-13T18:31:18.931Z",
+        "updatedAt": "2026-10-13T18:31:18.931Z"
       }
     ],
     [
@@ -346,9 +346,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-13T11:51:06.847Z",
-        "createdAt": "2026-10-13T11:51:06.847Z",
-        "updatedAt": "2026-10-13T11:51:06.847Z"
+        "reviewedAt": "2026-10-13T18:31:18.934Z",
+        "createdAt": "2026-10-13T18:31:18.934Z",
+        "updatedAt": "2026-10-13T18:31:18.934Z"
       }
     ],
     [
@@ -361,9 +361,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-13T11:51:06.865Z",
-        "createdAt": "2026-10-13T11:51:06.865Z",
-        "updatedAt": "2026-10-13T11:51:06.865Z"
+        "reviewedAt": "2026-10-13T18:31:18.938Z",
+        "createdAt": "2026-10-13T18:31:18.938Z",
+        "updatedAt": "2026-10-13T18:31:18.938Z"
       }
     ],
     [
@@ -376,9 +376,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-13T11:51:06.881Z",
-        "createdAt": "2026-10-13T11:51:06.881Z",
-        "updatedAt": "2026-10-13T11:51:06.881Z"
+        "reviewedAt": "2026-10-13T18:31:18.940Z",
+        "createdAt": "2026-10-13T18:31:18.940Z",
+        "updatedAt": "2026-10-13T18:31:18.940Z"
       }
     ],
     [
@@ -391,17 +391,155 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-13T14:29:50.418Z",
-        "createdAt": "2026-10-13T14:29:50.418Z",
-        "updatedAt": "2026-10-13T14:29:50.418Z"
+        "reviewedAt": "2026-10-13T18:31:18.944Z",
+        "createdAt": "2026-10-13T18:31:18.944Z",
+        "updatedAt": "2026-10-13T18:31:18.944Z"
       }
     ]
   ],
   "preferences": [],
   "matchQueue": [],
-  "conversations": [],
-  "conversationParticipants": [],
-  "messages": [],
+  "conversations": [
+    [
+      "conv_user-student-1__user-student-krish__5f26ba590eb70a6f",
+      {
+        "id": "conv_user-student-1__user-student-krish__5f26ba590eb70a6f",
+        "status": "ACTIVE",
+        "creditDeducted": true,
+        "startedAt": "2026-10-12T10:05:00.000Z",
+        "endedAt": null
+      }
+    ],
+    [
+      "conv_user-student-2__user-student-krish__693362988835865e",
+      {
+        "id": "conv_user-student-2__user-student-krish__693362988835865e",
+        "status": "ACTIVE",
+        "creditDeducted": true,
+        "startedAt": "2026-10-12T10:05:00.000Z",
+        "endedAt": null
+      }
+    ],
+    [
+      "conv_user-student-1__user-student-2__2793898ef75c35e1",
+      {
+        "id": "conv_user-student-1__user-student-2__2793898ef75c35e1",
+        "status": "ACTIVE",
+        "creditDeducted": true,
+        "startedAt": "2026-10-12T10:05:00.000Z",
+        "endedAt": null
+      }
+    ]
+  ],
+  "conversationParticipants": [
+    [
+      "part-conv_user-student-1__user-student-krish__5f26ba590eb70a6f-user-student-1",
+      {
+        "id": "part-conv_user-student-1__user-student-krish__5f26ba590eb70a6f-user-student-1",
+        "conversationId": "conv_user-student-1__user-student-krish__5f26ba590eb70a6f",
+        "userId": "user-student-1",
+        "hasUnread": false,
+        "joinedAt": "2026-10-12T10:05:00.000Z",
+        "clearedAt": null,
+        "hidden": false
+      }
+    ],
+    [
+      "part-conv_user-student-1__user-student-krish__5f26ba590eb70a6f-user-student-krish",
+      {
+        "id": "part-conv_user-student-1__user-student-krish__5f26ba590eb70a6f-user-student-krish",
+        "conversationId": "conv_user-student-1__user-student-krish__5f26ba590eb70a6f",
+        "userId": "user-student-krish",
+        "hasUnread": false,
+        "joinedAt": "2026-10-12T10:05:00.000Z",
+        "clearedAt": null,
+        "hidden": false
+      }
+    ],
+    [
+      "part-conv_user-student-2__user-student-krish__693362988835865e-user-student-2",
+      {
+        "id": "part-conv_user-student-2__user-student-krish__693362988835865e-user-student-2",
+        "conversationId": "conv_user-student-2__user-student-krish__693362988835865e",
+        "userId": "user-student-2",
+        "hasUnread": false,
+        "joinedAt": "2026-10-12T10:05:00.000Z",
+        "clearedAt": null,
+        "hidden": false
+      }
+    ],
+    [
+      "part-conv_user-student-2__user-student-krish__693362988835865e-user-student-krish",
+      {
+        "id": "part-conv_user-student-2__user-student-krish__693362988835865e-user-student-krish",
+        "conversationId": "conv_user-student-2__user-student-krish__693362988835865e",
+        "userId": "user-student-krish",
+        "hasUnread": false,
+        "joinedAt": "2026-10-12T10:05:00.000Z",
+        "clearedAt": null,
+        "hidden": false
+      }
+    ],
+    [
+      "part-conv_user-student-1__user-student-2__2793898ef75c35e1-user-student-1",
+      {
+        "id": "part-conv_user-student-1__user-student-2__2793898ef75c35e1-user-student-1",
+        "conversationId": "conv_user-student-1__user-student-2__2793898ef75c35e1",
+        "userId": "user-student-1",
+        "hasUnread": false,
+        "joinedAt": "2026-10-12T10:05:00.000Z",
+        "clearedAt": null,
+        "hidden": false
+      }
+    ],
+    [
+      "part-conv_user-student-1__user-student-2__2793898ef75c35e1-user-student-2",
+      {
+        "id": "part-conv_user-student-1__user-student-2__2793898ef75c35e1-user-student-2",
+        "conversationId": "conv_user-student-1__user-student-2__2793898ef75c35e1",
+        "userId": "user-student-2",
+        "hasUnread": false,
+        "joinedAt": "2026-10-12T10:05:00.000Z",
+        "clearedAt": null,
+        "hidden": false
+      }
+    ]
+  ],
+  "messages": [
+    [
+      "msg-fr-krish-aarav-init",
+      {
+        "id": "msg-fr-krish-aarav-init",
+        "conversationId": "conv_user-student-1__user-student-krish__5f26ba590eb70a6f",
+        "senderId": "user-student-1",
+        "content": "Hey Krish! Great connecting on CampusConnect.",
+        "isRead": true,
+        "createdAt": "2026-10-12T10:06:00.000Z"
+      }
+    ],
+    [
+      "msg-fr-krish-priya-init",
+      {
+        "id": "msg-fr-krish-priya-init",
+        "conversationId": "conv_user-student-2__user-student-krish__693362988835865e",
+        "senderId": "user-student-2",
+        "content": "Hi Krish! Welcome to CampusConnect. Looking forward to collaborating on campus projects.",
+        "isRead": true,
+        "createdAt": "2026-10-12T10:06:00.000Z"
+      }
+    ],
+    [
+      "msg-fr-aarav-priya-init",
+      {
+        "id": "msg-fr-aarav-priya-init",
+        "conversationId": "conv_user-student-1__user-student-2__2793898ef75c35e1",
+        "senderId": "user-student-1",
+        "content": "Hey Priya, let us discuss the tech symposium next week!",
+        "isRead": true,
+        "createdAt": "2026-10-12T10:06:00.000Z"
+      }
+    ]
+  ],
   "creditPackages": [
     [
       "pkg-1",
@@ -413,8 +551,8 @@
         "description": "5 Conversation credits. Great starter pack for new connections.",
         "isPopular": false,
         "isActive": true,
-        "createdAt": "2026-10-13T11:51:06.441Z",
-        "updatedAt": "2026-10-13T12:58:25.855Z"
+        "createdAt": "2026-10-13T18:31:18.749Z",
+        "updatedAt": "2026-10-13T18:31:18.749Z"
       }
     ],
     [
@@ -427,8 +565,8 @@
         "description": "15 Conversation credits. Best value for active students (₹5.2/chat).",
         "isPopular": true,
         "isActive": true,
-        "createdAt": "2026-10-13T11:51:06.442Z",
-        "updatedAt": "2026-10-13T12:58:25.864Z"
+        "createdAt": "2026-10-13T18:31:18.751Z",
+        "updatedAt": "2026-10-13T18:31:18.751Z"
       }
     ],
     [
@@ -441,8 +579,8 @@
         "description": "35 Conversation credits. Maximum value across campus networks (₹4.2/chat).",
         "isPopular": false,
         "isActive": true,
-        "createdAt": "2026-10-13T11:51:06.444Z",
-        "updatedAt": "2026-10-13T12:58:25.864Z"
+        "createdAt": "2026-10-13T18:31:18.753Z",
+        "updatedAt": "2026-10-13T18:31:18.753Z"
       }
     ]
   ],
@@ -513,7 +651,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-13T11:51:06.822Z"
+        "createdAt": "2026-10-13T18:31:18.929Z"
       }
     ],
     [
@@ -526,7 +664,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-13T11:51:06.842Z"
+        "createdAt": "2026-10-13T18:31:18.932Z"
       }
     ],
     [
@@ -539,7 +677,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-13T11:51:06.862Z"
+        "createdAt": "2026-10-13T18:31:18.936Z"
       }
     ],
     [
@@ -552,7 +690,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-13T11:51:06.879Z"
+        "createdAt": "2026-10-13T18:31:18.939Z"
       }
     ],
     [
@@ -565,7 +703,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-13T14:29:50.418Z"
+        "createdAt": "2026-10-13T18:31:18.942Z"
       }
     ]
   ],
@@ -573,5 +711,41 @@
   "paymentTransactions": [],
   "blocks": [],
   "abuseReports": [],
-  "auditLogs": []
+  "auditLogs": [],
+  "friendRequests": [
+    [
+      "fr-krish-aarav",
+      {
+        "id": "fr-krish-aarav",
+        "senderId": "user-student-1",
+        "receiverId": "user-student-krish",
+        "status": "ACCEPTED",
+        "createdAt": "2026-10-12T10:00:00.000Z",
+        "updatedAt": "2026-10-12T10:05:00.000Z"
+      }
+    ],
+    [
+      "fr-krish-priya",
+      {
+        "id": "fr-krish-priya",
+        "senderId": "user-student-2",
+        "receiverId": "user-student-krish",
+        "status": "ACCEPTED",
+        "createdAt": "2026-10-12T10:00:00.000Z",
+        "updatedAt": "2026-10-12T10:05:00.000Z"
+      }
+    ],
+    [
+      "fr-aarav-priya",
+      {
+        "id": "fr-aarav-priya",
+        "senderId": "user-student-1",
+        "receiverId": "user-student-2",
+        "status": "ACCEPTED",
+        "createdAt": "2026-10-12T10:00:00.000Z",
+        "updatedAt": "2026-10-12T10:05:00.000Z"
+      }
+    ]
+  ],
+  "signals": []
 }
