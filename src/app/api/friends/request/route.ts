@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await requireAuth(req);
     const body = await req.json();
-    const { targetUserId } = body;
+    const targetUserId = body.targetUserId || body.receiverId || body.userId;
 
     if (!targetUserId || targetUserId === session.userId) {
       return NextResponse.json(
@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
           success: true,
           status: 'ACCEPTED',
           message: 'You are already connected as friends!',
+          request: existing,
         });
       }
 
@@ -76,10 +77,11 @@ export async function POST(req: NextRequest) {
             success: true,
             status: 'PENDING',
             message: 'Friend request is already pending.',
+            request: existing,
           });
         } else {
           // The other user already sent a request to current user! Automatically accept!
-          await db.friendRequest.update({
+          const updated = await db.friendRequest.update({
             where: { id: existing.id },
             data: { status: 'ACCEPTED' },
           });
@@ -87,6 +89,7 @@ export async function POST(req: NextRequest) {
             success: true,
             status: 'ACCEPTED',
             message: 'Mutual request accepted! You are now connected.',
+            request: updated,
           });
         }
       }
