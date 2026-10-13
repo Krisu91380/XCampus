@@ -1,12 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Sparkles, Shield, AlertCircle, CheckCircle2, Loader2, ArrowRight, Eye, EyeOff, Coins } from 'lucide-react';
 import { APP_CONFIG } from '@/lib/config';
-import { GoogleSignInButton } from '@/components/GoogleSignInButton';
-import { OAuthErrorBanner } from '@/components/OAuthErrorBanner';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -133,30 +131,12 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <Suspense fallback={null}>
-          <OAuthErrorBanner />
-        </Suspense>
-
         {errorMessage && (
           <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2.5 mb-6 animate-fade-in">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{errorMessage}</span>
           </div>
         )}
-
-        {/* Continue with Google */}
-        <GoogleSignInButton label="Sign up with Google" />
-
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-navy-750"></div>
-          </div>
-          <div className="relative flex justify-center text-xs">
-            <span className="bg-navy-850 px-3 text-slate-500 font-semibold tracking-wider text-[11px] uppercase">
-              Or register with email
-            </span>
-          </div>
-        </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 text-xs">
           {/* Display Name */}

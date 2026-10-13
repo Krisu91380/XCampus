@@ -51,8 +51,8 @@ class InMemoryStore {
   saveTimeout: NodeJS.Timeout | null = null;
 
   constructor() {
-    this.seed();
     this.loadFromDisk();
+    this.seed();
   }
 
   getStoreFilePath() {
@@ -64,6 +64,7 @@ class InMemoryStore {
 
   saveToDisk() {
     try {
+      if (process.env.NEXT_PHASE === 'phase-production-build') return;
       const dbFile = this.getStoreFilePath();
       const dir = path.dirname(dbFile);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -86,7 +87,14 @@ class InMemoryStore {
         abuseReports: Array.from(this.abuseReports.entries()),
         auditLogs: Array.from(this.auditLogs.entries()),
       };
-      fs.writeFileSync(dbFile, JSON.stringify(serialized, null, 2), 'utf-8');
+      const tmpFile = `${dbFile}.${process.pid}.${Date.now()}.tmp`;
+      fs.writeFileSync(tmpFile, JSON.stringify(serialized, null, 2), 'utf-8');
+      try {
+        fs.renameSync(tmpFile, dbFile);
+      } catch {
+        fs.copyFileSync(tmpFile, dbFile);
+        try { fs.unlinkSync(tmpFile); } catch {}
+      }
     } catch {
       // Ignore write error on read-only environments
     }
@@ -150,24 +158,26 @@ class InMemoryStore {
 
       if (fs.existsSync(dbFile)) {
         const raw = fs.readFileSync(dbFile, 'utf-8');
-        const parsed = JSON.parse(raw);
-        if (parsed.users) this.users = new Map(parsed.users);
-        if (parsed.profiles) this.profiles = new Map(parsed.profiles);
-        if (parsed.universities) this.universities = new Map(parsed.universities);
-        if (parsed.verifications) this.verifications = new Map(parsed.verifications);
-        if (parsed.preferences) this.preferences = new Map(parsed.preferences);
-        if (parsed.matchQueue) this.matchQueue = new Map(parsed.matchQueue);
-        if (parsed.conversations) this.conversations = new Map(parsed.conversations);
-        if (parsed.conversationParticipants) this.conversationParticipants = new Map(parsed.conversationParticipants);
-        if (parsed.messages) this.messages = new Map(parsed.messages);
-        if (parsed.creditPackages) this.creditPackages = new Map(parsed.creditPackages);
-        if (parsed.creditBalances) this.creditBalances = new Map(parsed.creditBalances);
-        if (parsed.creditLedgers) this.creditLedgers = new Map(parsed.creditLedgers);
-        if (parsed.paymentOrders) this.paymentOrders = new Map(parsed.paymentOrders);
-        if (parsed.paymentTransactions) this.paymentTransactions = new Map(parsed.paymentTransactions);
-        if (parsed.blocks) this.blocks = new Map(parsed.blocks);
-        if (parsed.abuseReports) this.abuseReports = new Map(parsed.abuseReports);
-        if (parsed.auditLogs) this.auditLogs = new Map(parsed.auditLogs);
+        if (raw && raw.trim().startsWith('{')) {
+          const parsed = JSON.parse(raw);
+          if (parsed.users) this.users = new Map(parsed.users);
+          if (parsed.profiles) this.profiles = new Map(parsed.profiles);
+          if (parsed.universities) this.universities = new Map(parsed.universities);
+          if (parsed.verifications) this.verifications = new Map(parsed.verifications);
+          if (parsed.preferences) this.preferences = new Map(parsed.preferences);
+          if (parsed.matchQueue) this.matchQueue = new Map(parsed.matchQueue);
+          if (parsed.conversations) this.conversations = new Map(parsed.conversations);
+          if (parsed.conversationParticipants) this.conversationParticipants = new Map(parsed.conversationParticipants);
+          if (parsed.messages) this.messages = new Map(parsed.messages);
+          if (parsed.creditPackages) this.creditPackages = new Map(parsed.creditPackages);
+          if (parsed.creditBalances) this.creditBalances = new Map(parsed.creditBalances);
+          if (parsed.creditLedgers) this.creditLedgers = new Map(parsed.creditLedgers);
+          if (parsed.paymentOrders) this.paymentOrders = new Map(parsed.paymentOrders);
+          if (parsed.paymentTransactions) this.paymentTransactions = new Map(parsed.paymentTransactions);
+          if (parsed.blocks) this.blocks = new Map(parsed.blocks);
+          if (parsed.abuseReports) this.abuseReports = new Map(parsed.abuseReports);
+          if (parsed.auditLogs) this.auditLogs = new Map(parsed.auditLogs);
+        }
       }
     } catch (err) {
       console.error('Error loading data_store from disk:', err);
@@ -397,8 +407,9 @@ export const db = {
     findUnique: async ({ where }: { where: { id?: string; email?: string } }): Promise<User | null> => {
       if (where.id) return store.users.get(where.id) || null;
       if (where.email) {
+        const targetEmail = where.email.toLowerCase().trim();
         return (Array.from(store.users.values()) as User[]).find(
-          (u) => u.email.toLowerCase() === where.email!.toLowerCase() && !u.deletedAt
+          (u) => u.email.toLowerCase().trim() === targetEmail && !u.deletedAt
         ) || null;
       }
       return null;
@@ -415,9 +426,11 @@ export const db = {
     },
     create: async ({ data }: { data: Omit<User, 'id' | 'createdAt' | 'updatedAt'> & { id?: string } }): Promise<User> => {
       const id = data.id || `user-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const normalizedEmail = data.email.toLowerCase().trim();
       const user: User = {
         id,
         ...data,
+        email: normalizedEmail,
         createdAt: new Date(),
         updatedAt: new Date(),
       };

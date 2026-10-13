@@ -5,14 +5,14 @@
       {
         "id": "user-admin-1",
         "email": "admin@campusconnect.edu",
-        "passwordHash": "$2a$10$NMdEQM9f7HJX0pMryJWAaeQaylMcTHEC.CQr8ca7.8I2.IQ037sdu",
+        "passwordHash": "$2a$10$6l4Lpp0kS0C.PDN9IXYVD.6CVluJcGNVT/RUtRUXCnrQYB0ZMy.Mm",
         "role": "ADMIN",
         "status": "ACTIVE",
         "isAgeVerified": true,
         "dateOfBirth": "1998-01-15T00:00:00.000Z",
         "universityId": "uni-1",
-        "createdAt": "2026-10-12T19:59:01.806Z",
-        "updatedAt": "2026-10-12T19:59:01.806Z"
+        "createdAt": "2026-10-13T11:51:06.631Z",
+        "updatedAt": "2026-10-13T11:51:06.631Z"
       }
     ],
     [
@@ -20,14 +20,14 @@
       {
         "id": "user-student-1",
         "email": "aarav.sharma@lpu.in",
-        "passwordHash": "$2a$10$CpcjbvrlB20c1DyJo/ErSeulc2/9wPyEnS/Dd8qTiTOcEo98eBGWW",
+        "passwordHash": "$2a$10$yvGMAN3SipUfXrGCSLTB3Oj2Jobjuc7ttysvmoDhTRKpgf/AQmpEK",
         "role": "VERIFIED_STUDENT",
         "status": "ACTIVE",
         "isAgeVerified": true,
         "dateOfBirth": "2003-05-10T00:00:00.000Z",
         "universityId": "uni-1",
-        "createdAt": "2026-10-12T19:59:01.888Z",
-        "updatedAt": "2026-10-12T19:59:01.888Z"
+        "createdAt": "2026-10-13T11:51:06.797Z",
+        "updatedAt": "2026-10-13T11:51:06.797Z"
       }
     ],
     [
@@ -35,14 +35,14 @@
       {
         "id": "user-student-2",
         "email": "priya.patel@lpu.in",
-        "passwordHash": "$2a$10$CpcjbvrlB20c1DyJo/ErSeulc2/9wPyEnS/Dd8qTiTOcEo98eBGWW",
+        "passwordHash": "$2a$10$yvGMAN3SipUfXrGCSLTB3Oj2Jobjuc7ttysvmoDhTRKpgf/AQmpEK",
         "role": "VERIFIED_STUDENT",
         "status": "ACTIVE",
         "isAgeVerified": true,
         "dateOfBirth": "2003-05-10T00:00:00.000Z",
         "universityId": "uni-1",
-        "createdAt": "2026-10-12T19:59:01.888Z",
-        "updatedAt": "2026-10-12T19:59:01.888Z"
+        "createdAt": "2026-10-13T11:51:06.832Z",
+        "updatedAt": "2026-10-13T11:51:06.832Z"
       }
     ],
     [
@@ -50,14 +50,14 @@
       {
         "id": "user-student-3",
         "email": "rohan.verma@du.ac.in",
-        "passwordHash": "$2a$10$CpcjbvrlB20c1DyJo/ErSeulc2/9wPyEnS/Dd8qTiTOcEo98eBGWW",
+        "passwordHash": "$2a$10$yvGMAN3SipUfXrGCSLTB3Oj2Jobjuc7ttysvmoDhTRKpgf/AQmpEK",
         "role": "VERIFIED_STUDENT",
         "status": "ACTIVE",
         "isAgeVerified": true,
         "dateOfBirth": "2003-05-10T00:00:00.000Z",
         "universityId": "uni-2",
-        "createdAt": "2026-10-12T19:59:01.888Z",
-        "updatedAt": "2026-10-12T19:59:01.888Z"
+        "createdAt": "2026-10-13T11:51:06.851Z",
+        "updatedAt": "2026-10-13T11:51:06.851Z"
       }
     ],
     [
@@ -65,134 +65,14 @@
       {
         "id": "user-student-4",
         "email": "ananya.iyer@vitstudent.ac.in",
-        "passwordHash": "$2a$10$CpcjbvrlB20c1DyJo/ErSeulc2/9wPyEnS/Dd8qTiTOcEo98eBGWW",
+        "passwordHash": "$2a$10$yvGMAN3SipUfXrGCSLTB3Oj2Jobjuc7ttysvmoDhTRKpgf/AQmpEK",
         "role": "VERIFIED_STUDENT",
         "status": "ACTIVE",
         "isAgeVerified": true,
         "dateOfBirth": "2003-05-10T00:00:00.000Z",
         "universityId": "uni-3",
-        "createdAt": "2026-10-12T19:59:01.888Z",
-        "updatedAt": "2026-10-12T19:59:01.888Z"
-      }
-    ],
-    [
-      "user-1791835143588-xovxp",
-      {
-        "id": "user-1791835143588-xovxp",
-        "email": "student_1791835143097@lpu.in",
-        "passwordHash": "$2a$10$P1DzOA73V96UJmpv2sl8EuZYgMQwlNBuWi.78/JBvVz7HMbKmq7Qa",
-        "role": "VERIFIED_STUDENT",
-        "status": "ACTIVE",
-        "isAgeVerified": true,
-        "dateOfBirth": "2003-04-12T00:00:00.000Z",
-        "universityId": "uni-1",
-        "createdAt": "2026-10-12T19:59:03.588Z",
-        "updatedAt": "2026-10-12T19:59:03.588Z"
-      }
-    ],
-    [
-      "user-1791835145696-06phv",
-      {
-        "id": "user-1791835145696-06phv",
-        "email": "dev.aarav@lpu.in",
-        "passwordHash": "$2a$10$fKxLGOPTaOm9KTgv.ATnSO4thv.1iRALDzA56LN74yZWG0poc.F5C",
-        "role": "VERIFIED_STUDENT",
-        "status": "ACTIVE",
-        "isAgeVerified": true,
-        "dateOfBirth": "2002-05-14T00:00:00.000Z",
-        "universityId": "uni-1",
-        "createdAt": "2026-10-12T19:59:05.696Z",
-        "updatedAt": "2026-10-12T19:59:05.696Z"
-      }
-    ],
-    [
-      "user-1791835145696-ifx0q",
-      {
-        "id": "user-1791835145696-ifx0q",
-        "email": "dev.pooja@lpu.in",
-        "passwordHash": "$2a$10$fKxLGOPTaOm9KTgv.ATnSO4thv.1iRALDzA56LN74yZWG0poc.F5C",
-        "role": "VERIFIED_STUDENT",
-        "status": "ACTIVE",
-        "isAgeVerified": true,
-        "dateOfBirth": "2003-08-22T00:00:00.000Z",
-        "universityId": "uni-1",
-        "createdAt": "2026-10-12T19:59:05.696Z",
-        "updatedAt": "2026-10-12T19:59:05.696Z"
-      }
-    ],
-    [
-      "user-1791877570329-xknx3",
-      {
-        "id": "user-1791877570329-xknx3",
-        "email": "student_1791877570227@lpu.in",
-        "passwordHash": "$2a$10$vVXrXfnH5JeJV0tZKYeWR.WLjlBoYc1zPsEzlsNgh.77PVv3.CIvK",
-        "role": "VERIFIED_STUDENT",
-        "status": "ACTIVE",
-        "isAgeVerified": true,
-        "dateOfBirth": "2003-04-12T00:00:00.000Z",
-        "universityId": "uni-1",
-        "createdAt": "2026-10-13T07:46:10.329Z",
-        "updatedAt": "2026-10-13T07:46:10.331Z"
-      }
-    ],
-    [
-      "user-1791877664659-ry7pf",
-      {
-        "id": "user-1791877664659-ry7pf",
-        "email": "student_1791877664559@lpu.in",
-        "passwordHash": "$2a$10$qI1GCeBpsoNHBi8xV2qdMOuoTvQv6Br8uDZBJg.3wX7FczVMUdl6i",
-        "role": "VERIFIED_STUDENT",
-        "status": "ACTIVE",
-        "isAgeVerified": true,
-        "dateOfBirth": "2003-04-12T00:00:00.000Z",
-        "universityId": "uni-1",
-        "createdAt": "2026-10-13T07:47:44.659Z",
-        "updatedAt": "2026-10-13T07:47:44.662Z"
-      }
-    ],
-    [
-      "user-1791881084247-nfvh6",
-      {
-        "id": "user-1791881084247-nfvh6",
-        "email": "student_1791881084147@lpu.in",
-        "passwordHash": "$2a$10$z2it/F.Lia2SC2ELSkFpquGugRnrZNofukrDTsLlBJOfZ26wQNRRa",
-        "role": "VERIFIED_STUDENT",
-        "status": "ACTIVE",
-        "isAgeVerified": true,
-        "dateOfBirth": "2003-04-12T00:00:00.000Z",
-        "universityId": "uni-1",
-        "createdAt": "2026-10-13T08:44:44.247Z",
-        "updatedAt": "2026-10-13T08:44:44.251Z"
-      }
-    ],
-    [
-      "user-1791883848096-4bod8",
-      {
-        "id": "user-1791883848096-4bod8",
-        "email": "student_1791883848011@lpu.in",
-        "passwordHash": "$2a$10$ordLnGVG3K2Gpq.Df.pPFuVzhe8OJCR8WzVxM7TVePvZuSqmXvXkS",
-        "role": "VERIFIED_STUDENT",
-        "status": "ACTIVE",
-        "isAgeVerified": true,
-        "dateOfBirth": "2003-04-12T00:00:00.000Z",
-        "universityId": "uni-1",
-        "createdAt": "2026-10-13T09:30:48.096Z",
-        "updatedAt": "2026-10-13T09:30:48.100Z"
-      }
-    ],
-    [
-      "user-1791883961448-47g07",
-      {
-        "id": "user-1791883961448-47g07",
-        "email": "student_1791883961363@lpu.in",
-        "passwordHash": "$2a$10$yIxgB/jKpaELFWApOgc.rOm1WmzMdTP/hBtk30TsyEDBgmW2Q.PM2",
-        "role": "VERIFIED_STUDENT",
-        "status": "ACTIVE",
-        "isAgeVerified": true,
-        "dateOfBirth": "2003-04-12T00:00:00.000Z",
-        "universityId": "uni-1",
-        "createdAt": "2026-10-13T09:32:41.448Z",
-        "updatedAt": "2026-10-13T09:32:41.451Z"
+        "createdAt": "2026-10-13T11:51:06.867Z",
+        "updatedAt": "2026-10-13T11:51:06.867Z"
       }
     ]
   ],
@@ -216,9 +96,9 @@
         ],
         "isOnline": true,
         "isDiscoverable": false,
-        "lastSeenAt": "2026-10-13T09:32:41.338Z",
-        "createdAt": "2026-10-12T19:59:01.806Z",
-        "updatedAt": "2026-10-13T09:32:41.338Z"
+        "lastSeenAt": "2026-10-13T11:51:06.637Z",
+        "createdAt": "2026-10-13T11:51:06.637Z",
+        "updatedAt": "2026-10-13T11:51:06.637Z"
       }
     ],
     [
@@ -241,9 +121,9 @@
         ],
         "isOnline": true,
         "isDiscoverable": true,
-        "lastSeenAt": "2026-10-12T19:59:01.888Z",
-        "createdAt": "2026-10-12T19:59:01.888Z",
-        "updatedAt": "2026-10-12T19:59:01.888Z"
+        "lastSeenAt": "2026-10-13T11:51:06.803Z",
+        "createdAt": "2026-10-13T11:51:06.803Z",
+        "updatedAt": "2026-10-13T11:51:06.803Z"
       }
     ],
     [
@@ -266,9 +146,9 @@
         ],
         "isOnline": true,
         "isDiscoverable": true,
-        "lastSeenAt": "2026-10-12T19:59:01.888Z",
-        "createdAt": "2026-10-12T19:59:01.888Z",
-        "updatedAt": "2026-10-12T19:59:01.888Z"
+        "lastSeenAt": "2026-10-13T11:51:06.836Z",
+        "createdAt": "2026-10-13T11:51:06.836Z",
+        "updatedAt": "2026-10-13T11:51:06.836Z"
       }
     ],
     [
@@ -291,9 +171,9 @@
         ],
         "isOnline": true,
         "isDiscoverable": true,
-        "lastSeenAt": "2026-10-12T19:59:01.888Z",
-        "createdAt": "2026-10-12T19:59:01.888Z",
-        "updatedAt": "2026-10-12T19:59:01.888Z"
+        "lastSeenAt": "2026-10-13T11:51:06.854Z",
+        "createdAt": "2026-10-13T11:51:06.854Z",
+        "updatedAt": "2026-10-13T11:51:06.854Z"
       }
     ],
     [
@@ -316,187 +196,9 @@
         ],
         "isOnline": true,
         "isDiscoverable": true,
-        "lastSeenAt": "2026-10-12T19:59:01.888Z",
-        "createdAt": "2026-10-12T19:59:01.888Z",
-        "updatedAt": "2026-10-12T19:59:01.888Z"
-      }
-    ],
-    [
-      "user-1791835143588-xovxp",
-      {
-        "id": "profile-1791835143588",
-        "userId": "user-1791835143588-xovxp",
-        "displayName": "Rohan Sharma",
-        "gender": "MALE",
-        "bio": null,
-        "course": "B.Tech CSE",
-        "academicYear": "2nd Year",
-        "language": "English",
-        "interests": [
-          "Coding",
-          "Music"
-        ],
-        "isOnline": true,
-        "isDiscoverable": true,
-        "lastSeenAt": "2026-10-12T19:59:03.588Z",
-        "createdAt": "2026-10-12T19:59:03.588Z",
-        "updatedAt": "2026-10-12T19:59:03.588Z"
-      }
-    ],
-    [
-      "user-1791835145696-06phv",
-      {
-        "id": "profile-1791835145696",
-        "userId": "user-1791835145696-06phv",
-        "displayName": "Aarav Sharma (Dev)",
-        "gender": "MALE",
-        "bio": "Computer Science student at LPU. Enjoys coding and hackathons.",
-        "course": "B.Tech CSE",
-        "academicYear": "3rd Year",
-        "language": "English",
-        "interests": [
-          "Tech",
-          "Gaming",
-          "Music"
-        ],
-        "isOnline": true,
-        "isDiscoverable": true,
-        "lastSeenAt": "2026-10-13T09:32:41.656Z",
-        "createdAt": "2026-10-12T19:59:05.696Z",
-        "updatedAt": "2026-10-13T09:32:41.656Z"
-      }
-    ],
-    [
-      "user-1791835145696-ifx0q",
-      {
-        "id": "profile-1791835145696",
-        "userId": "user-1791835145696-ifx0q",
-        "displayName": "Pooja Verma (Dev)",
-        "gender": "FEMALE",
-        "bio": "ECE student at LPU. Passionate about robotics and photography.",
-        "course": "B.Tech ECE",
-        "academicYear": "2nd Year",
-        "language": "English",
-        "interests": [
-          "Robotics",
-          "Photography",
-          "Reading"
-        ],
-        "isOnline": true,
-        "isDiscoverable": true,
-        "lastSeenAt": "2026-10-13T09:32:41.725Z",
-        "createdAt": "2026-10-12T19:59:05.696Z",
-        "updatedAt": "2026-10-13T09:32:41.725Z"
-      }
-    ],
-    [
-      "user-1791877570329-xknx3",
-      {
-        "id": "profile-1791877570330",
-        "userId": "user-1791877570329-xknx3",
-        "displayName": "Rohan Sharma",
-        "gender": "MALE",
-        "bio": null,
-        "course": "B.Tech CSE",
-        "academicYear": "2nd Year",
-        "language": "English",
-        "interests": [
-          "Coding",
-          "Music"
-        ],
-        "isOnline": true,
-        "isDiscoverable": true,
-        "lastSeenAt": "2026-10-13T07:46:10.329Z",
-        "createdAt": "2026-10-13T07:46:10.330Z",
-        "updatedAt": "2026-10-13T07:46:10.330Z"
-      }
-    ],
-    [
-      "user-1791877664659-ry7pf",
-      {
-        "id": "profile-1791877664660",
-        "userId": "user-1791877664659-ry7pf",
-        "displayName": "Rohan Sharma",
-        "gender": "MALE",
-        "bio": null,
-        "course": "B.Tech CSE",
-        "academicYear": "2nd Year",
-        "language": "English",
-        "interests": [
-          "Coding",
-          "Music"
-        ],
-        "isOnline": true,
-        "isDiscoverable": true,
-        "lastSeenAt": "2026-10-13T07:47:44.660Z",
-        "createdAt": "2026-10-13T07:47:44.660Z",
-        "updatedAt": "2026-10-13T07:47:44.660Z"
-      }
-    ],
-    [
-      "user-1791881084247-nfvh6",
-      {
-        "id": "profile-1791881084249",
-        "userId": "user-1791881084247-nfvh6",
-        "displayName": "Rohan Sharma",
-        "gender": "MALE",
-        "bio": null,
-        "course": "B.Tech CSE",
-        "academicYear": "2nd Year",
-        "language": "English",
-        "interests": [
-          "Coding",
-          "Music"
-        ],
-        "isOnline": true,
-        "isDiscoverable": true,
-        "lastSeenAt": "2026-10-13T08:44:44.249Z",
-        "createdAt": "2026-10-13T08:44:44.249Z",
-        "updatedAt": "2026-10-13T08:44:44.249Z"
-      }
-    ],
-    [
-      "user-1791883848096-4bod8",
-      {
-        "id": "profile-1791883848097",
-        "userId": "user-1791883848096-4bod8",
-        "displayName": "Rohan Sharma",
-        "gender": "MALE",
-        "bio": null,
-        "course": "B.Tech CSE",
-        "academicYear": "2nd Year",
-        "language": "English",
-        "interests": [
-          "Coding",
-          "Music"
-        ],
-        "isOnline": true,
-        "isDiscoverable": true,
-        "lastSeenAt": "2026-10-13T09:30:48.097Z",
-        "createdAt": "2026-10-13T09:30:48.097Z",
-        "updatedAt": "2026-10-13T09:30:48.097Z"
-      }
-    ],
-    [
-      "user-1791883961448-47g07",
-      {
-        "id": "profile-1791883961449",
-        "userId": "user-1791883961448-47g07",
-        "displayName": "Rohan Sharma",
-        "gender": "MALE",
-        "bio": null,
-        "course": "B.Tech CSE",
-        "academicYear": "2nd Year",
-        "language": "English",
-        "interests": [
-          "Coding",
-          "Music"
-        ],
-        "isOnline": true,
-        "isDiscoverable": true,
-        "lastSeenAt": "2026-10-13T09:32:41.449Z",
-        "createdAt": "2026-10-13T09:32:41.449Z",
-        "updatedAt": "2026-10-13T09:32:41.449Z"
+        "lastSeenAt": "2026-10-13T11:51:06.875Z",
+        "createdAt": "2026-10-13T11:51:06.875Z",
+        "updatedAt": "2026-10-13T11:51:06.875Z"
       }
     ]
   ],
@@ -516,8 +218,8 @@
         ],
         "isActive": true,
         "verificationRequirements": "Official @lpu.in email address or valid physical Student ID card",
-        "createdAt": "2026-10-12T19:59:01.716Z",
-        "updatedAt": "2026-10-12T19:59:01.716Z"
+        "createdAt": "2026-10-13T11:51:06.433Z",
+        "updatedAt": "2026-10-13T11:51:06.433Z"
       }
     ],
     [
@@ -534,8 +236,8 @@
         ],
         "isActive": true,
         "verificationRequirements": "University Roll Number and official college email or Student ID",
-        "createdAt": "2026-10-12T19:59:01.716Z",
-        "updatedAt": "2026-10-12T19:59:01.716Z"
+        "createdAt": "2026-10-13T11:51:06.437Z",
+        "updatedAt": "2026-10-13T11:51:06.437Z"
       }
     ],
     [
@@ -553,8 +255,8 @@
         ],
         "isActive": true,
         "verificationRequirements": "Official @vitstudent.ac.in student ID or VTOP profile snapshot",
-        "createdAt": "2026-10-12T19:59:01.716Z",
-        "updatedAt": "2026-10-12T19:59:01.716Z"
+        "createdAt": "2026-10-13T11:51:06.438Z",
+        "updatedAt": "2026-10-13T11:51:06.438Z"
       }
     ],
     [
@@ -573,8 +275,8 @@
         ],
         "isActive": true,
         "verificationRequirements": "Official BITS email account verification",
-        "createdAt": "2026-10-12T19:59:01.716Z",
-        "updatedAt": "2026-10-12T19:59:01.716Z"
+        "createdAt": "2026-10-13T11:51:06.439Z",
+        "updatedAt": "2026-10-13T11:51:06.439Z"
       }
     ]
   ],
@@ -589,9 +291,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-12T19:59:01.888Z",
-        "createdAt": "2026-10-12T19:59:01.888Z",
-        "updatedAt": "2026-10-12T19:59:01.888Z"
+        "reviewedAt": "2026-10-13T11:51:06.828Z",
+        "createdAt": "2026-10-13T11:51:06.828Z",
+        "updatedAt": "2026-10-13T11:51:06.828Z"
       }
     ],
     [
@@ -604,9 +306,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-12T19:59:01.888Z",
-        "createdAt": "2026-10-12T19:59:01.888Z",
-        "updatedAt": "2026-10-12T19:59:01.888Z"
+        "reviewedAt": "2026-10-13T11:51:06.847Z",
+        "createdAt": "2026-10-13T11:51:06.847Z",
+        "updatedAt": "2026-10-13T11:51:06.847Z"
       }
     ],
     [
@@ -619,9 +321,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-12T19:59:01.888Z",
-        "createdAt": "2026-10-12T19:59:01.888Z",
-        "updatedAt": "2026-10-12T19:59:01.888Z"
+        "reviewedAt": "2026-10-13T11:51:06.865Z",
+        "createdAt": "2026-10-13T11:51:06.865Z",
+        "updatedAt": "2026-10-13T11:51:06.865Z"
       }
     ],
     [
@@ -634,231 +336,17 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-12T19:59:01.888Z",
-        "createdAt": "2026-10-12T19:59:01.888Z",
-        "updatedAt": "2026-10-12T19:59:01.888Z"
-      }
-    ],
-    [
-      "ver-1791835143588",
-      {
-        "id": "ver-1791835143588",
-        "userId": "user-1791835143588-xovxp",
-        "universityId": "uni-1",
-        "institutionalEmail": "student_1791835143097@lpu.in",
-        "documentType": "INSTITUTION_EMAIL",
-        "status": "APPROVED",
-        "reviewedBy": "SYSTEM_DOMAIN_CHECK",
-        "reviewedAt": "2026-10-12T19:59:03.588Z",
-        "createdAt": "2026-10-12T19:59:03.588Z",
-        "updatedAt": "2026-10-12T19:59:03.588Z"
-      }
-    ],
-    [
-      "ver-1791877570332",
-      {
-        "id": "ver-1791877570332",
-        "userId": "user-1791877570329-xknx3",
-        "universityId": "uni-1",
-        "institutionalEmail": "student_1791877570227@lpu.in",
-        "documentType": "INSTITUTION_EMAIL",
-        "status": "APPROVED",
-        "reviewedBy": "SYSTEM_DOMAIN_CHECK",
-        "reviewedAt": "2026-10-13T07:46:10.332Z",
-        "createdAt": "2026-10-13T07:46:10.332Z",
-        "updatedAt": "2026-10-13T07:46:10.332Z"
-      }
-    ],
-    [
-      "ver-1791877664663",
-      {
-        "id": "ver-1791877664663",
-        "userId": "user-1791877664659-ry7pf",
-        "universityId": "uni-1",
-        "institutionalEmail": "student_1791877664559@lpu.in",
-        "documentType": "INSTITUTION_EMAIL",
-        "status": "APPROVED",
-        "reviewedBy": "SYSTEM_DOMAIN_CHECK",
-        "reviewedAt": "2026-10-13T07:47:44.663Z",
-        "createdAt": "2026-10-13T07:47:44.663Z",
-        "updatedAt": "2026-10-13T07:47:44.663Z"
-      }
-    ],
-    [
-      "ver-1791881084251",
-      {
-        "id": "ver-1791881084251",
-        "userId": "user-1791881084247-nfvh6",
-        "universityId": "uni-1",
-        "institutionalEmail": "student_1791881084147@lpu.in",
-        "documentType": "INSTITUTION_EMAIL",
-        "status": "APPROVED",
-        "reviewedBy": "SYSTEM_DOMAIN_CHECK",
-        "reviewedAt": "2026-10-13T08:44:44.251Z",
-        "createdAt": "2026-10-13T08:44:44.251Z",
-        "updatedAt": "2026-10-13T08:44:44.251Z"
-      }
-    ],
-    [
-      "ver-1791883848100",
-      {
-        "id": "ver-1791883848100",
-        "userId": "user-1791883848096-4bod8",
-        "universityId": "uni-1",
-        "institutionalEmail": "student_1791883848011@lpu.in",
-        "documentType": "INSTITUTION_EMAIL",
-        "status": "APPROVED",
-        "reviewedBy": "SYSTEM_DOMAIN_CHECK",
-        "reviewedAt": "2026-10-13T09:30:48.100Z",
-        "createdAt": "2026-10-13T09:30:48.100Z",
-        "updatedAt": "2026-10-13T09:30:48.100Z"
-      }
-    ],
-    [
-      "ver-1791883961451",
-      {
-        "id": "ver-1791883961451",
-        "userId": "user-1791883961448-47g07",
-        "universityId": "uni-1",
-        "institutionalEmail": "student_1791883961363@lpu.in",
-        "documentType": "INSTITUTION_EMAIL",
-        "status": "APPROVED",
-        "reviewedBy": "SYSTEM_DOMAIN_CHECK",
-        "reviewedAt": "2026-10-13T09:32:41.451Z",
-        "createdAt": "2026-10-13T09:32:41.451Z",
-        "updatedAt": "2026-10-13T09:32:41.451Z"
+        "reviewedAt": "2026-10-13T11:51:06.881Z",
+        "createdAt": "2026-10-13T11:51:06.881Z",
+        "updatedAt": "2026-10-13T11:51:06.881Z"
       }
     ]
   ],
   "preferences": [],
-  "matchQueue": [
-    [
-      "user-1791835145696-06phv",
-      {
-        "id": "queue-1791835145696-l336",
-        "userId": "user-1791835145696-06phv",
-        "universityId": "uni-1",
-        "targetUniversityId": null,
-        "userGender": "MALE",
-        "preferredPartnerGender": "GIRLS",
-        "language": "English",
-        "course": "B.Tech CSE",
-        "expiresAt": "2026-10-13T09:35:41.590Z",
-        "status": "MATCHED",
-        "joinedAt": "2026-10-12T19:59:05.696Z",
-        "matchedConversationId": "conv_user-1791835145696-06phv__user-1791835145696-ifx0q__0e32935a4b769950",
-        "matchedPartnerId": "user-1791835145696-ifx0q"
-      }
-    ]
-  ],
-  "conversations": [
-    [
-      "conv-1791835145697-8kt0",
-      {
-        "id": "conv-1791835145697-8kt0",
-        "status": "ACTIVE",
-        "creditDeducted": true,
-        "startedAt": "2026-10-12T19:59:05.697Z"
-      }
-    ],
-    [
-      "conv_user-1791835145696-06phv__user-1791835145696-ifx0q__0e32935a4b769950",
-      {
-        "id": "conv_user-1791835145696-06phv__user-1791835145696-ifx0q__0e32935a4b769950",
-        "status": "ACTIVE",
-        "creditDeducted": true,
-        "startedAt": "2026-10-13T09:32:41.592Z"
-      }
-    ]
-  ],
-  "conversationParticipants": [
-    [
-      "part-conv-1791835145697-8kt0-user-1791835145696-ifx0q",
-      {
-        "id": "part-conv-1791835145697-8kt0-user-1791835145696-ifx0q",
-        "conversationId": "conv-1791835145697-8kt0",
-        "userId": "user-1791835145696-ifx0q",
-        "hasUnread": false,
-        "joinedAt": "2026-10-12T19:59:05.697Z"
-      }
-    ],
-    [
-      "part-conv-1791835145697-8kt0-user-1791835145696-06phv",
-      {
-        "id": "part-conv-1791835145697-8kt0-user-1791835145696-06phv",
-        "conversationId": "conv-1791835145697-8kt0",
-        "userId": "user-1791835145696-06phv",
-        "hasUnread": false,
-        "joinedAt": "2026-10-12T19:59:05.697Z"
-      }
-    ],
-    [
-      "part-conv_user-1791835145696-06phv__user-1791835145696-ifx0q__0e32935a4b769950-user-1791835145696-ifx0q",
-      {
-        "id": "part-conv_user-1791835145696-06phv__user-1791835145696-ifx0q__0e32935a4b769950-user-1791835145696-ifx0q",
-        "conversationId": "conv_user-1791835145696-06phv__user-1791835145696-ifx0q__0e32935a4b769950",
-        "userId": "user-1791835145696-ifx0q",
-        "hasUnread": true,
-        "joinedAt": "2026-10-13T07:47:44.857Z"
-      }
-    ],
-    [
-      "part-conv_user-1791835145696-06phv__user-1791835145696-ifx0q__0e32935a4b769950-user-1791835145696-06phv",
-      {
-        "id": "part-conv_user-1791835145696-06phv__user-1791835145696-ifx0q__0e32935a4b769950-user-1791835145696-06phv",
-        "conversationId": "conv_user-1791835145696-06phv__user-1791835145696-ifx0q__0e32935a4b769950",
-        "userId": "user-1791835145696-06phv",
-        "hasUnread": false,
-        "joinedAt": "2026-10-13T07:47:44.857Z"
-      }
-    ]
-  ],
-  "messages": [
-    [
-      "msg-1791835146584-cn8s",
-      {
-        "id": "msg-1791835146584-cn8s",
-        "conversationId": "conv-1791835145697-8kt0",
-        "senderId": "user-1791835145696-06phv",
-        "content": "Hey Pooja! Nice to connect on CampusConnect.",
-        "isRead": false,
-        "createdAt": "2026-10-12T19:59:06.584Z"
-      }
-    ],
-    [
-      "msg-1791877664957-i0fl",
-      {
-        "id": "msg-1791877664957-i0fl",
-        "conversationId": "conv_user-1791835145696-06phv__user-1791835145696-ifx0q__0e32935a4b769950",
-        "senderId": "user-1791835145696-06phv",
-        "content": "Hey Pooja! Nice to connect on CampusConnect.",
-        "isRead": false,
-        "createdAt": "2026-10-13T07:47:44.957Z"
-      }
-    ],
-    [
-      "msg-1791881084525-b2kz",
-      {
-        "id": "msg-1791881084525-b2kz",
-        "conversationId": "conv_user-1791835145696-06phv__user-1791835145696-ifx0q__0e32935a4b769950",
-        "senderId": "user-1791835145696-06phv",
-        "content": "Hey Pooja! Nice to connect on CampusConnect.",
-        "isRead": false,
-        "createdAt": "2026-10-13T08:44:44.525Z"
-      }
-    ],
-    [
-      "msg-1791883961663-orv3",
-      {
-        "id": "msg-1791883961663-orv3",
-        "conversationId": "conv_user-1791835145696-06phv__user-1791835145696-ifx0q__0e32935a4b769950",
-        "senderId": "user-1791835145696-06phv",
-        "content": "Hey Pooja! Welcome to the new Messages section.",
-        "isRead": false,
-        "createdAt": "2026-10-13T09:32:41.663Z"
-      }
-    ]
-  ],
+  "matchQueue": [],
+  "conversations": [],
+  "conversationParticipants": [],
+  "messages": [],
   "creditPackages": [
     [
       "pkg-1",
@@ -870,8 +358,8 @@
         "description": "1 Conversation credit. Perfect for a quick chat.",
         "isPopular": false,
         "isActive": true,
-        "createdAt": "2026-10-12T19:59:01.716Z",
-        "updatedAt": "2026-10-12T19:59:01.716Z"
+        "createdAt": "2026-10-13T11:51:06.441Z",
+        "updatedAt": "2026-10-13T11:51:06.441Z"
       }
     ],
     [
@@ -884,8 +372,8 @@
         "description": "5 Conversation credits. Best value for active students (₹5.8/chat).",
         "isPopular": true,
         "isActive": true,
-        "createdAt": "2026-10-12T19:59:01.716Z",
-        "updatedAt": "2026-10-12T19:59:01.716Z"
+        "createdAt": "2026-10-13T11:51:06.442Z",
+        "updatedAt": "2026-10-13T11:51:06.442Z"
       }
     ],
     [
@@ -898,8 +386,8 @@
         "description": "10 Conversation credits. Maximum savings across campus networks (₹4.9/chat).",
         "isPopular": false,
         "isActive": true,
-        "createdAt": "2026-10-12T19:59:01.716Z",
-        "updatedAt": "2026-10-12T19:59:01.716Z"
+        "createdAt": "2026-10-13T11:51:06.444Z",
+        "updatedAt": "2026-10-13T11:51:06.444Z"
       }
     ]
   ],
@@ -910,7 +398,7 @@
         "id": "bal-admin-1",
         "userId": "user-admin-1",
         "credits": 999,
-        "updatedAt": "2026-10-12T19:59:01.806Z"
+        "updatedAt": "2026-10-13T11:51:06.639Z"
       }
     ],
     [
@@ -919,7 +407,7 @@
         "id": "bal-user-student-1",
         "userId": "user-student-1",
         "credits": 5,
-        "updatedAt": "2026-10-12T19:59:01.888Z"
+        "updatedAt": "2026-10-13T11:51:06.814Z"
       }
     ],
     [
@@ -928,7 +416,7 @@
         "id": "bal-user-student-2",
         "userId": "user-student-2",
         "credits": 8,
-        "updatedAt": "2026-10-12T19:59:01.888Z"
+        "updatedAt": "2026-10-13T11:51:06.840Z"
       }
     ],
     [
@@ -937,7 +425,7 @@
         "id": "bal-user-student-3",
         "userId": "user-student-3",
         "credits": 3,
-        "updatedAt": "2026-10-12T19:59:01.888Z"
+        "updatedAt": "2026-10-13T11:51:06.858Z"
       }
     ],
     [
@@ -946,79 +434,7 @@
         "id": "bal-user-student-4",
         "userId": "user-student-4",
         "credits": 4,
-        "updatedAt": "2026-10-12T19:59:01.888Z"
-      }
-    ],
-    [
-      "user-1791835143588-xovxp",
-      {
-        "id": "bal-user-1791835143588-xovxp",
-        "userId": "user-1791835143588-xovxp",
-        "credits": 5,
-        "updatedAt": "2026-10-12T19:59:05.194Z"
-      }
-    ],
-    [
-      "user-1791835145696-06phv",
-      {
-        "id": "bal-user-1791835145696-06phv",
-        "userId": "user-1791835145696-06phv",
-        "credits": 3,
-        "updatedAt": "2026-10-13T07:47:44.861Z"
-      }
-    ],
-    [
-      "user-1791835145696-ifx0q",
-      {
-        "id": "bal-user-1791835145696-ifx0q",
-        "userId": "user-1791835145696-ifx0q",
-        "credits": 3,
-        "updatedAt": "2026-10-13T07:47:44.859Z"
-      }
-    ],
-    [
-      "user-1791877570329-xknx3",
-      {
-        "id": "bal-user-1791877570329-xknx3",
-        "userId": "user-1791877570329-xknx3",
-        "credits": 5,
-        "updatedAt": "2026-10-13T07:46:10.406Z"
-      }
-    ],
-    [
-      "user-1791877664659-ry7pf",
-      {
-        "id": "bal-user-1791877664659-ry7pf",
-        "userId": "user-1791877664659-ry7pf",
-        "credits": 5,
-        "updatedAt": "2026-10-13T07:47:44.741Z"
-      }
-    ],
-    [
-      "user-1791881084247-nfvh6",
-      {
-        "id": "bal-user-1791881084247-nfvh6",
-        "userId": "user-1791881084247-nfvh6",
-        "credits": 5,
-        "updatedAt": "2026-10-13T08:44:44.326Z"
-      }
-    ],
-    [
-      "user-1791883848096-4bod8",
-      {
-        "id": "bal-user-1791883848096-4bod8",
-        "userId": "user-1791883848096-4bod8",
-        "credits": 10,
-        "updatedAt": "2026-10-13T09:30:48.098Z"
-      }
-    ],
-    [
-      "user-1791883961448-47g07",
-      {
-        "id": "bal-user-1791883961448-47g07",
-        "userId": "user-1791883961448-47g07",
-        "credits": 10,
-        "updatedAt": "2026-10-13T09:32:41.515Z"
+        "updatedAt": "2026-10-13T11:51:06.877Z"
       }
     ]
   ],
@@ -1033,7 +449,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-12T19:59:01.888Z"
+        "createdAt": "2026-10-13T11:51:06.822Z"
       }
     ],
     [
@@ -1046,7 +462,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-12T19:59:01.888Z"
+        "createdAt": "2026-10-13T11:51:06.842Z"
       }
     ],
     [
@@ -1059,7 +475,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-12T19:59:01.888Z"
+        "createdAt": "2026-10-13T11:51:06.862Z"
       }
     ],
     [
@@ -1072,712 +488,13 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-12T19:59:01.888Z"
-      }
-    ],
-    [
-      "ledger-1791835145194-wlr6",
-      {
-        "id": "ledger-1791835145194-wlr6",
-        "userId": "user-1791835143588-xovxp",
-        "change": 5,
-        "balanceAfter": 5,
-        "reason": "PURCHASE",
-        "referenceId": "423188992011",
-        "metadata": "{\"orderId\":\"order-1791835144342\",\"packageName\":\"Campus Explorer\",\"amountInPaise\":2900,\"verifiedBy\":\"user-admin-1\"}",
-        "createdAt": "2026-10-12T19:59:05.194Z"
-      }
-    ],
-    [
-      "ledger-1791835145696-u18i",
-      {
-        "id": "ledger-1791835145696-u18i",
-        "userId": "user-1791835145696-06phv",
-        "change": 5,
-        "balanceAfter": 5,
-        "reason": "ADMIN_ADJUSTMENT",
-        "referenceId": "dev_seed_1791835145696_1",
-        "metadata": null,
-        "createdAt": "2026-10-12T19:59:05.696Z"
-      }
-    ],
-    [
-      "ledger-1791835145696-5hs8",
-      {
-        "id": "ledger-1791835145696-5hs8",
-        "userId": "user-1791835145696-ifx0q",
-        "change": 5,
-        "balanceAfter": 5,
-        "reason": "ADMIN_ADJUSTMENT",
-        "referenceId": "dev_seed_1791835145696_2",
-        "metadata": null,
-        "createdAt": "2026-10-12T19:59:05.696Z"
-      }
-    ],
-    [
-      "ledger-1791835145697-phe9",
-      {
-        "id": "ledger-1791835145697-phe9",
-        "userId": "user-1791835145696-ifx0q",
-        "change": -1,
-        "balanceAfter": 4,
-        "reason": "CONVERSATION_DEDUCTION",
-        "referenceId": "conv-1791835145697-8kt0",
-        "metadata": "{\"conversationId\":\"conv-1791835145697-8kt0\",\"timestamp\":\"2026-10-12T19:59:05.697Z\"}",
-        "createdAt": "2026-10-12T19:59:05.697Z"
-      }
-    ],
-    [
-      "ledger-1791835145697-lary",
-      {
-        "id": "ledger-1791835145697-lary",
-        "userId": "user-1791835145696-06phv",
-        "change": -1,
-        "balanceAfter": 4,
-        "reason": "CONVERSATION_DEDUCTION",
-        "referenceId": "conv-1791835145697-8kt0",
-        "metadata": "{\"conversationId\":\"conv-1791835145697-8kt0\",\"timestamp\":\"2026-10-12T19:59:05.697Z\"}",
-        "createdAt": "2026-10-12T19:59:05.697Z"
-      }
-    ],
-    [
-      "ledger-1791877570407-y4gg",
-      {
-        "id": "ledger-1791877570407-y4gg",
-        "userId": "user-1791877570329-xknx3",
-        "change": 5,
-        "balanceAfter": 5,
-        "reason": "PURCHASE",
-        "referenceId": "423188992011",
-        "metadata": "{\"orderId\":\"order-1791877570359\",\"packageName\":\"Campus Explorer\",\"amountInPaise\":2900,\"verifiedBy\":\"user-admin-1\"}",
-        "createdAt": "2026-10-13T07:46:10.407Z"
-      }
-    ],
-    [
-      "ledger-1791877664742-3p2e",
-      {
-        "id": "ledger-1791877664742-3p2e",
-        "userId": "user-1791877664659-ry7pf",
-        "change": 5,
-        "balanceAfter": 5,
-        "reason": "PURCHASE",
-        "referenceId": "423188992011",
-        "metadata": "{\"orderId\":\"order-1791877664692\",\"packageName\":\"Campus Explorer\",\"amountInPaise\":2900,\"verifiedBy\":\"user-admin-1\"}",
-        "createdAt": "2026-10-13T07:47:44.742Z"
-      }
-    ],
-    [
-      "ledger-1791877664860-fnc7",
-      {
-        "id": "ledger-1791877664860-fnc7",
-        "userId": "user-1791835145696-ifx0q",
-        "change": -1,
-        "balanceAfter": 3,
-        "reason": "CONVERSATION_DEDUCTION",
-        "referenceId": "conv_user-1791835145696-06phv__user-1791835145696-ifx0q__0e32935a4b769950",
-        "metadata": "{\"conversationId\":\"conv_user-1791835145696-06phv__user-1791835145696-ifx0q__0e32935a4b769950\",\"timestamp\":\"2026-10-13T07:47:44.860Z\"}",
-        "createdAt": "2026-10-13T07:47:44.860Z"
-      }
-    ],
-    [
-      "ledger-1791877664861-cpyd",
-      {
-        "id": "ledger-1791877664861-cpyd",
-        "userId": "user-1791835145696-06phv",
-        "change": -1,
-        "balanceAfter": 3,
-        "reason": "CONVERSATION_DEDUCTION",
-        "referenceId": "conv_user-1791835145696-06phv__user-1791835145696-ifx0q__0e32935a4b769950",
-        "metadata": "{\"conversationId\":\"conv_user-1791835145696-06phv__user-1791835145696-ifx0q__0e32935a4b769950\",\"timestamp\":\"2026-10-13T07:47:44.861Z\"}",
-        "createdAt": "2026-10-13T07:47:44.861Z"
-      }
-    ],
-    [
-      "ledger-1791881084327-ahp7",
-      {
-        "id": "ledger-1791881084327-ahp7",
-        "userId": "user-1791881084247-nfvh6",
-        "change": 5,
-        "balanceAfter": 5,
-        "reason": "PURCHASE",
-        "referenceId": "423188992011",
-        "metadata": "{\"orderId\":\"order-1791881084281\",\"packageName\":\"Campus Explorer\",\"amountInPaise\":2900,\"verifiedBy\":\"user-admin-1\"}",
-        "createdAt": "2026-10-13T08:44:44.328Z"
-      }
-    ],
-    [
-      "ledger-1791883848099-e2w6",
-      {
-        "id": "ledger-1791883848099-e2w6",
-        "userId": "user-1791883848096-4bod8",
-        "change": 5,
-        "balanceAfter": 10,
-        "reason": "SIGNUP_BONUS",
-        "referenceId": "signup_bonus_user-1791883848096-4bod8",
-        "metadata": "{\"note\":\"Welcome bonus: 5 free chat credits for new student registration\"}",
-        "createdAt": "2026-10-13T09:30:48.099Z"
-      }
-    ],
-    [
-      "ledger-1791883961450-7rt0",
-      {
-        "id": "ledger-1791883961450-7rt0",
-        "userId": "user-1791883961448-47g07",
-        "change": 5,
-        "balanceAfter": 5,
-        "reason": "SIGNUP_BONUS",
-        "referenceId": "signup_bonus_user-1791883961448-47g07",
-        "metadata": "{\"note\":\"Welcome bonus: 5 free chat credits for new student registration\"}",
-        "createdAt": "2026-10-13T09:32:41.450Z"
-      }
-    ],
-    [
-      "ledger-1791883961515-pkl1",
-      {
-        "id": "ledger-1791883961515-pkl1",
-        "userId": "user-1791883961448-47g07",
-        "change": 5,
-        "balanceAfter": 10,
-        "reason": "PURCHASE",
-        "referenceId": "PAID_CONFIRMED_961473",
-        "metadata": "{\"orderId\":\"order-1791883961473\",\"packageName\":\"Campus Explorer\",\"amountInPaise\":2900,\"verifiedBy\":\"user-admin-1\"}",
-        "createdAt": "2026-10-13T09:32:41.515Z"
+        "createdAt": "2026-10-13T11:51:06.879Z"
       }
     ]
   ],
-  "paymentOrders": [
-    [
-      "order-1791835144342",
-      {
-        "id": "order-1791835144342",
-        "userId": "user-1791835143588-xovxp",
-        "packageId": "pkg-2",
-        "razorpayOrderId": "order_test_1791835144342_lrdj3",
-        "amountInPaise": 2900,
-        "currency": "INR",
-        "status": "PAID",
-        "idempotencyKey": "idemp_user-1791835143588-xovxp_pkg-2_1791835144342",
-        "createdAt": "2026-10-12T19:59:04.342Z",
-        "updatedAt": "2026-10-12T19:59:05.193Z",
-        "utrNumber": "423188992011",
-        "receiptUrl": "/uploads/payment/custom_qr.png",
-        "verifiedBy": "user-admin-1",
-        "verifiedAt": "2026-10-12T19:59:05.193Z"
-      }
-    ],
-    [
-      "order-1791835144685",
-      {
-        "id": "order-1791835144685",
-        "userId": "user-1791835143588-xovxp",
-        "packageId": "pkg-2",
-        "razorpayOrderId": "order_test_1791835144685_yq7yd",
-        "amountInPaise": 2900,
-        "currency": "INR",
-        "status": "REJECTED",
-        "idempotencyKey": "idemp_user-1791835143588-xovxp_pkg-2_1791835144684",
-        "createdAt": "2026-10-12T19:59:04.685Z",
-        "updatedAt": "2026-10-12T19:59:04.898Z",
-        "utrNumber": "INVALID_UTR_999",
-        "receiptUrl": null,
-        "rejectionReason": "UTR not found in bank statement.",
-        "verifiedBy": "user-admin-1",
-        "verifiedAt": "2026-10-12T19:59:04.898Z"
-      }
-    ],
-    [
-      "order-1791835341857",
-      {
-        "id": "order-1791835341857",
-        "userId": "user-student-1",
-        "packageId": "pkg-3",
-        "razorpayOrderId": "order_test_1791835341857_3ragf",
-        "amountInPaise": 4900,
-        "currency": "INR",
-        "status": "CREATED",
-        "idempotencyKey": "idemp_user-student-1_pkg-3_1791835341857",
-        "createdAt": "2026-10-12T20:02:21.857Z",
-        "updatedAt": "2026-10-12T20:02:21.857Z"
-      }
-    ],
-    [
-      "order-1791877570359",
-      {
-        "id": "order-1791877570359",
-        "userId": "user-1791877570329-xknx3",
-        "packageId": "pkg-2",
-        "razorpayOrderId": "CC_ORDER_1791877570359_T3ZT0",
-        "amountInPaise": 2900,
-        "currency": "INR",
-        "status": "PAID",
-        "idempotencyKey": "idemp_user-1791877570329-xknx3_pkg-2_1791877570359",
-        "createdAt": "2026-10-13T07:46:10.359Z",
-        "updatedAt": "2026-10-13T07:46:10.404Z",
-        "utrNumber": "423188992011",
-        "receiptUrl": "/uploads/payment/custom_qr.png",
-        "verifiedBy": "user-admin-1",
-        "verifiedAt": "2026-10-13T07:46:10.404Z"
-      }
-    ],
-    [
-      "order-1791877570376",
-      {
-        "id": "order-1791877570376",
-        "userId": "user-1791877570329-xknx3",
-        "packageId": "pkg-2",
-        "razorpayOrderId": "CC_ORDER_1791877570376_J9IU2",
-        "amountInPaise": 2900,
-        "currency": "INR",
-        "status": "REJECTED",
-        "idempotencyKey": "idemp_user-1791877570329-xknx3_pkg-2_1791877570376",
-        "createdAt": "2026-10-13T07:46:10.376Z",
-        "updatedAt": "2026-10-13T07:46:10.388Z",
-        "utrNumber": "INVALID_UTR_999",
-        "receiptUrl": null,
-        "rejectionReason": "UTR not found in bank statement.",
-        "verifiedBy": "user-admin-1",
-        "verifiedAt": "2026-10-13T07:46:10.388Z"
-      }
-    ],
-    [
-      "order-1791877664692",
-      {
-        "id": "order-1791877664692",
-        "userId": "user-1791877664659-ry7pf",
-        "packageId": "pkg-2",
-        "razorpayOrderId": "CC_ORDER_1791877664692_K0OJP",
-        "amountInPaise": 2900,
-        "currency": "INR",
-        "status": "PAID",
-        "idempotencyKey": "idemp_user-1791877664659-ry7pf_pkg-2_1791877664692",
-        "createdAt": "2026-10-13T07:47:44.692Z",
-        "updatedAt": "2026-10-13T07:47:44.739Z",
-        "utrNumber": "423188992011",
-        "receiptUrl": "/uploads/payment/custom_qr.png",
-        "verifiedBy": "user-admin-1",
-        "verifiedAt": "2026-10-13T07:47:44.739Z"
-      }
-    ],
-    [
-      "order-1791877664714",
-      {
-        "id": "order-1791877664714",
-        "userId": "user-1791877664659-ry7pf",
-        "packageId": "pkg-2",
-        "razorpayOrderId": "CC_ORDER_1791877664714_ZIRMR",
-        "amountInPaise": 2900,
-        "currency": "INR",
-        "status": "REJECTED",
-        "idempotencyKey": "idemp_user-1791877664659-ry7pf_pkg-2_1791877664714",
-        "createdAt": "2026-10-13T07:47:44.714Z",
-        "updatedAt": "2026-10-13T07:47:44.726Z",
-        "utrNumber": "INVALID_UTR_999",
-        "receiptUrl": null,
-        "rejectionReason": "UTR not found in bank statement.",
-        "verifiedBy": "user-admin-1",
-        "verifiedAt": "2026-10-13T07:47:44.726Z"
-      }
-    ],
-    [
-      "order-1791881084281",
-      {
-        "id": "order-1791881084281",
-        "userId": "user-1791881084247-nfvh6",
-        "packageId": "pkg-2",
-        "razorpayOrderId": "CC_ORDER_1791881084281_CTIHL",
-        "amountInPaise": 2900,
-        "currency": "INR",
-        "status": "PAID",
-        "idempotencyKey": "idemp_user-1791881084247-nfvh6_pkg-2_1791881084281",
-        "createdAt": "2026-10-13T08:44:44.281Z",
-        "updatedAt": "2026-10-13T08:44:44.323Z",
-        "utrNumber": "423188992011",
-        "receiptUrl": "/uploads/payment/custom_qr.png",
-        "verifiedBy": "user-admin-1",
-        "verifiedAt": "2026-10-13T08:44:44.323Z"
-      }
-    ],
-    [
-      "order-1791881084301",
-      {
-        "id": "order-1791881084301",
-        "userId": "user-1791881084247-nfvh6",
-        "packageId": "pkg-2",
-        "razorpayOrderId": "CC_ORDER_1791881084301_EYY94",
-        "amountInPaise": 2900,
-        "currency": "INR",
-        "status": "REJECTED",
-        "idempotencyKey": "idemp_user-1791881084247-nfvh6_pkg-2_1791881084301",
-        "createdAt": "2026-10-13T08:44:44.301Z",
-        "updatedAt": "2026-10-13T08:44:44.312Z",
-        "utrNumber": "INVALID_UTR_999",
-        "receiptUrl": null,
-        "rejectionReason": "UTR not found in bank statement.",
-        "verifiedBy": "user-admin-1",
-        "verifiedAt": "2026-10-13T08:44:44.312Z"
-      }
-    ],
-    [
-      "order-1791883961473",
-      {
-        "id": "order-1791883961473",
-        "userId": "user-1791883961448-47g07",
-        "packageId": "pkg-2",
-        "razorpayOrderId": "CC_ORDER_1791883961473_FNH7W",
-        "amountInPaise": 2900,
-        "currency": "INR",
-        "status": "PAID",
-        "idempotencyKey": "idemp_user-1791883961448-47g07_pkg-2_1791883961473",
-        "createdAt": "2026-10-13T09:32:41.473Z",
-        "updatedAt": "2026-10-13T09:32:41.513Z",
-        "utrNumber": "PAID_CONFIRMED_961473",
-        "receiptUrl": null,
-        "verifiedBy": "user-admin-1",
-        "verifiedAt": "2026-10-13T09:32:41.513Z"
-      }
-    ],
-    [
-      "order-1791883961490",
-      {
-        "id": "order-1791883961490",
-        "userId": "user-1791883961448-47g07",
-        "packageId": "pkg-2",
-        "razorpayOrderId": "CC_ORDER_1791883961490_VCN9H",
-        "amountInPaise": 2900,
-        "currency": "INR",
-        "status": "REJECTED",
-        "idempotencyKey": "idemp_user-1791883961448-47g07_pkg-2_1791883961490",
-        "createdAt": "2026-10-13T09:32:41.490Z",
-        "updatedAt": "2026-10-13T09:32:41.501Z",
-        "utrNumber": "PAID_CONFIRMED_961490",
-        "receiptUrl": null,
-        "rejectionReason": "Payment not found in bank statement.",
-        "verifiedBy": "user-admin-1",
-        "verifiedAt": "2026-10-13T09:32:41.501Z"
-      }
-    ]
-  ],
-  "paymentTransactions": [
-    [
-      "txn-1791835144898",
-      {
-        "id": "txn-1791835144898",
-        "orderId": "order-1791835144685",
-        "userId": "user-1791835143588-xovxp",
-        "razorpayPaymentId": "REJECTED_INVALID_UTR_999",
-        "amountInPaise": 2900,
-        "status": "FAILED",
-        "rawResponse": "{\"rejectedBy\":\"user-admin-1\",\"rejectionReason\":\"UTR not found in bank statement.\",\"rejectedAt\":\"2026-10-12T19:59:04.898Z\"}",
-        "verifiedAt": "2026-10-12T19:59:04.898Z"
-      }
-    ],
-    [
-      "txn-1791835145193",
-      {
-        "id": "txn-1791835145193",
-        "orderId": "order-1791835144342",
-        "userId": "user-1791835143588-xovxp",
-        "razorpayPaymentId": "UTR_423188992011",
-        "razorpaySignature": "ADMIN_MANUAL_VERIFICATION",
-        "amountInPaise": 2900,
-        "status": "SUCCESS",
-        "rawResponse": "{\"verifiedByAdmin\":\"user-admin-1\",\"verifiedAt\":\"2026-10-12T19:59:05.193Z\",\"utrNumber\":\"423188992011\",\"receiptUrl\":\"/uploads/payment/custom_qr.png\"}",
-        "verifiedAt": "2026-10-12T19:59:05.193Z"
-      }
-    ],
-    [
-      "txn-1791877570389",
-      {
-        "id": "txn-1791877570389",
-        "orderId": "order-1791877570376",
-        "userId": "user-1791877570329-xknx3",
-        "razorpayPaymentId": "REJECTED_INVALID_UTR_999",
-        "amountInPaise": 2900,
-        "status": "FAILED",
-        "rawResponse": "{\"rejectedBy\":\"user-admin-1\",\"rejectionReason\":\"UTR not found in bank statement.\",\"rejectedAt\":\"2026-10-13T07:46:10.389Z\"}",
-        "verifiedAt": "2026-10-13T07:46:10.389Z"
-      }
-    ],
-    [
-      "txn-1791877570405",
-      {
-        "id": "txn-1791877570405",
-        "orderId": "order-1791877570359",
-        "userId": "user-1791877570329-xknx3",
-        "razorpayPaymentId": "UTR_423188992011",
-        "razorpaySignature": "ADMIN_MANUAL_VERIFICATION",
-        "amountInPaise": 2900,
-        "status": "SUCCESS",
-        "rawResponse": "{\"verifiedByAdmin\":\"user-admin-1\",\"verifiedAt\":\"2026-10-13T07:46:10.405Z\",\"utrNumber\":\"423188992011\",\"receiptUrl\":\"/uploads/payment/custom_qr.png\"}",
-        "verifiedAt": "2026-10-13T07:46:10.405Z"
-      }
-    ],
-    [
-      "txn-1791877664727",
-      {
-        "id": "txn-1791877664727",
-        "orderId": "order-1791877664714",
-        "userId": "user-1791877664659-ry7pf",
-        "razorpayPaymentId": "REJECTED_INVALID_UTR_999",
-        "amountInPaise": 2900,
-        "status": "FAILED",
-        "rawResponse": "{\"rejectedBy\":\"user-admin-1\",\"rejectionReason\":\"UTR not found in bank statement.\",\"rejectedAt\":\"2026-10-13T07:47:44.727Z\"}",
-        "verifiedAt": "2026-10-13T07:47:44.727Z"
-      }
-    ],
-    [
-      "txn-1791877664740",
-      {
-        "id": "txn-1791877664740",
-        "orderId": "order-1791877664692",
-        "userId": "user-1791877664659-ry7pf",
-        "razorpayPaymentId": "UTR_423188992011",
-        "razorpaySignature": "ADMIN_MANUAL_VERIFICATION",
-        "amountInPaise": 2900,
-        "status": "SUCCESS",
-        "rawResponse": "{\"verifiedByAdmin\":\"user-admin-1\",\"verifiedAt\":\"2026-10-13T07:47:44.740Z\",\"utrNumber\":\"423188992011\",\"receiptUrl\":\"/uploads/payment/custom_qr.png\"}",
-        "verifiedAt": "2026-10-13T07:47:44.740Z"
-      }
-    ],
-    [
-      "txn-1791881084313",
-      {
-        "id": "txn-1791881084313",
-        "orderId": "order-1791881084301",
-        "userId": "user-1791881084247-nfvh6",
-        "razorpayPaymentId": "REJECTED_INVALID_UTR_999",
-        "amountInPaise": 2900,
-        "status": "FAILED",
-        "rawResponse": "{\"rejectedBy\":\"user-admin-1\",\"rejectionReason\":\"UTR not found in bank statement.\",\"rejectedAt\":\"2026-10-13T08:44:44.313Z\"}",
-        "verifiedAt": "2026-10-13T08:44:44.313Z"
-      }
-    ],
-    [
-      "txn-1791881084324",
-      {
-        "id": "txn-1791881084324",
-        "orderId": "order-1791881084281",
-        "userId": "user-1791881084247-nfvh6",
-        "razorpayPaymentId": "UTR_423188992011",
-        "razorpaySignature": "ADMIN_MANUAL_VERIFICATION",
-        "amountInPaise": 2900,
-        "status": "SUCCESS",
-        "rawResponse": "{\"verifiedByAdmin\":\"user-admin-1\",\"verifiedAt\":\"2026-10-13T08:44:44.324Z\",\"utrNumber\":\"423188992011\",\"receiptUrl\":\"/uploads/payment/custom_qr.png\"}",
-        "verifiedAt": "2026-10-13T08:44:44.324Z"
-      }
-    ],
-    [
-      "txn-1791883961501",
-      {
-        "id": "txn-1791883961501",
-        "orderId": "order-1791883961490",
-        "userId": "user-1791883961448-47g07",
-        "razorpayPaymentId": "REJECTED_PAID_CONFIRMED_961490",
-        "amountInPaise": 2900,
-        "status": "FAILED",
-        "rawResponse": "{\"rejectedBy\":\"user-admin-1\",\"rejectionReason\":\"Payment not found in bank statement.\",\"rejectedAt\":\"2026-10-13T09:32:41.501Z\"}",
-        "verifiedAt": "2026-10-13T09:32:41.501Z"
-      }
-    ],
-    [
-      "txn-1791883961514",
-      {
-        "id": "txn-1791883961514",
-        "orderId": "order-1791883961473",
-        "userId": "user-1791883961448-47g07",
-        "razorpayPaymentId": "UTR_PAID_CONFIRMED_961473",
-        "razorpaySignature": "ADMIN_MANUAL_VERIFICATION",
-        "amountInPaise": 2900,
-        "status": "SUCCESS",
-        "rawResponse": "{\"verifiedByAdmin\":\"user-admin-1\",\"verifiedAt\":\"2026-10-13T09:32:41.514Z\",\"utrNumber\":\"PAID_CONFIRMED_961473\",\"receiptUrl\":null}",
-        "verifiedAt": "2026-10-13T09:32:41.514Z"
-      }
-    ]
-  ],
+  "paymentOrders": [],
+  "paymentTransactions": [],
   "blocks": [],
   "abuseReports": [],
-  "auditLogs": [
-    [
-      "audit-1791835142941",
-      {
-        "id": "audit-1791835142941",
-        "adminId": "user-admin-1",
-        "action": "PAYMENT_SETTINGS_UPDATED",
-        "targetType": "PaymentSettings",
-        "targetId": "global",
-        "details": "{\"receiverName\":\"KRISH SO ANIL KUMAR\",\"isEnabled\":true,\"qrImageUrl\":\"/uploads/payment/custom_qr.png\"}",
-        "ipAddress": null,
-        "createdAt": "2026-10-12T19:59:02.941Z"
-      }
-    ],
-    [
-      "audit-1791835144899",
-      {
-        "id": "audit-1791835144899",
-        "adminId": "user-admin-1",
-        "action": "PAYMENT_REJECTED",
-        "targetType": "PaymentOrder",
-        "targetId": "order-1791835144685",
-        "details": "{\"userId\":\"user-1791835143588-xovxp\",\"amountInPaise\":2900,\"reason\":\"UTR not found in bank statement.\",\"utrNumber\":\"INVALID_UTR_999\"}",
-        "ipAddress": null,
-        "createdAt": "2026-10-12T19:59:04.899Z"
-      }
-    ],
-    [
-      "audit-1791835145194",
-      {
-        "id": "audit-1791835145194",
-        "adminId": "user-admin-1",
-        "action": "PAYMENT_APPROVED",
-        "targetType": "PaymentOrder",
-        "targetId": "order-1791835144342",
-        "details": "{\"userId\":\"user-1791835143588-xovxp\",\"amountInPaise\":2900,\"creditsGranted\":5,\"utrNumber\":\"423188992011\"}",
-        "ipAddress": null,
-        "createdAt": "2026-10-12T19:59:05.194Z"
-      }
-    ],
-    [
-      "audit-1791877570215",
-      {
-        "id": "audit-1791877570215",
-        "adminId": "user-admin-1",
-        "action": "PAYMENT_SETTINGS_UPDATED",
-        "targetType": "PaymentSettings",
-        "targetId": "global",
-        "details": "{\"receiverName\":\"KRISH SO ANIL KUMAR\",\"isEnabled\":true,\"qrImageUrl\":\"/uploads/payment/custom_qr.png\"}",
-        "ipAddress": null,
-        "createdAt": "2026-10-13T07:46:10.215Z"
-      }
-    ],
-    [
-      "audit-1791877570390",
-      {
-        "id": "audit-1791877570390",
-        "adminId": "user-admin-1",
-        "action": "PAYMENT_REJECTED",
-        "targetType": "PaymentOrder",
-        "targetId": "order-1791877570376",
-        "details": "{\"userId\":\"user-1791877570329-xknx3\",\"amountInPaise\":2900,\"reason\":\"UTR not found in bank statement.\",\"utrNumber\":\"INVALID_UTR_999\"}",
-        "ipAddress": null,
-        "createdAt": "2026-10-13T07:46:10.390Z"
-      }
-    ],
-    [
-      "audit-1791877570408",
-      {
-        "id": "audit-1791877570408",
-        "adminId": "user-admin-1",
-        "action": "PAYMENT_APPROVED",
-        "targetType": "PaymentOrder",
-        "targetId": "order-1791877570359",
-        "details": "{\"userId\":\"user-1791877570329-xknx3\",\"amountInPaise\":2900,\"creditsGranted\":5,\"utrNumber\":\"423188992011\"}",
-        "ipAddress": null,
-        "createdAt": "2026-10-13T07:46:10.408Z"
-      }
-    ],
-    [
-      "audit-1791877664544",
-      {
-        "id": "audit-1791877664544",
-        "adminId": "user-admin-1",
-        "action": "PAYMENT_SETTINGS_UPDATED",
-        "targetType": "PaymentSettings",
-        "targetId": "global",
-        "details": "{\"receiverName\":\"KRISH SO ANIL KUMAR\",\"isEnabled\":true,\"qrImageUrl\":\"/uploads/payment/custom_qr.png\"}",
-        "ipAddress": null,
-        "createdAt": "2026-10-13T07:47:44.544Z"
-      }
-    ],
-    [
-      "audit-1791877664728",
-      {
-        "id": "audit-1791877664728",
-        "adminId": "user-admin-1",
-        "action": "PAYMENT_REJECTED",
-        "targetType": "PaymentOrder",
-        "targetId": "order-1791877664714",
-        "details": "{\"userId\":\"user-1791877664659-ry7pf\",\"amountInPaise\":2900,\"reason\":\"UTR not found in bank statement.\",\"utrNumber\":\"INVALID_UTR_999\"}",
-        "ipAddress": null,
-        "createdAt": "2026-10-13T07:47:44.728Z"
-      }
-    ],
-    [
-      "audit-1791877664743",
-      {
-        "id": "audit-1791877664743",
-        "adminId": "user-admin-1",
-        "action": "PAYMENT_APPROVED",
-        "targetType": "PaymentOrder",
-        "targetId": "order-1791877664692",
-        "details": "{\"userId\":\"user-1791877664659-ry7pf\",\"amountInPaise\":2900,\"creditsGranted\":5,\"utrNumber\":\"423188992011\"}",
-        "ipAddress": null,
-        "createdAt": "2026-10-13T07:47:44.743Z"
-      }
-    ],
-    [
-      "audit-1791881084130",
-      {
-        "id": "audit-1791881084130",
-        "adminId": "user-admin-1",
-        "action": "PAYMENT_SETTINGS_UPDATED",
-        "targetType": "PaymentSettings",
-        "targetId": "global",
-        "details": "{\"receiverName\":\"KRISH SO ANIL KUMAR\",\"isEnabled\":true,\"qrImageUrl\":\"/uploads/payment/custom_qr.png\"}",
-        "ipAddress": null,
-        "createdAt": "2026-10-13T08:44:44.130Z"
-      }
-    ],
-    [
-      "audit-1791881084314",
-      {
-        "id": "audit-1791881084314",
-        "adminId": "user-admin-1",
-        "action": "PAYMENT_REJECTED",
-        "targetType": "PaymentOrder",
-        "targetId": "order-1791881084301",
-        "details": "{\"userId\":\"user-1791881084247-nfvh6\",\"amountInPaise\":2900,\"reason\":\"UTR not found in bank statement.\",\"utrNumber\":\"INVALID_UTR_999\"}",
-        "ipAddress": null,
-        "createdAt": "2026-10-13T08:44:44.314Z"
-      }
-    ],
-    [
-      "audit-1791881084329",
-      {
-        "id": "audit-1791881084329",
-        "adminId": "user-admin-1",
-        "action": "PAYMENT_APPROVED",
-        "targetType": "PaymentOrder",
-        "targetId": "order-1791881084281",
-        "details": "{\"userId\":\"user-1791881084247-nfvh6\",\"amountInPaise\":2900,\"creditsGranted\":5,\"utrNumber\":\"423188992011\"}",
-        "ipAddress": null,
-        "createdAt": "2026-10-13T08:44:44.329Z"
-      }
-    ],
-    [
-      "audit-1791883961502",
-      {
-        "id": "audit-1791883961502",
-        "adminId": "user-admin-1",
-        "action": "PAYMENT_REJECTED",
-        "targetType": "PaymentOrder",
-        "targetId": "order-1791883961490",
-        "details": "{\"userId\":\"user-1791883961448-47g07\",\"amountInPaise\":2900,\"reason\":\"Payment not found in bank statement.\",\"utrNumber\":\"PAID_CONFIRMED_961490\"}",
-        "ipAddress": null,
-        "createdAt": "2026-10-13T09:32:41.502Z"
-      }
-    ],
-    [
-      "audit-1791883961516",
-      {
-        "id": "audit-1791883961516",
-        "adminId": "user-admin-1",
-        "action": "PAYMENT_APPROVED",
-        "targetType": "PaymentOrder",
-        "targetId": "order-1791883961473",
-        "details": "{\"userId\":\"user-1791883961448-47g07\",\"amountInPaise\":2900,\"creditsGranted\":5,\"utrNumber\":\"PAID_CONFIRMED_961473\"}",
-        "ipAddress": null,
-        "createdAt": "2026-10-13T09:32:41.516Z"
-      }
-    ]
-  ]
+  "auditLogs": []
 }

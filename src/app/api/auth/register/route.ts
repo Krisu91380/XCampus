@@ -30,8 +30,10 @@ export async function POST(req: NextRequest) {
       interests,
     } = validated.data;
 
+    const normalizedEmail = email.toLowerCase().trim();
+
     // Check if email already registered
-    const existing = await db.user.findUnique({ where: { email } });
+    const existing = await db.user.findUnique({ where: { email: normalizedEmail } });
     if (existing) {
       return NextResponse.json(
         { success: false, message: 'An account with this email address already exists.' },
@@ -54,7 +56,7 @@ export async function POST(req: NextRequest) {
     // Create user record
     const user = await db.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         passwordHash,
         role: 'USER',
         status: 'ACTIVE',

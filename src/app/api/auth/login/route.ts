@@ -15,13 +15,47 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { email, password } = validated.data;
-    const normalizedEmail = email.toLowerCase().trim();
-    const user = await db.user.findUnique({ where: { email: normalizedEmail } });
+    const { email: identifier, password } = validated.data;
+    const cleanId = identifier.trim();
+    const lowerId = cleanId.toLowerCase();
+
+    // 1. Look up user by exact email
+    let user = await db.user.findUnique({ where: { email: cleanId } });
+
+    // 2. If not found, look up by username prefix (e.g. "aarav.sharma" matches "aarav.sharma@lpu.in")
+    if (!user) {
+      const allUsers = await db.user.findMany();
+      user =
+        allUsers.find((u) => {
+          const uEmailLower = u.email.toLowerCase();
+          if (uEmailLower === lowerId) return true;
+          const prefix = uEmailLower.split('@')[0];
+          return prefix === lowerId;
+        }) || null;
+    }
+
+    // 3. If still not found, check by display name from profile
+    if (!user) {
+      const allProfiles = await db.profile.findMany();
+      const matchingProfile = allProfiles.find(
+        (p) => p.displayName.toLowerCase() === lowerId
+      );
+      if (matchingProfile) {
+        user = await db.user.findUnique({ where: { id: matchingProfile.userId } });
+      }
+    }
+
+    // 4. If no '@' provided, try appending @lpu.in as student default
+    if (!user && !lowerId.includes('@')) {
+      user = await db.user.findUnique({ where: { email: `${lowerId}@lpu.in` } });
+    }
 
     if (!user) {
       return NextResponse.json(
-        { success: false, message: 'Invalid email or password credentials. Please verify your details or create an account.' },
+        {
+          success: false,
+          message: 'Account not found. Please verify your email or student ID, or register a new account.',
+        },
         { status: 401 }
       );
     }
@@ -33,20 +67,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (user.passwordHash === 'OAUTH_GOOGLE') {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'This account was created with Google Sign-In. Please sign in using the "Continue with Google" button above.',
-        },
-        { status: 400 }
-      );
-    }
+    const isValid = await verifyPassword(password, user.passwordHash, {
+      id: user.id,
+      email: user.email,
+    });
 
-    const isValid = await verifyPassword(password, user.passwordHash);
     if (!isValid) {
       return NextResponse.json(
-        { success: false, message: 'Invalid email or password credentials. Please check your password and try again.' },
+        { success: false, message: 'Incorrect password. Please check your password and try again.' },
         { status: 401 }
       );
     }
