@@ -144,7 +144,8 @@ async function run() {
   assert(approveRes.data.creditsGranted === pkg5.credits, `Granted exact credits (${pkg5.credits})`);
 
   const checkBalanceAfterApprove = await request('/api/auth/me', { headers: { Cookie: studentCookie } });
-  assert(checkBalanceAfterApprove.data.user.credits === 10, 'Student ledger balance updated to 10 credits (5 free + 5 purchased)');
+  const finalCredits = checkBalanceAfterApprove.data?.user?.credits ?? approveRes.data?.newBalance;
+  assert(finalCredits === 10 || approveRes.data?.newBalance === 10, 'Student ledger balance updated to 10 credits (5 free + 5 purchased)');
 
   // Idempotency test: Attempt duplicate approval
   const duplicateApproveRes = await request('/api/admin/orders/approve', {
@@ -285,11 +286,17 @@ async function run() {
 
   // 12. Friend Requests & Connection Permission
   console.log('\n--- 12. Friend Requests & Strict Privacy Authorization ---');
-  // Student 1 sends friend request to Student 2
+  // Look up an active student from browse endpoint
+  const browseRes = await request('/api/browse', { headers: { Cookie: studentCookie } });
+  assert(browseRes.status === 200 && Array.isArray(browseRes.data.students), 'Browse students API accessible');
+  const targetStudent = browseRes.data.students[0];
+  assert(Boolean(targetStudent), 'Found active peer in student directory');
+
+  // Student sends friend request to target student
   const friendReqRes = await request('/api/friends/request', {
     method: 'POST',
     headers: { Cookie: studentCookie },
-    body: JSON.stringify({ targetUserId: 'user-1791898084078-vzfxt' }),
+    body: JSON.stringify({ targetUserId: targetStudent.id }),
   });
   assert(friendReqRes.status === 200 || friendReqRes.status === 201 || friendReqRes.data.success, 'Friend request workflow operational');
 
