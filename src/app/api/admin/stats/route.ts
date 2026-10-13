@@ -45,6 +45,15 @@ export async function GET(req: NextRequest) {
         email: session.email,
         role: session.role,
       },
+      dbDiagnostics: {
+        hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+        hasPostgresUrl: Boolean(process.env.POSTGRES_URL),
+        hasKvUrl: Boolean(process.env.KV_REST_API_URL || process.env.KV_URL),
+        databaseUrlScheme: process.env.DATABASE_URL ? process.env.DATABASE_URL.split(':')[0] : null,
+        isVercel: Boolean(process.env.VERCEL),
+        userCount: users.length,
+        userEmails: users.map((u) => u.email),
+      },
     });
   } catch (error: any) {
     if (error.message === 'FORBIDDEN_ADMIN_ONLY') {
