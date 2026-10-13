@@ -66,7 +66,13 @@ export default function VideoCallModal({
         await fetch(`/api/chat/${conversationId}/signaling`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type, payload }),
+          body: JSON.stringify({
+            type,
+            payload: {
+              sessionId: 'modal_' + conversationId,
+              data: payload,
+            },
+          }),
         });
       } catch (err) {
         console.warn('Signaling send error:', err);
@@ -346,6 +352,8 @@ export default function VideoCallModal({
                   setCallState('CONNECTING');
                 }
 
+                const payloadData = sig.payload?.data !== undefined ? sig.payload.data : sig.payload;
+
                 if (sig.type === 'offer' && !isInitiator) {
                   // Receiver receives offer, creates answer
                   if (pc.signalingState !== 'stable') {
@@ -353,7 +361,7 @@ export default function VideoCallModal({
                       pc.setLocalDescription({ type: 'rollback' } as any),
                     ]).catch(() => {});
                   }
-                  await pc.setRemoteDescription(new RTCSessionDescription(sig.payload));
+                  await pc.setRemoteDescription(new RTCSessionDescription(payloadData));
                   await flushIceCandidateQueue(pc);
 
                   const answer = await pc.createAnswer();
@@ -366,19 +374,19 @@ export default function VideoCallModal({
                   // Initiator receives answer
                   if (pc.signalingState === 'have-local-offer') {
                     await pc.setRemoteDescription(
-                      new RTCSessionDescription(sig.payload)
+                      new RTCSessionDescription(payloadData)
                     );
                     await flushIceCandidateQueue(pc);
                     setCallState('CONNECTING');
                   }
                 }
 
-                if (sig.type === 'ice-candidate' && sig.payload) {
+                if (sig.type === 'ice-candidate' && payloadData) {
                   if (!pc.remoteDescription) {
-                    iceCandidateQueueRef.current.push(sig.payload);
+                    iceCandidateQueueRef.current.push(payloadData);
                   } else {
                     try {
-                      await pc.addIceCandidate(new RTCIceCandidate(sig.payload));
+                      await pc.addIceCandidate(new RTCIceCandidate(payloadData));
                     } catch (e) {
                       // ICE race tolerance
                     }

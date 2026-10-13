@@ -306,6 +306,18 @@ function ChatRoomContent() {
           },
         ];
 
+        if (process.env.NEXT_PUBLIC_STUN_SERVER_URL) {
+          iceServers.unshift({ urls: process.env.NEXT_PUBLIC_STUN_SERVER_URL });
+        }
+
+        if (process.env.NEXT_PUBLIC_TURN_SERVER_URL) {
+          iceServers.unshift({
+            urls: process.env.NEXT_PUBLIC_TURN_SERVER_URL,
+            username: process.env.NEXT_PUBLIC_TURN_USERNAME || undefined,
+            credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL || undefined,
+          });
+        }
+
         const pc = new RTCPeerConnection({ iceServers });
         pcRef.current = pc;
 
@@ -343,6 +355,7 @@ function ChatRoomContent() {
         // C. Deterministic Role Negotiation
         if (isInitiator) {
           setCallState('CONNECTING');
+          await sendSignal('call-request', { isVideo: true });
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
           await sendSignal('offer', offer);
@@ -374,6 +387,8 @@ function ChatRoomContent() {
                 if (sigSessionId && callSessionIdRef.current && sigSessionId !== callSessionIdRef.current) {
                   if (sig.type === 'offer' && !isInitiator) {
                     callSessionIdRef.current = sigSessionId;
+                  } else if (sig.type === 'ice-candidate' && !isInitiator && !pc.remoteDescription) {
+                    // Cache early ICE candidate from initiator before offer arrives
                   } else {
                     continue;
                   }
