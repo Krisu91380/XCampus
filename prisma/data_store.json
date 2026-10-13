@@ -20,7 +20,7 @@
       {
         "id": "user-student-1",
         "email": "aarav.sharma@lpu.in",
-        "passwordHash": "$2a$10$yvGMAN3SipUfXrGCSLTB3Oj2Jobjuc7ttysvmoDhTRKpgf/AQmpEK",
+        "passwordHash": "$2a$10$xJV0lMh9mPR5Qa2ewqtD9Os6ybFMTnYHnjibbEFwT8Qk5JKb53Vam",
         "role": "VERIFIED_STUDENT",
         "status": "ACTIVE",
         "isAgeVerified": true,
@@ -35,7 +35,7 @@
       {
         "id": "user-student-2",
         "email": "priya.patel@lpu.in",
-        "passwordHash": "$2a$10$yvGMAN3SipUfXrGCSLTB3Oj2Jobjuc7ttysvmoDhTRKpgf/AQmpEK",
+        "passwordHash": "$2a$10$xJV0lMh9mPR5Qa2ewqtD9Os6ybFMTnYHnjibbEFwT8Qk5JKb53Vam",
         "role": "VERIFIED_STUDENT",
         "status": "ACTIVE",
         "isAgeVerified": true,
@@ -50,7 +50,7 @@
       {
         "id": "user-student-3",
         "email": "rohan.verma@du.ac.in",
-        "passwordHash": "$2a$10$yvGMAN3SipUfXrGCSLTB3Oj2Jobjuc7ttysvmoDhTRKpgf/AQmpEK",
+        "passwordHash": "$2a$10$xJV0lMh9mPR5Qa2ewqtD9Os6ybFMTnYHnjibbEFwT8Qk5JKb53Vam",
         "role": "VERIFIED_STUDENT",
         "status": "ACTIVE",
         "isAgeVerified": true,
@@ -65,7 +65,7 @@
       {
         "id": "user-student-4",
         "email": "ananya.iyer@vitstudent.ac.in",
-        "passwordHash": "$2a$10$yvGMAN3SipUfXrGCSLTB3Oj2Jobjuc7ttysvmoDhTRKpgf/AQmpEK",
+        "passwordHash": "$2a$10$xJV0lMh9mPR5Qa2ewqtD9Os6ybFMTnYHnjibbEFwT8Qk5JKb53Vam",
         "role": "VERIFIED_STUDENT",
         "status": "ACTIVE",
         "isAgeVerified": true,
@@ -73,6 +73,21 @@
         "universityId": "uni-3",
         "createdAt": "2026-10-13T11:51:06.867Z",
         "updatedAt": "2026-10-13T11:51:06.867Z"
+      }
+    ],
+    [
+      "user-student-krish",
+      {
+        "id": "user-student-krish",
+        "email": "krishbarak@lpu.in",
+        "passwordHash": "$2a$10$xJV0lMh9mPR5Qa2ewqtD9Os6ybFMTnYHnjibbEFwT8Qk5JKb53Vam",
+        "role": "VERIFIED_STUDENT",
+        "status": "ACTIVE",
+        "isAgeVerified": true,
+        "dateOfBirth": "2003-05-10T00:00:00.000Z",
+        "universityId": "uni-1",
+        "createdAt": "2026-10-13T14:29:50.418Z",
+        "updatedAt": "2026-10-13T14:29:50.418Z"
       }
     ]
   ],
@@ -199,6 +214,31 @@
         "lastSeenAt": "2026-10-13T11:51:06.875Z",
         "createdAt": "2026-10-13T11:51:06.875Z",
         "updatedAt": "2026-10-13T11:51:06.875Z"
+      }
+    ],
+    [
+      "user-student-krish",
+      {
+        "id": "profile-user-student-krish",
+        "userId": "user-student-krish",
+        "displayName": "Krish Barak",
+        "gender": "MALE",
+        "avatarUrl": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200",
+        "bio": "LPU Student | Computer Science & Engineering",
+        "course": "B.Tech Computer Science & Engg",
+        "academicYear": "3rd Year",
+        "language": "English",
+        "interests": [
+          "Coding",
+          "AI / ML",
+          "Web Development",
+          "Campus Life"
+        ],
+        "isOnline": true,
+        "isDiscoverable": true,
+        "lastSeenAt": "2026-10-13T14:29:50.418Z",
+        "createdAt": "2026-10-13T14:29:50.418Z",
+        "updatedAt": "2026-10-13T14:29:50.418Z"
       }
     ]
   ],
@@ -340,6 +380,21 @@
         "createdAt": "2026-10-13T11:51:06.881Z",
         "updatedAt": "2026-10-13T11:51:06.881Z"
       }
+    ],
+    [
+      "ver-user-student-krish",
+      {
+        "id": "ver-user-student-krish",
+        "userId": "user-student-krish",
+        "universityId": "uni-1",
+        "institutionalEmail": "krishbarak@lpu.in",
+        "documentType": "INSTITUTION_EMAIL",
+        "status": "APPROVED",
+        "reviewedBy": "user-admin-1",
+        "reviewedAt": "2026-10-13T14:29:50.418Z",
+        "createdAt": "2026-10-13T14:29:50.418Z",
+        "updatedAt": "2026-10-13T14:29:50.418Z"
+      }
     ]
   ],
   "preferences": [],
@@ -436,6 +491,15 @@
         "credits": 4,
         "updatedAt": "2026-10-13T11:51:06.877Z"
       }
+    ],
+    [
+      "user-student-krish",
+      {
+        "id": "bal-user-student-krish",
+        "userId": "user-student-krish",
+        "credits": 5,
+        "updatedAt": "2026-10-13T14:29:50.418Z"
+      }
     ]
   ],
   "creditLedgers": [
@@ -489,6 +553,19 @@
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
         "createdAt": "2026-10-13T11:51:06.879Z"
+      }
+    ],
+    [
+      "ledger-user-student-krish-init",
+      {
+        "id": "ledger-user-student-krish-init",
+        "userId": "user-student-krish",
+        "change": 5,
+        "balanceAfter": 5,
+        "reason": "SIGNUP_BONUS",
+        "referenceId": "welcome-package",
+        "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
+        "createdAt": "2026-10-13T14:29:50.418Z"
       }
     ]
   ],

@@ -19,15 +19,15 @@ export async function POST(req: NextRequest) {
     const cleanId = identifier.trim();
     const lowerId = cleanId.toLowerCase();
 
-    // 1. Look up user by exact email
-    let user = await db.user.findUnique({ where: { email: cleanId } });
+    // 1. Look up user by normalized lowercase email
+    let user = await db.user.findUnique({ where: { email: lowerId } });
 
-    // 2. If not found, look up by username prefix (e.g. "aarav.sharma" matches "aarav.sharma@lpu.in")
+    // 2. If not found, look up by username prefix (e.g. "aarav.sharma" matches "aarav.sharma@lpu.in", "krishbarak" matches "krishbarak@lpu.in")
     if (!user) {
       const allUsers = await db.user.findMany();
       user =
         allUsers.find((u) => {
-          const uEmailLower = u.email.toLowerCase();
+          const uEmailLower = u.email.toLowerCase().trim();
           if (uEmailLower === lowerId) return true;
           const prefix = uEmailLower.split('@')[0];
           return prefix === lowerId;
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       const allProfiles = await db.profile.findMany();
       const matchingProfile = allProfiles.find(
-        (p) => p.displayName.toLowerCase() === lowerId
+        (p) => p.displayName.toLowerCase().trim() === lowerId
       );
       if (matchingProfile) {
         user = await db.user.findUnique({ where: { id: matchingProfile.userId } });

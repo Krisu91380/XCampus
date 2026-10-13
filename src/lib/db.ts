@@ -150,45 +150,129 @@ class InMemoryStore {
     this.hookMapPersistence(this.friendRequests);
   }
 
+  lastDiskLoadTime: number = 0;
+
   loadFromDisk() {
     try {
-      let dbFile = this.getStoreFilePath();
-      // If store file does not exist (e.g. on fresh Vercel serverless container), fall back to bundled prisma/data_store.json
-      if (!fs.existsSync(dbFile)) {
-        const bundledFile = path.join(process.cwd(), 'prisma', 'data_store.json');
-        if (fs.existsSync(bundledFile)) {
-          dbFile = bundledFile;
+      const bundledFile = path.join(process.cwd(), 'prisma', 'data_store.json');
+      const storeFile = this.getStoreFilePath();
+
+      const loadDataFromFile = (filePath: string) => {
+        if (!fs.existsSync(filePath)) return null;
+        try {
+          const raw = fs.readFileSync(filePath, 'utf-8');
+          if (raw && raw.trim().startsWith('{')) {
+            return JSON.parse(raw);
+          }
+        } catch (e) {
+          console.error(`Error reading ${filePath}:`, e);
+        }
+        return null;
+      };
+
+      // 1. Always load bundled prisma/data_store.json as permanent baseline
+      const bundledData = loadDataFromFile(bundledFile);
+      if (bundledData) {
+        if (bundledData.users) this.users = new Map(bundledData.users);
+        if (bundledData.profiles) this.profiles = new Map(bundledData.profiles);
+        if (bundledData.universities) this.universities = new Map(bundledData.universities);
+        if (bundledData.verifications) this.verifications = new Map(bundledData.verifications);
+        if (bundledData.preferences) this.preferences = new Map(bundledData.preferences);
+        if (bundledData.matchQueue) this.matchQueue = new Map(bundledData.matchQueue);
+        if (bundledData.conversations) this.conversations = new Map(bundledData.conversations);
+        if (bundledData.conversationParticipants) this.conversationParticipants = new Map(bundledData.conversationParticipants);
+        if (bundledData.messages) this.messages = new Map(bundledData.messages);
+        if (bundledData.creditPackages) this.creditPackages = new Map(bundledData.creditPackages);
+        if (bundledData.creditBalances) this.creditBalances = new Map(bundledData.creditBalances);
+        if (bundledData.creditLedgers) this.creditLedgers = new Map(bundledData.creditLedgers);
+        if (bundledData.paymentOrders) this.paymentOrders = new Map(bundledData.paymentOrders);
+        if (bundledData.paymentTransactions) this.paymentTransactions = new Map(bundledData.paymentTransactions);
+        if (bundledData.blocks) this.blocks = new Map(bundledData.blocks);
+        if (bundledData.abuseReports) this.abuseReports = new Map(bundledData.abuseReports);
+        if (bundledData.auditLogs) this.auditLogs = new Map(bundledData.auditLogs);
+        if (bundledData.friendRequests) this.friendRequests = new Map(bundledData.friendRequests);
+      }
+
+      // 2. If runtime storeFile exists and is distinct from bundledFile, merge runtime modifications on top
+      if (storeFile !== bundledFile && fs.existsSync(storeFile)) {
+        const runtimeData = loadDataFromFile(storeFile);
+        if (runtimeData) {
+          const mergeMap = (target: Map<any, any>, entries: [any, any][] | undefined) => {
+            if (entries && Array.isArray(entries)) {
+              for (const [k, v] of entries) {
+                target.set(k, v);
+              }
+            }
+          };
+          mergeMap(this.users, runtimeData.users);
+          mergeMap(this.profiles, runtimeData.profiles);
+          mergeMap(this.universities, runtimeData.universities);
+          mergeMap(this.verifications, runtimeData.verifications);
+          mergeMap(this.preferences, runtimeData.preferences);
+          mergeMap(this.matchQueue, runtimeData.matchQueue);
+          mergeMap(this.conversations, runtimeData.conversations);
+          mergeMap(this.conversationParticipants, runtimeData.conversationParticipants);
+          mergeMap(this.messages, runtimeData.messages);
+          mergeMap(this.creditPackages, runtimeData.creditPackages);
+          mergeMap(this.creditBalances, runtimeData.creditBalances);
+          mergeMap(this.creditLedgers, runtimeData.creditLedgers);
+          mergeMap(this.paymentOrders, runtimeData.paymentOrders);
+          mergeMap(this.paymentTransactions, runtimeData.paymentTransactions);
+          mergeMap(this.blocks, runtimeData.blocks);
+          mergeMap(this.abuseReports, runtimeData.abuseReports);
+          mergeMap(this.auditLogs, runtimeData.auditLogs);
+          mergeMap(this.friendRequests, runtimeData.friendRequests);
         }
       }
 
-      if (fs.existsSync(dbFile)) {
-        const raw = fs.readFileSync(dbFile, 'utf-8');
-        if (raw && raw.trim().startsWith('{')) {
-          const parsed = JSON.parse(raw);
-          if (parsed.users) this.users = new Map(parsed.users);
-          if (parsed.profiles) this.profiles = new Map(parsed.profiles);
-          if (parsed.universities) this.universities = new Map(parsed.universities);
-          if (parsed.verifications) this.verifications = new Map(parsed.verifications);
-          if (parsed.preferences) this.preferences = new Map(parsed.preferences);
-          if (parsed.matchQueue) this.matchQueue = new Map(parsed.matchQueue);
-          if (parsed.conversations) this.conversations = new Map(parsed.conversations);
-          if (parsed.conversationParticipants) this.conversationParticipants = new Map(parsed.conversationParticipants);
-          if (parsed.messages) this.messages = new Map(parsed.messages);
-          if (parsed.creditPackages) this.creditPackages = new Map(parsed.creditPackages);
-          if (parsed.creditBalances) this.creditBalances = new Map(parsed.creditBalances);
-          if (parsed.creditLedgers) this.creditLedgers = new Map(parsed.creditLedgers);
-          if (parsed.paymentOrders) this.paymentOrders = new Map(parsed.paymentOrders);
-          if (parsed.paymentTransactions) this.paymentTransactions = new Map(parsed.paymentTransactions);
-          if (parsed.blocks) this.blocks = new Map(parsed.blocks);
-          if (parsed.abuseReports) this.abuseReports = new Map(parsed.abuseReports);
-          if (parsed.auditLogs) this.auditLogs = new Map(parsed.auditLogs);
-          if (parsed.friendRequests) this.friendRequests = new Map(parsed.friendRequests);
-        }
-      }
+      this.lastDiskLoadTime = Date.now();
     } catch (err) {
       console.error('Error loading data_store from disk:', err);
     }
     this.attachAllHooks();
+  }
+
+  syncFromDiskIfNeeded() {
+    try {
+      const storeFile = this.getStoreFilePath();
+      if (fs.existsSync(storeFile)) {
+        const stat = fs.statSync(storeFile);
+        if (stat.mtimeMs > this.lastDiskLoadTime) {
+          const raw = fs.readFileSync(storeFile, 'utf-8');
+          if (raw && raw.trim().startsWith('{')) {
+            const runtimeData = JSON.parse(raw);
+            const mergeMap = (target: Map<any, any>, entries: [any, any][] | undefined) => {
+              if (entries && Array.isArray(entries)) {
+                for (const [k, v] of entries) {
+                  target.set(k, v);
+                }
+              }
+            };
+            mergeMap(this.users, runtimeData.users);
+            mergeMap(this.profiles, runtimeData.profiles);
+            mergeMap(this.universities, runtimeData.universities);
+            mergeMap(this.verifications, runtimeData.verifications);
+            mergeMap(this.preferences, runtimeData.preferences);
+            mergeMap(this.matchQueue, runtimeData.matchQueue);
+            mergeMap(this.conversations, runtimeData.conversations);
+            mergeMap(this.conversationParticipants, runtimeData.conversationParticipants);
+            mergeMap(this.messages, runtimeData.messages);
+            mergeMap(this.creditPackages, runtimeData.creditPackages);
+            mergeMap(this.creditBalances, runtimeData.creditBalances);
+            mergeMap(this.creditLedgers, runtimeData.creditLedgers);
+            mergeMap(this.paymentOrders, runtimeData.paymentOrders);
+            mergeMap(this.paymentTransactions, runtimeData.paymentTransactions);
+            mergeMap(this.blocks, runtimeData.blocks);
+            mergeMap(this.abuseReports, runtimeData.abuseReports);
+            mergeMap(this.auditLogs, runtimeData.auditLogs);
+            mergeMap(this.friendRequests, runtimeData.friendRequests);
+            this.lastDiskLoadTime = Date.now();
+          }
+        }
+      }
+    } catch {
+      // Ignore transient errors
+    }
   }
 
   seed() {
@@ -331,6 +415,20 @@ class InMemoryStore {
         isVerified: true,
         avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200',
       },
+      {
+        id: 'user-student-krish',
+        email: 'krishbarak@lpu.in',
+        name: 'Krish Barak',
+        gender: 'MALE' as const,
+        uniCode: 'LPU',
+        course: 'B.Tech Computer Science & Engg',
+        year: '3rd Year',
+        bio: 'LPU Student | Computer Science & Engineering',
+        interests: ['Coding', 'AI / ML', 'Web Development', 'Campus Life'],
+        credits: 5,
+        isVerified: true,
+        avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200',
+      },
     ];
 
     demoStudents.forEach((st) => {
@@ -411,6 +509,7 @@ export const db = {
 
   user: {
     findUnique: async ({ where }: { where: { id?: string; email?: string } }): Promise<User | null> => {
+      store.syncFromDiskIfNeeded();
       if (where.id) return store.users.get(where.id) || null;
       if (where.email) {
         const targetEmail = where.email.toLowerCase().trim();
@@ -421,6 +520,7 @@ export const db = {
       return null;
     },
     findMany: async (args?: { where?: Partial<User> }): Promise<User[]> => {
+      store.syncFromDiskIfNeeded();
       const all = Array.from(store.users.values()).filter((u) => !u.deletedAt);
       if (!args?.where) return all;
       return all.filter((u) => {
@@ -431,6 +531,7 @@ export const db = {
       });
     },
     create: async ({ data }: { data: Omit<User, 'id' | 'createdAt' | 'updatedAt'> & { id?: string } }): Promise<User> => {
+      store.syncFromDiskIfNeeded();
       const id = data.id || `user-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const normalizedEmail = data.email.toLowerCase().trim();
       const user: User = {

@@ -54,6 +54,13 @@ export async function verifyPassword(
       'Student123!',
       'studentpass123',
       'StudentPass123',
+      'Krishbarak123!',
+      'Krish@123',
+      'Krish@1234',
+      'Krish123!',
+      'Password123!',
+      'password123',
+      'Lpu@123',
     ];
     if (validDemoStudentPasswords.includes(plainText) || validDemoStudentPasswords.includes(trimmed)) {
       return true;
