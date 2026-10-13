@@ -18,8 +18,13 @@ import {
   Plus,
   Compass,
   UserPlus,
+  UserMinus,
   Check,
   X,
+  Ban,
+  Trash2,
+  MoreVertical,
+  AlertCircle,
 } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import VideoCallModal from '@/components/VideoCallModal';
@@ -27,7 +32,7 @@ import VideoCallModal from '@/components/VideoCallModal';
 export default function MessagesPage() {
   const router = useRouter();
 
-  // State
+  // Conversations State
   const [conversations, setConversations] = useState<any[]>([]);
   const [filteredConversations, setFilteredConversations] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,6 +47,13 @@ export default function MessagesPage() {
   }>({ incoming: [], outgoing: [], friends: [] });
   const [friendActionLoadingId, setFriendActionLoadingId] = useState<string | null>(null);
   const [friendActionError, setFriendActionError] = useState<string | null>(null);
+  const [addingFriend, setAddingFriend] = useState(false);
+
+  // Blocked Users State & Modal
+  const [showBlockedModal, setShowBlockedModal] = useState(false);
+  const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
+  const [loadingBlocked, setLoadingBlocked] = useState(false);
+  const [unblockingId, setUnblockingId] = useState<string | null>(null);
 
   // Active chat state
   const [messages, setMessages] = useState<any[]>([]);
@@ -49,13 +61,22 @@ export default function MessagesPage() {
   const [inputValue, setInputValue] = useState('');
   const [sending, setSending] = useState(false);
   const [chatPartner, setChatPartner] = useState<any>(null);
+  const [activeMenuOpen, setActiveMenuOpen] = useState(false);
 
   // Video call state
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [isCallInitiator, setIsCallInitiator] = useState(false);
 
+  // Notification Toast
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     if (messagesContainerRef.current) {
@@ -78,7 +99,6 @@ export default function MessagesPage() {
         }
         return;
       }
-
       setConversations(data.conversations || []);
     } catch {
       //
@@ -101,6 +121,22 @@ export default function MessagesPage() {
       }
     } catch {
       //
+    }
+  };
+
+  // 1c. Fetch Blocked Users
+  const fetchBlockedUsers = async () => {
+    setLoadingBlocked(true);
+    try {
+      const res = await fetch('/api/friends/blocked');
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setBlockedUsers(data.blockedUsers || []);
+      }
+    } catch {
+      //
+    } finally {
+      setLoadingBlocked(false);
     }
   };
 
@@ -156,6 +192,7 @@ export default function MessagesPage() {
   const handleSelectConversation = (convId: string) => {
     setSelectedConvId(convId);
     setLoadingChat(true);
+    setActiveMenuOpen(false);
 
     const conv = conversations.find((c) => c.id === convId);
     if (conv?.partner) {
@@ -202,7 +239,6 @@ export default function MessagesPage() {
       const data = await res.json();
       if (res.ok && data.success) {
         setMessages((prev) => [...prev, data.message]);
-        // Update snippet in conversations list
         setConversations((prev) =>
           prev.map((c) =>
             c.id === selectedConvId
@@ -218,6 +254,208 @@ export default function MessagesPage() {
       // Error
     } finally {
       setSending(false);
+    }
+  };
+
+  // 4. Friend Management Actions
+  const handleAcceptFriendRequest = async (requestId: string) => {
+    setFriendActionLoadingId(requestId);
+    setFriendActionError(null);
+    try {
+      const res = await fetch('/api/friends/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, action: 'ACCEPT' }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to accept friend request');
+      }
+
+      setFriendsData((prev) => ({
+        ...prev,
+        incoming: prev.incoming.filter((r) => r.id !== requestId),
+      }));
+
+      await Promise.all([fetchFriends(), fetchConversations()]);
+
+      if (data.conversationId) {
+        handleSelectConversation(data.conversationId);
+      }
+      showToast('Friend request accepted!');
+    } catch (err: any) {
+      setFriendActionError(err.message || 'Error accepting friend request');
+      fetchFriends();
+    } finally {
+      setFriendActionLoadingId(null);
+    }
+  };
+
+  const handleDeclineFriendRequest = async (requestId: string) => {
+    setFriendActionLoadingId(requestId);
+    setFriendActionError(null);
+    try {
+      const res = await fetch('/api/friends/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, action: 'DECLINE' }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to decline friend request');
+      }
+
+      setFriendsData((prev) => ({
+        ...prev,
+        incoming: prev.incoming.filter((r) => r.id !== requestId),
+      }));
+
+      await fetchFriends();
+      showToast('Friend request declined.');
+    } catch (err: any) {
+      setFriendActionError(err.message || 'Error declining friend request');
+      fetchFriends();
+    } finally {
+      setFriendActionLoadingId(null);
+    }
+  };
+
+  const handleSendFriendRequest = async () => {
+    if (!chatPartner?.id || addingFriend) return;
+    setAddingFriend(true);
+    try {
+      const res = await fetch('/api/friends/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: chatPartner.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to send friend request');
+      }
+
+      if (data.status === 'ACCEPTED') {
+        setChatPartner((prev: any) => ({ ...prev, isFriend: true }));
+        showToast('You are now connected as friends!');
+      } else {
+        showToast('Friend request sent to ' + chatPartner.displayName);
+      }
+      fetchFriends();
+    } catch (err: any) {
+      showToast(err.message);
+    } finally {
+      setAddingFriend(false);
+    }
+  };
+
+  const handleRemoveFriend = async () => {
+    if (!chatPartner?.id) return;
+    if (
+      !confirm(
+        `Are you sure you want to remove ${chatPartner.displayName} from your friends list? Your chat history will be kept.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/friends/remove', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: chatPartner.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to remove friend');
+      }
+
+      setChatPartner((prev: any) => ({ ...prev, isFriend: false }));
+      setActiveMenuOpen(false);
+      showToast(`${chatPartner.displayName} removed from friends.`);
+      fetchFriends();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleBlockUser = async () => {
+    if (!chatPartner?.id) return;
+    if (
+      !confirm(
+        `Are you sure you want to block ${chatPartner.displayName}? They will not be able to send messages, call, or match with you again.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/friends/block', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: chatPartner.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to block user');
+      }
+
+      setActiveMenuOpen(false);
+      setSelectedConvId(null);
+      setChatPartner(null);
+      showToast(`${chatPartner.displayName} blocked.`);
+      await Promise.all([fetchConversations(), fetchFriends()]);
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleDeleteChat = async () => {
+    if (!selectedConvId) return;
+    if (
+      !confirm(
+        'Are you sure you want to delete this chat? The conversation will be removed from your list, but your friend can still message you.'
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/chat/${selectedConvId}/delete`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to delete chat');
+      }
+
+      setActiveMenuOpen(false);
+      setSelectedConvId(null);
+      setChatPartner(null);
+      showToast('Conversation deleted.');
+      fetchConversations();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleUnblockUser = async (userId: string) => {
+    setUnblockingId(userId);
+    try {
+      const res = await fetch('/api/friends/unblock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: userId }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to unblock user');
+      }
+
+      setBlockedUsers((prev) => prev.filter((b) => b.userId !== userId));
+      showToast('Student unblocked successfully.');
+      fetchConversations();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setUnblockingId(null);
     }
   };
 
@@ -242,71 +480,16 @@ export default function MessagesPage() {
     }
   };
 
-  const handleAcceptFriendRequest = async (requestId: string) => {
-    setFriendActionLoadingId(requestId);
-    setFriendActionError(null);
-    try {
-      const res = await fetch('/api/friends/respond', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requestId, action: 'ACCEPT' }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Failed to accept friend request');
-      }
-
-      // Optimistically remove from incoming requests
-      setFriendsData((prev) => ({
-        ...prev,
-        incoming: prev.incoming.filter((r) => r.id !== requestId),
-      }));
-
-      // Background refresh
-      await Promise.all([fetchFriends(), fetchConversations()]);
-
-      if (data.conversationId) {
-        handleSelectConversation(data.conversationId);
-      }
-    } catch (err: any) {
-      setFriendActionError(err.message || 'Error accepting friend request');
-      fetchFriends();
-    } finally {
-      setFriendActionLoadingId(null);
-    }
-  };
-
-  const handleDeclineFriendRequest = async (requestId: string) => {
-    setFriendActionLoadingId(requestId);
-    setFriendActionError(null);
-    try {
-      const res = await fetch('/api/friends/respond', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requestId, action: 'DECLINE' }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Failed to decline friend request');
-      }
-
-      // Optimistically remove from incoming requests
-      setFriendsData((prev) => ({
-        ...prev,
-        incoming: prev.incoming.filter((r) => r.id !== requestId),
-      }));
-
-      await fetchFriends();
-    } catch (err: any) {
-      setFriendActionError(err.message || 'Error declining friend request');
-      fetchFriends();
-    } finally {
-      setFriendActionLoadingId(null);
-    }
-  };
-
   return (
     <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-4 sm:py-6 w-full flex-1 flex flex-col h-[calc(100vh-4.5rem)]">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-brand-purple/90 backdrop-blur border border-white/20 text-white text-xs font-semibold shadow-2xl animate-fade-in flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-electric-300" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       <div className="glass-card rounded-3xl border border-navy-750 shadow-2xl flex-1 flex overflow-hidden">
         {/* Left Column: Conversation Sidebar List */}
         <aside
@@ -326,14 +509,27 @@ export default function MessagesPage() {
                 </span>
               </div>
 
-              <Link
-                href="/match"
-                className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 hover:opacity-90 text-white text-xs font-semibold flex items-center gap-1 shadow-sm"
-                title="Find a new student match"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>New Match</span>
-              </Link>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => {
+                    fetchBlockedUsers();
+                    setShowBlockedModal(true);
+                  }}
+                  className="p-1.5 rounded-xl bg-navy-850 hover:bg-navy-800 text-slate-400 hover:text-white text-xs border border-navy-750 transition-colors"
+                  title="Manage Blocked Users"
+                >
+                  <Ban className="w-3.5 h-3.5" />
+                </button>
+
+                <Link
+                  href="/match"
+                  className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 hover:opacity-90 text-white text-xs font-semibold flex items-center gap-1 shadow-sm"
+                  title="Find a new student match"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>New Match</span>
+                </Link>
+              </div>
             </div>
 
             {/* Search Input */}
@@ -367,10 +563,7 @@ export default function MessagesPage() {
               {friendActionError && (
                 <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px] flex items-center justify-between gap-1.5 animate-fade-in">
                   <span>{friendActionError}</span>
-                  <button
-                    onClick={() => setFriendActionError(null)}
-                    className="p-0.5 hover:text-white"
-                  >
+                  <button onClick={() => setFriendActionError(null)} className="p-0.5 hover:text-white">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
@@ -457,7 +650,9 @@ export default function MessagesPage() {
                 </div>
                 <h2 className="text-sm font-bold text-white">No Conversations Found</h2>
                 <p className="text-xs text-slate-400">
-                  {searchQuery ? 'No match found for your search query.' : 'Connect with peers from LPU and other universities to start chatting.'}
+                  {searchQuery
+                    ? 'No match found for your search query.'
+                    : 'Connect with peers from LPU and other universities to start chatting.'}
                 </p>
                 <Link
                   href="/match"
@@ -481,7 +676,6 @@ export default function MessagesPage() {
                         : 'hover:bg-navy-850/60'
                     }`}
                   >
-                    {/* Avatar */}
                     <div className="relative shrink-0">
                       {partner?.avatarUrl ? (
                         <img
@@ -499,13 +693,17 @@ export default function MessagesPage() {
                       )}
                     </div>
 
-                    {/* Meta & Snippet */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1 mb-0.5">
                         <span className="text-xs font-bold text-white truncate flex items-center gap-1">
                           <span>{partner?.displayName || 'Student'}</span>
                           {partner?.isVerified && (
                             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          )}
+                          {partner?.isFriend && (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-400 font-semibold">
+                              Friend
+                            </span>
                           )}
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono shrink-0">
@@ -521,7 +719,9 @@ export default function MessagesPage() {
                         <p className="text-[11px] text-slate-300 truncate">
                           {conv.lastMessage?.content ? (
                             <span>
-                              {conv.lastMessage.isMine && <span className="text-slate-400 font-medium">You: </span>}
+                              {conv.lastMessage.isMine && (
+                                <span className="text-slate-400 font-medium">You: </span>
+                              )}
                               {conv.lastMessage.content}
                             </span>
                           ) : (
@@ -555,7 +755,6 @@ export default function MessagesPage() {
               {/* Active Chat Header */}
               <div className="p-3.5 sm:p-4 border-b border-navy-800 bg-navy-900/60 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {/* Mobile Back Button */}
                   <button
                     onClick={() => setSelectedConvId(null)}
                     className="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-navy-800"
@@ -587,6 +786,20 @@ export default function MessagesPage() {
                       {chatPartner.isVerified && (
                         <ShieldCheck className="w-4 h-4 text-emerald-400" />
                       )}
+                      {chatPartner.isFriend ? (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold">
+                          ✓ Friends
+                        </span>
+                      ) : (
+                        <button
+                          onClick={handleSendFriendRequest}
+                          disabled={addingFriend}
+                          className="px-2 py-0.5 rounded-full bg-electric-500/15 border border-electric-500/30 text-electric-300 hover:bg-electric-500 hover:text-white text-[10px] font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <UserPlus className="w-3 h-3" />
+                          <span>{addingFriend ? 'Sending...' : 'Add Friend'}</span>
+                        </button>
+                      )}
                     </div>
                     <p className="text-[11px] text-slate-400 flex items-center gap-1">
                       <GraduationCap className="w-3 h-3 text-brand-purple" />
@@ -596,7 +809,7 @@ export default function MessagesPage() {
                   </div>
                 </div>
 
-                {/* Right Action Icons: Live Video Call */}
+                {/* Right Action Icons */}
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
@@ -611,18 +824,55 @@ export default function MessagesPage() {
                   </button>
 
                   <Link
-                    href={`/chat/${selectedConvId}`}
+                    href={`/chat/${selectedConvId}?match=true`}
                     className="px-2.5 py-1.5 rounded-xl border border-navy-750 hover:bg-navy-850 text-slate-300 text-xs transition-colors"
-                    title="Open full room view"
+                    title="Open Omegle room view"
                   >
-                    Full Room
+                    Omegle Room
                   </Link>
+
+                  {/* Three-dot dropdown menu */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setActiveMenuOpen(!activeMenuOpen)}
+                      className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-navy-850 transition-colors"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+
+                    {activeMenuOpen && (
+                      <div className="absolute right-0 top-full mt-1 w-44 rounded-2xl bg-navy-900 border border-navy-750 shadow-2xl py-1.5 z-40 text-xs">
+                        {chatPartner.isFriend && (
+                          <button
+                            onClick={handleRemoveFriend}
+                            className="w-full px-3.5 py-2 text-left text-slate-300 hover:bg-navy-800 hover:text-white flex items-center gap-2"
+                          >
+                            <UserMinus className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Remove Friend</span>
+                          </button>
+                        )}
+                        <button
+                          onClick={handleDeleteChat}
+                          className="w-full px-3.5 py-2 text-left text-slate-300 hover:bg-navy-800 hover:text-white flex items-center gap-2"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Delete Chat</span>
+                        </button>
+                        <button
+                          onClick={handleBlockUser}
+                          className="w-full px-3.5 py-2 text-left text-rose-400 hover:bg-rose-950/40 flex items-center gap-2"
+                        >
+                          <Ban className="w-3.5 h-3.5" />
+                          <span>Block User</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* Messages Body */}
               <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3.5">
-                {/* Moderation safety banner */}
                 <div className="p-2.5 rounded-xl bg-navy-900/80 border border-navy-800 text-center text-[11px] text-slate-400 max-w-md mx-auto">
                   🔒 Private student conversation. Never share financial passwords or UPI PINs.
                 </div>
@@ -675,7 +925,7 @@ export default function MessagesPage() {
                 <button
                   type="submit"
                   disabled={sending || !inputValue.trim()}
-                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 hover:opacity-90 disabled:opacity-40 text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-brand-purple/20"
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 hover:opacity-90 disabled:opacity-40 text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-brand-purple/20 cursor-pointer"
                 >
                   {sending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -689,7 +939,6 @@ export default function MessagesPage() {
               </form>
             </>
           ) : (
-            /* Empty State: No conversation selected */
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 text-slate-400">
               <div className="w-16 h-16 rounded-full bg-navy-900 border border-navy-800 flex items-center justify-center text-electric-400 shadow-inner">
                 <MessageSquare className="w-8 h-8" />
@@ -709,6 +958,72 @@ export default function MessagesPage() {
           )}
         </section>
       </div>
+
+      {/* Blocked Users Modal */}
+      {showBlockedModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-navy-900 border border-navy-750 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-navy-800">
+              <div className="flex items-center gap-2">
+                <Ban className="w-4 h-4 text-rose-400" />
+                <h3 className="text-sm font-bold text-white">Blocked Students</h3>
+              </div>
+              <button
+                onClick={() => setShowBlockedModal(false)}
+                className="p-1 rounded-xl text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="max-h-72 overflow-y-auto space-y-2.5">
+              {loadingBlocked ? (
+                <div className="py-8 text-center text-slate-400 text-xs">
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto mb-1 text-brand-purple" />
+                  <span>Loading blocked accounts...</span>
+                </div>
+              ) : blockedUsers.length === 0 ? (
+                <div className="py-8 text-center text-slate-500 text-xs">
+                  <p>No blocked users. You have a clean connections list!</p>
+                </div>
+              ) : (
+                blockedUsers.map((b) => (
+                  <div
+                    key={b.userId}
+                    className="p-3 rounded-2xl bg-navy-950 border border-navy-800 flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {b.avatarUrl ? (
+                        <img
+                          src={b.avatarUrl}
+                          alt={b.displayName}
+                          className="w-8 h-8 rounded-full object-cover border border-navy-700 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                          {b.displayName?.[0] || 'S'}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-white truncate">{b.displayName}</p>
+                        <p className="text-[10px] text-slate-400 truncate">{b.universityName}</p>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleUnblockUser(b.userId)}
+                      disabled={unblockingId === b.userId}
+                      className="px-3 py-1.5 rounded-xl bg-navy-800 hover:bg-emerald-600 hover:text-white text-slate-300 text-xs font-semibold border border-navy-700 transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
+                    >
+                      {unblockingId === b.userId ? 'Unblocking...' : 'Unblock'}
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Embedded Video Call Modal */}
       {isVideoModalOpen && selectedConvId && chatPartner && (

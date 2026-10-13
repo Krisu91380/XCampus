@@ -333,41 +333,50 @@ class InMemoryStore {
     const adminPassword = process.env.ADMIN_INITIAL_PASSWORD || 'AdminSecurePassword123!';
     const adminPasswordHash = bcrypt.hashSync(adminPassword, 10);
     const adminId = 'user-admin-1';
-    this.users.set(adminId, {
-      id: adminId,
-      email: adminEmail,
-      passwordHash: adminPasswordHash,
-      role: 'ADMIN',
-      status: 'ACTIVE',
-      isAgeVerified: true,
-      dateOfBirth: new Date('1998-01-15'),
-      universityId: uniIds['LPU'],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    this.profiles.set(adminId, {
-      id: 'profile-admin-1',
-      userId: adminId,
-      displayName: 'System Admin',
-      gender: 'PREFER_NOT_TO_SAY',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-      bio: 'CampusConnect Platform Administrator',
-      course: 'Administration',
-      academicYear: 'Staff',
-      language: 'English',
-      interests: ['Security', 'Community', 'Technology'],
-      isOnline: true,
-      isDiscoverable: false,
-      lastSeenAt: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    this.creditBalances.set(adminId, {
-      id: 'bal-admin-1',
-      userId: adminId,
-      credits: 999,
-      updatedAt: new Date(),
-    });
+    if (!this.users.has(adminId)) {
+      this.users.set(adminId, {
+        id: adminId,
+        email: adminEmail,
+        passwordHash: adminPasswordHash,
+        role: 'ADMIN',
+        status: 'ACTIVE',
+        isAgeVerified: true,
+        dateOfBirth: new Date('1998-01-15'),
+        universityId: uniIds['LPU'],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+    if (!this.profiles.has(adminId)) {
+      this.profiles.set(adminId, {
+        id: 'profile-admin-1',
+        userId: adminId,
+        displayName: 'System Admin',
+        gender: 'PREFER_NOT_TO_SAY',
+        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+        bio: 'CampusConnect Platform Administrator',
+        course: 'Administration',
+        branch: 'IT & Security',
+        academicYear: 'Staff',
+        semester: 'N/A',
+        language: 'English',
+        interests: ['Security', 'Community', 'Technology'],
+        skills: ['Server Administration', 'Moderation', 'WebRTC'],
+        isOnline: true,
+        isDiscoverable: false,
+        lastSeenAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+    if (!this.creditBalances.has(adminId)) {
+      this.creditBalances.set(adminId, {
+        id: 'bal-admin-1',
+        userId: adminId,
+        credits: 999,
+        updatedAt: new Date(),
+      });
+    }
 
     // 4. Seed Real Demo LPU & Other Students
     const studentPasswordHash = bcrypt.hashSync('StudentPass123!', 10);
@@ -380,9 +389,12 @@ class InMemoryStore {
         gender: 'MALE' as const,
         uniCode: 'LPU',
         course: 'B.Tech Computer Science & Engg',
+        branch: 'AI & Data Engineering',
         year: '3rd Year',
+        semester: '5th Semester',
         bio: 'Tech enthusiast, competitive coder, exploring distributed systems and hackathons.',
         interests: ['Coding', 'AI / ML', 'Gaming', 'Hackathons'],
+        skills: ['Python', 'TypeScript', 'Docker', 'Machine Learning'],
         credits: 5,
         isVerified: true,
         avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200',
@@ -394,9 +406,12 @@ class InMemoryStore {
         gender: 'FEMALE' as const,
         uniCode: 'LPU',
         course: 'MBA Marketing',
+        branch: 'Digital Brand Strategy',
         year: '1st Year',
+        semester: '2nd Semester',
         bio: 'Passionate about digital branding, product design, and university debates.',
         interests: ['Marketing', 'Design', 'Music', 'Debate'],
+        skills: ['Public Speaking', 'UI/UX Design', 'Social Media', 'Debating'],
         credits: 8,
         isVerified: true,
         avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
@@ -408,9 +423,12 @@ class InMemoryStore {
         gender: 'MALE' as const,
         uniCode: 'DU',
         course: 'BA (Hons) Economics',
+        branch: 'Macroeconomics & Finance',
         year: '2nd Year',
+        semester: '4th Semester',
         bio: 'Economics enthusiast from St. Stephen’s. Keen on finance, geopolitical trends, and photography.',
         interests: ['Economics', 'Finance', 'Photography', 'Podcasts'],
+        skills: ['Financial Modeling', 'Data Analysis', 'Photography'],
         credits: 3,
         isVerified: true,
         avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
@@ -422,9 +440,12 @@ class InMemoryStore {
         gender: 'FEMALE' as const,
         uniCode: 'VIT',
         course: 'B.Tech Biotechnology',
+        branch: 'Computational Biology',
         year: '4th Year',
+        semester: '7th Semester',
         bio: 'Senior research fellow in computational biology. Love indie music and badminton.',
         interests: ['Biotech', 'Research', 'Badminton', 'Indie Music'],
+        skills: ['Bioinformatics', 'Genomics', 'Data Science'],
         credits: 4,
         isVerified: true,
         avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200',
@@ -436,9 +457,12 @@ class InMemoryStore {
         gender: 'MALE' as const,
         uniCode: 'LPU',
         course: 'B.Tech Computer Science & Engg',
+        branch: 'Full Stack & Cloud Computing',
         year: '3rd Year',
+        semester: '6th Semester',
         bio: 'LPU Student | Computer Science & Engineering',
         interests: ['Coding', 'AI / ML', 'Web Development', 'Campus Life'],
+        skills: ['Next.js', 'React', 'Node.js', 'PostgreSQL', 'WebRTC'],
         credits: 5,
         isVerified: true,
         avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200',
@@ -446,43 +470,52 @@ class InMemoryStore {
     ];
 
     demoStudents.forEach((st) => {
-      this.users.set(st.id, {
-        id: st.id,
-        email: st.email,
-        passwordHash: studentPasswordHash,
-        role: st.isVerified ? 'VERIFIED_STUDENT' : 'USER',
-        status: 'ACTIVE',
-        isAgeVerified: true,
-        dateOfBirth: new Date('2003-05-10'),
-        universityId: uniIds[st.uniCode],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      if (!this.users.has(st.id)) {
+        this.users.set(st.id, {
+          id: st.id,
+          email: st.email,
+          passwordHash: studentPasswordHash,
+          role: st.isVerified ? 'VERIFIED_STUDENT' : 'USER',
+          status: 'ACTIVE',
+          isAgeVerified: true,
+          dateOfBirth: new Date('2003-05-10'),
+          universityId: uniIds[st.uniCode],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
 
-      this.profiles.set(st.id, {
-        id: `profile-${st.id}`,
-        userId: st.id,
-        displayName: st.name,
-        gender: st.gender,
-        avatarUrl: st.avatar,
-        bio: st.bio,
-        course: st.course,
-        academicYear: st.year,
-        language: 'English',
-        interests: st.interests,
-        isOnline: true,
-        isDiscoverable: true,
-        lastSeenAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      if (!this.profiles.has(st.id)) {
+        this.profiles.set(st.id, {
+          id: `profile-${st.id}`,
+          userId: st.id,
+          displayName: st.name,
+          gender: st.gender,
+          avatarUrl: st.avatar,
+          bio: st.bio,
+          course: st.course,
+          branch: st.branch,
+          academicYear: st.year,
+          semester: st.semester,
+          language: 'English',
+          interests: st.interests,
+          skills: st.skills,
+          isOnline: true,
+          isDiscoverable: true,
+          lastSeenAt: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
 
-      this.creditBalances.set(st.id, {
-        id: `bal-${st.id}`,
-        userId: st.id,
-        credits: st.credits,
-        updatedAt: new Date(),
-      });
+      if (!this.creditBalances.has(st.id)) {
+        this.creditBalances.set(st.id, {
+          id: `bal-${st.id}`,
+          userId: st.id,
+          credits: st.credits,
+          updatedAt: new Date(),
+        });
+      }
 
       this.creditLedgers.set(`ledger-${st.id}-init`, {
         id: `ledger-${st.id}-init`,
@@ -824,12 +857,13 @@ export const db = {
   },
 
   conversationParticipant: {
-    findMany: async ({ where }: { where: { userId?: string; conversationId?: string } }): Promise<ConversationParticipant[]> => {
+    findMany: async ({ where }: { where: { userId?: string; conversationId?: string; hidden?: boolean } }): Promise<ConversationParticipant[]> => {
       store.syncFromDiskIfNeeded();
       const all = Array.from(store.conversationParticipants.values());
       return all.filter((p) => {
         if (where.userId && p.userId !== where.userId) return false;
         if (where.conversationId && p.conversationId !== where.conversationId) return false;
+        if (where.hidden !== undefined && Boolean(p.hidden) !== where.hidden) return false;
         return true;
       });
     },
@@ -855,24 +889,52 @@ export const db = {
       where,
       data,
     }: {
-      where: { conversationId_userId: { conversationId: string; userId: string } };
+      where: {
+        conversationId_userId?: { conversationId: string; userId: string };
+        conversationId?: string;
+        userId?: string;
+        id?: string;
+      };
       data: Partial<ConversationParticipant>;
     }) => {
       store.syncFromDiskIfNeeded();
-      const id = `part-${where.conversationId_userId.conversationId}-${where.conversationId_userId.userId}`;
-      const existing = store.conversationParticipants.get(id);
+      const convId = where.conversationId_userId?.conversationId || where.conversationId;
+      const uId = where.conversationId_userId?.userId || where.userId;
+      let existing: ConversationParticipant | undefined;
+      let id = '';
+
+      if (convId && uId) {
+        id = `part-${convId}-${uId}`;
+        existing = store.conversationParticipants.get(id) || Array.from(store.conversationParticipants.values()).find(
+          (p) => p.conversationId === convId && p.userId === uId
+        );
+      } else if (where.id) {
+        existing = store.conversationParticipants.get(where.id);
+        id = where.id;
+      }
+
       if (!existing) return null;
       const updated = { ...existing, ...data };
-      store.conversationParticipants.set(id, updated);
+      store.conversationParticipants.set(existing.id || id, updated);
       store.saveToDisk();
       return updated;
     },
   },
 
   message: {
-    findMany: async ({ where, orderBy }: { where: { conversationId: string }; orderBy?: { createdAt: 'asc' | 'desc' } }): Promise<Message[]> => {
+    findMany: async ({
+      where,
+      orderBy,
+    }: {
+      where: { conversationId: string; afterTimestamp?: Date | string | number };
+      orderBy?: { createdAt: 'asc' | 'desc' };
+    }): Promise<Message[]> => {
       store.syncFromDiskIfNeeded();
-      const msgs = Array.from(store.messages.values()).filter((m) => m.conversationId === where.conversationId);
+      let msgs = Array.from(store.messages.values()).filter((m) => m.conversationId === where.conversationId);
+      if (where.afterTimestamp) {
+        const afterTime = new Date(where.afterTimestamp).getTime();
+        msgs = msgs.filter((m) => new Date(m.createdAt).getTime() > afterTime);
+      }
       if (orderBy?.createdAt === 'desc') {
         return msgs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       }
@@ -1054,11 +1116,16 @@ export const db = {
   },
 
   block: {
-    findUnique: async ({ where }: { where: { blockerId_blockedId: { blockerId: string; blockedId: string } } }): Promise<Block | null> => {
-      const key = `${where.blockerId_blockedId.blockerId}_${where.blockerId_blockedId.blockedId}`;
+    findUnique: async ({ where }: { where: { blockerId_blockedId?: { blockerId: string; blockedId: string }; blockerId?: string; blockedId?: string } }): Promise<Block | null> => {
+      store.syncFromDiskIfNeeded();
+      const bId = where.blockerId_blockedId?.blockerId || where.blockerId;
+      const tId = where.blockerId_blockedId?.blockedId || where.blockedId;
+      if (!bId || !tId) return null;
+      const key = `${bId}_${tId}`;
       return store.blocks.get(key) || null;
     },
     findFirst: async ({ where }: { where: { blockerId?: string; blockedId?: string; blockerId_blockedId?: { blockerId: string; blockedId: string } } }): Promise<Block | null> => {
+      store.syncFromDiskIfNeeded();
       if (where.blockerId_blockedId) {
         const key = `${where.blockerId_blockedId.blockerId}_${where.blockerId_blockedId.blockedId}`;
         return store.blocks.get(key) || null;
@@ -1070,15 +1137,18 @@ export const db = {
         return true;
       }) || null;
     },
-    findMany: async ({ where }: { where: { blockerId?: string; blockedId?: string } }): Promise<Block[]> => {
+    findMany: async (args?: { where?: { blockerId?: string; blockedId?: string } }): Promise<Block[]> => {
+      store.syncFromDiskIfNeeded();
       const all = Array.from(store.blocks.values());
+      if (!args?.where) return all;
       return all.filter((b) => {
-        if (where.blockerId && b.blockerId !== where.blockerId) return false;
-        if (where.blockedId && b.blockedId !== where.blockedId) return false;
+        if (args.where?.blockerId && b.blockerId !== args.where.blockerId) return false;
+        if (args.where?.blockedId && b.blockedId !== args.where.blockedId) return false;
         return true;
       });
     },
     create: async ({ data }: { data: Omit<Block, 'id' | 'createdAt'> }) => {
+      store.syncFromDiskIfNeeded();
       const key = `${data.blockerId}_${data.blockedId}`;
       const block: Block = {
         id: `blk-${Date.now()}`,
@@ -1086,11 +1156,18 @@ export const db = {
         createdAt: new Date(),
       };
       store.blocks.set(key, block);
+      store.saveToDisk();
       return block;
     },
-    delete: async ({ where }: { where: { blockerId_blockedId: { blockerId: string; blockedId: string } } }) => {
-      const key = `${where.blockerId_blockedId.blockerId}_${where.blockerId_blockedId.blockedId}`;
-      return store.blocks.delete(key);
+    delete: async ({ where }: { where: { blockerId_blockedId?: { blockerId: string; blockedId: string }; blockerId?: string; blockedId?: string } }) => {
+      store.syncFromDiskIfNeeded();
+      const bId = where.blockerId_blockedId?.blockerId || where.blockerId;
+      const tId = where.blockerId_blockedId?.blockedId || where.blockedId;
+      if (!bId || !tId) return false;
+      const key = `${bId}_${tId}`;
+      const res = store.blocks.delete(key);
+      store.saveToDisk();
+      return res;
     },
   },
 
@@ -1156,11 +1233,27 @@ export const db = {
         return true;
       }) || null;
     },
-    findMany: async (args?: { where?: { senderId?: string; receiverId?: string; status?: FriendRequestStatus } }): Promise<FriendRequest[]> => {
+    findMany: async (args?: {
+      where?: {
+        senderId?: string;
+        receiverId?: string;
+        status?: FriendRequestStatus;
+        OR?: Array<{ senderId?: string; receiverId?: string; status?: FriendRequestStatus }>;
+      };
+    }): Promise<FriendRequest[]> => {
       store.syncFromDiskIfNeeded();
       const all = Array.from(store.friendRequests.values());
       if (!args?.where) return all;
       return all.filter((r) => {
+        if (args.where?.OR && Array.isArray(args.where.OR)) {
+          const matchesAny = args.where.OR.some((clause) => {
+            if (clause.senderId && r.senderId !== clause.senderId) return false;
+            if (clause.receiverId && r.receiverId !== clause.receiverId) return false;
+            if (clause.status && r.status !== clause.status) return false;
+            return true;
+          });
+          if (!matchesAny) return false;
+        }
         if (args.where?.senderId && r.senderId !== args.where.senderId) return false;
         if (args.where?.receiverId && r.receiverId !== args.where.receiverId) return false;
         if (args.where?.status && r.status !== args.where.status) return false;

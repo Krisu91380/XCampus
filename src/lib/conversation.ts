@@ -161,6 +161,20 @@ export async function isConnectionPermitted(
   user2Id: string,
   conversationId: string
 ): Promise<{ permitted: boolean; reason?: string }> {
+  // 0. Check if either user has blocked the other
+  const block1 = await db.block.findFirst({
+    where: { blockerId: user1Id, blockedId: user2Id },
+  });
+  const block2 = await db.block.findFirst({
+    where: { blockerId: user2Id, blockedId: user1Id },
+  });
+  if (block1 || block2) {
+    return {
+      permitted: false,
+      reason: 'Communication is blocked between these accounts.',
+    };
+  }
+
   // 1. Check if users are accepted friends
   const friendReq = await db.friendRequest.findFirst({
     where: {

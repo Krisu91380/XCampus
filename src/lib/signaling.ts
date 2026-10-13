@@ -8,11 +8,13 @@ export interface SignalMessage {
   conversationId: string;
   fromUserId: string;
   toUserId: string;
+  sessionId?: string;
   type:
     | 'call-request'
     | 'call-accept'
     | 'call-reject'
     | 'call-end'
+    | 'call-next'
     | 'offer'
     | 'answer'
     | 'ice-candidate';

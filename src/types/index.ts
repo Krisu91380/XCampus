@@ -37,9 +37,19 @@ export interface Profile {
   avatarUrl?: string | null;
   bio?: string | null;
   course?: string | null;
+  branch?: string | null;
   academicYear?: string | null;
+  semester?: string | null;
   language: string;
   interests: string[]; // parsed tags
+  skills?: string[];
+  socialLinks?: {
+    github?: string;
+    linkedin?: string;
+    instagram?: string;
+    twitter?: string;
+    website?: string;
+  };
   isOnline: boolean;
   isDiscoverable: boolean;
   lastSeenAt: string | Date;
@@ -122,6 +132,8 @@ export interface ConversationParticipant {
   joinedAt: string | Date;
   leftAt?: string | Date | null;
   hasUnread: boolean;
+  hidden?: boolean;
+  clearedAt?: string | Date | null;
 }
 
 export interface Message {

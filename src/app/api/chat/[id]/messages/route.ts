@@ -46,14 +46,21 @@ export async function GET(
       });
     }
 
-    // Mark unread as false for this participant
+    // Mark unread as false for this participant and get clearedAt
+    const myParticipant = await db.conversationParticipant.findFirst({
+      where: { conversationId, userId: session.userId },
+    });
+
     await db.conversationParticipant.update({
       where: { conversationId_userId: { conversationId, userId: session.userId } },
       data: { hasUnread: false },
     }).catch(() => {});
 
     const messages = await db.message.findMany({
-      where: { conversationId },
+      where: {
+        conversationId,
+        afterTimestamp: myParticipant?.clearedAt || undefined,
+      },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -67,15 +74,38 @@ export async function GET(
         ? await db.university.findUnique({ where: { id: pUser.universityId } })
         : null;
 
+      const isFriend = Boolean(
+        await db.friendRequest.findFirst({
+          where: {
+            senderId: session.userId,
+            receiverId: partnerId,
+            status: 'ACCEPTED',
+          },
+        }) ||
+        await db.friendRequest.findFirst({
+          where: {
+            senderId: partnerId,
+            receiverId: session.userId,
+            status: 'ACCEPTED',
+          },
+        })
+      );
+
       partner = {
         id: partnerId,
         displayName: pProfile?.displayName || 'Student',
         gender: pProfile?.gender,
         avatarUrl: pProfile?.avatarUrl,
         course: pProfile?.course,
+        branch: pProfile?.branch,
         academicYear: pProfile?.academicYear,
+        semester: pProfile?.semester,
+        bio: pProfile?.bio,
+        interests: pProfile?.interests,
+        skills: pProfile?.skills,
         isOnline: pProfile?.isOnline || false,
         isVerified: pUser?.role === 'VERIFIED_STUDENT',
+        isFriend,
         universityName: pUni?.name || 'University',
         universityCode: pUni?.code || 'UNI',
       };
@@ -175,7 +205,7 @@ export async function POST(
       },
     });
 
-    // Mark unread for other participant
+    // Mark unread for other participant and ensure chat is not hidden
     const otherParticipants = (await db.conversationParticipant.findMany({
       where: { conversationId },
     })).filter((x) => x.userId !== session.userId);
@@ -183,9 +213,15 @@ export async function POST(
     for (const other of otherParticipants) {
       await db.conversationParticipant.update({
         where: { conversationId_userId: { conversationId, userId: other.userId } },
-        data: { hasUnread: true },
+        data: { hasUnread: true, hidden: false },
       });
     }
+
+    // Unhide for current user if they previously hid it
+    await db.conversationParticipant.update({
+      where: { conversationId_userId: { conversationId, userId: session.userId } },
+      data: { hidden: false },
+    });
 
     // Broadcast in real-time
     broadcastMessage(conversationId, message);

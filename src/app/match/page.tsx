@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Sparkles,
   Users,
@@ -18,8 +18,11 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 
-export default function MatchmakingPage() {
+function MatchmakingContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const autoSearch = searchParams.get('autoSearch') === 'true';
+
   const [user, setUser] = useState<any>(null);
   const [universities, setUniversities] = useState<any[]>([]);
   const [loadingInitial, setLoadingInitial] = useState(true);
@@ -57,22 +60,28 @@ export default function MatchmakingPage() {
         if (uniData.success) {
           setUniversities(uniData.universities);
         }
+        if (autoSearch && authData.user?.credits >= 1) {
+          setTimeout(() => {
+            const startBtn = document.getElementById('start-match-submit-btn');
+            if (startBtn) startBtn.click();
+          }, 300);
+        }
       })
       .catch(() => router.push('/login'))
       .finally(() => setLoadingInitial(false));
-  }, [router]);
+  }, [router, autoSearch]);
 
   // Handle Match Found Transition
   const handleMatchFound = (data: any) => {
     setIsSearching(false);
     setMatchResult(data);
-    setStatusMessage('Partner matched! Redirecting to chat room...');
+    setStatusMessage('Partner matched! Redirecting to live room...');
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
     setTimeout(() => {
-      router.push(`/chat/${data.conversationId}`);
+      router.push(`/chat/${data.conversationId}?match=true&autoCall=true`);
     }, 1200);
   };
 
@@ -500,6 +509,7 @@ export default function MatchmakingPage() {
               </div>
 
               <button
+                id="start-match-submit-btn"
                 type="submit"
                 disabled={user?.credits < 1}
                 className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white font-bold text-sm shadow-xl shadow-brand-purple/25 hover:opacity-95 disabled:opacity-50 flex items-center justify-center gap-2"
@@ -516,5 +526,20 @@ export default function MatchmakingPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function MatchmakingPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="max-w-2xl mx-auto px-4 py-16 text-center text-slate-400">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-brand-purple" />
+          <p className="text-xs">Preparing matchmaking room...</p>
+        </div>
+      }
+    >
+      <MatchmakingContent />
+    </React.Suspense>
   );
 }

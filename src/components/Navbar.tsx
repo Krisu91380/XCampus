@@ -153,6 +153,16 @@ export default function Navbar() {
               </Link>
 
               <Link
+                href="/profile"
+                className={`transition-colors flex items-center gap-1.5 ${
+                  pathname === '/profile' ? 'text-brand-purple font-bold' : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                <UserIcon className="w-4 h-4" />
+                <span>Profile</span>
+              </Link>
+
+              <Link
                 href="/dashboard"
                 className={`transition-colors flex items-center gap-1.5 ${
                   pathname === '/dashboard' ? 'text-brand-purple' : 'text-slate-300 hover:text-white'
@@ -191,11 +201,28 @@ export default function Navbar() {
                 <span>{user.credits} Credits</span>
               </Link>
 
-              {/* User Identity / Logout */}
+              {/* User Identity / Profile / Logout */}
               <div className="flex items-center gap-2 pl-2 border-l border-navy-800">
-                <span className="text-xs text-slate-300 font-medium max-w-[120px] truncate">
-                  {user.profile?.displayName || user.email}
-                </span>
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-2 hover:opacity-85 transition-opacity"
+                  title="View and edit your student profile"
+                >
+                  <div className="w-7 h-7 rounded-full overflow-hidden bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center text-white text-xs font-bold border border-navy-700 shrink-0">
+                    {user.profile?.avatarUrl ? (
+                      <img
+                        src={user.profile.avatarUrl}
+                        alt={user.profile.displayName || 'Avatar'}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      (user.profile?.displayName?.[0] || 'S').toUpperCase()
+                    )}
+                  </div>
+                  <span className="text-xs text-slate-300 font-medium max-w-[110px] truncate">
+                    {user.profile?.displayName || user.email}
+                  </span>
+                </Link>
                 <button
                   onClick={handleLogout}
                   title="Sign out of CampusConnect"
@@ -297,11 +324,18 @@ export default function Navbar() {
                 ⚡ Matchmaking Room
               </Link>
               <Link
+                href="/profile"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block py-2 text-slate-300 font-medium"
+              >
+                👤 My Profile
+              </Link>
+              <Link
                 href="/dashboard"
                 onClick={() => setMobileMenuOpen(false)}
                 className="block py-2 text-brand-purple font-medium"
               >
-                👤 Student Dashboard
+                📊 Student Dashboard
               </Link>
               {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (
                 <Link

@@ -13,6 +13,8 @@ export async function GET(req: NextRequest) {
     const conversations = [];
 
     for (const p of participations) {
+      if (p.hidden) continue;
+
       const conv = await db.conversation.findUnique({ where: { id: p.conversationId } });
       if (!conv) continue;
 
@@ -24,28 +26,60 @@ export async function GET(req: NextRequest) {
 
       let partnerInfo = null;
       if (partnerPart) {
+        // Check if either user blocked the other
+        const isBlocked = await db.block.findFirst({
+          where: { blockerId: session.userId, blockedId: partnerPart.userId },
+        });
+        const isBlockedBy = await db.block.findFirst({
+          where: { blockerId: partnerPart.userId, blockedId: session.userId },
+        });
+        if (isBlocked || isBlockedBy) continue;
+
         const partnerUser = await db.user.findUnique({ where: { id: partnerPart.userId } });
         const partnerProfile = await db.profile.findUnique({ where: { userId: partnerPart.userId } });
         const partnerUni = partnerUser?.universityId
           ? await db.university.findUnique({ where: { id: partnerUser.universityId } })
           : null;
 
+        const isFriend = Boolean(
+          await db.friendRequest.findFirst({
+            where: {
+              senderId: session.userId,
+              receiverId: partnerPart.userId,
+              status: 'ACCEPTED',
+            },
+          }) ||
+          await db.friendRequest.findFirst({
+            where: {
+              senderId: partnerPart.userId,
+              receiverId: session.userId,
+              status: 'ACCEPTED',
+            },
+          })
+        );
+
         partnerInfo = {
           id: partnerPart.userId,
           displayName: partnerProfile?.displayName || 'Student',
           avatarUrl: partnerProfile?.avatarUrl,
           course: partnerProfile?.course,
+          branch: partnerProfile?.branch,
           academicYear: partnerProfile?.academicYear,
+          semester: partnerProfile?.semester,
           isOnline: partnerProfile?.isOnline || false,
           isVerified: partnerUser?.role === 'VERIFIED_STUDENT',
+          isFriend,
           universityName: partnerUni?.name || 'University',
           universityCode: partnerUni?.code || 'UNI',
         };
       }
 
-      // Fetch messages ordered desc to get latest
+      // Fetch messages ordered desc to get latest (respecting clearedAt if chat was previously cleared)
       const messages = await db.message.findMany({
-        where: { conversationId: conv.id },
+        where: {
+          conversationId: conv.id,
+          afterTimestamp: p.clearedAt || undefined,
+        },
         orderBy: { createdAt: 'desc' },
       });
       const lastMessage = messages[0] || null;
