@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { verifyAndResolveParticipants } from '@/lib/conversation';
-import { pushSignal, getSignalsForUser, clearSignals } from '@/lib/signaling';
+import { pushSignal, getSignalsForUser } from '@/lib/signaling';
 
 export async function POST(
   req: NextRequest,
@@ -9,7 +9,7 @@ export async function POST(
 ) {
   try {
     const session = await requireAuth(req);
-    const conversationId = params.id;
+    const conversationId = decodeURIComponent(params.id);
 
     const verified = await verifyAndResolveParticipants(conversationId, session.userId);
     if (!verified) {
@@ -29,7 +29,6 @@ export async function POST(
     const partnerId = verified.partnerId;
 
     if (type === 'call-end' || type === 'call-reject') {
-      // Clear old signaling backlog when a call terminates
       const signal = pushSignal({
         conversationId,
         fromUserId: session.userId,
@@ -68,7 +67,7 @@ export async function GET(
 ) {
   try {
     const session = await requireAuth(req);
-    const conversationId = params.id;
+    const conversationId = decodeURIComponent(params.id);
 
     const verified = await verifyAndResolveParticipants(conversationId, session.userId);
     if (!verified) {

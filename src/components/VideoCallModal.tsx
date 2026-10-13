@@ -11,12 +11,8 @@ import {
   Minimize2,
   AlertCircle,
   Loader2,
-  UserCheck,
   ShieldCheck,
-  Clock,
-  Sparkles,
   PhoneCall,
-  X,
 } from 'lucide-react';
 
 interface VideoCallModalProps {
@@ -58,7 +54,10 @@ export default function VideoCallModal({
   const localStreamRef = useRef<MediaStream | null>(null);
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastSignalTimestampRef = useRef<number>(Date.now() - 5000);
+  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSignalTimestampRef = useRef<number>(Date.now() - 120000);
+  const seenSignalIdsRef = useRef<Set<string>>(new Set());
+  const iceCandidateQueueRef = useRef<RTCIceCandidateInit[]>([]);
   const isEndingRef = useRef(false);
 
   const sendSignal = useCallback(
@@ -78,6 +77,10 @@ export default function VideoCallModal({
 
   // Clean shutdown helper
   const cleanUp = useCallback(() => {
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+      connectionTimeoutRef.current = null;
+    }
     if (pollTimerRef.current) {
       clearInterval(pollTimerRef.current);
       pollTimerRef.current = null;
@@ -96,9 +99,13 @@ export default function VideoCallModal({
       pcRef.current.ontrack = null;
       pcRef.current.onicecandidate = null;
       pcRef.current.onconnectionstatechange = null;
+      pcRef.current.oniceconnectionstatechange = null;
       pcRef.current.close();
       pcRef.current = null;
     }
+
+    iceCandidateQueueRef.current = [];
+    seenSignalIdsRef.current.clear();
 
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
@@ -127,7 +134,22 @@ export default function VideoCallModal({
     setErrorMessage(null);
     setCallDurationSeconds(0);
     setCallState('STARTING');
-    lastSignalTimestampRef.current = Date.now() - 4000;
+    lastSignalTimestampRef.current = Date.now() - 120000;
+    seenSignalIdsRef.current.clear();
+    iceCandidateQueueRef.current = [];
+
+    const flushIceCandidateQueue = async (targetPc: RTCPeerConnection) => {
+      if (iceCandidateQueueRef.current.length === 0) return;
+      const pending = [...iceCandidateQueueRef.current];
+      iceCandidateQueueRef.current = [];
+      for (const cand of pending) {
+        try {
+          await targetPc.addIceCandidate(new RTCIceCandidate(cand));
+        } catch (err) {
+          console.warn('Queued ICE candidate application error:', err);
+        }
+      }
+    };
 
     const setupCall = async () => {
       try {
@@ -170,19 +192,25 @@ export default function VideoCallModal({
           localVideoRef.current.srcObject = stream;
         }
 
-        // 2. Configure ICE Servers (Google STUN + Configurable TURN)
+        // 2. Configure ICE Servers (Google STUN + Optional TURN)
         const iceServers: RTCIceServer[] = [
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
           { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun.services.mozilla.com' },
         ];
 
+        if (process.env.NEXT_PUBLIC_STUN_SERVER_URL) {
+          iceServers.push({ urls: process.env.NEXT_PUBLIC_STUN_SERVER_URL });
+        }
+
         if (process.env.NEXT_PUBLIC_TURN_SERVER_URL) {
-          iceServers.push({
+          const turnServer: RTCIceServer = {
             urls: process.env.NEXT_PUBLIC_TURN_SERVER_URL,
             username: process.env.NEXT_PUBLIC_TURN_USERNAME || undefined,
             credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL || undefined,
-          });
+          };
+          iceServers.push(turnServer);
         }
 
         const pc = new RTCPeerConnection({ iceServers });
@@ -196,6 +224,10 @@ export default function VideoCallModal({
           if (remoteVideoRef.current && event.streams[0]) {
             remoteVideoRef.current.srcObject = event.streams[0];
             setCallState('CONNECTED');
+            if (connectionTimeoutRef.current) {
+              clearTimeout(connectionTimeoutRef.current);
+              connectionTimeoutRef.current = null;
+            }
           }
         };
 
@@ -206,16 +238,53 @@ export default function VideoCallModal({
           }
         };
 
+        // Monitor ICE connection state changes
+        pc.oniceconnectionstatechange = () => {
+          if (
+            pc.iceConnectionState === 'connected' ||
+            pc.iceConnectionState === 'completed'
+          ) {
+            setCallState('CONNECTED');
+            if (connectionTimeoutRef.current) {
+              clearTimeout(connectionTimeoutRef.current);
+              connectionTimeoutRef.current = null;
+            }
+          } else if (pc.iceConnectionState === 'failed') {
+            setErrorMessage(
+              'ICE negotiation failed. Direct peer-to-peer connection could not be established. Network or firewall restrictions may require a TURN relay.'
+            );
+          }
+        };
+
+        // Monitor connection state changes
         pc.onconnectionstatechange = () => {
           if (pc.connectionState === 'connected') {
             setCallState('CONNECTED');
-          } else if (
-            pc.connectionState === 'disconnected' ||
-            pc.connectionState === 'failed'
-          ) {
+            if (connectionTimeoutRef.current) {
+              clearTimeout(connectionTimeoutRef.current);
+              connectionTimeoutRef.current = null;
+            }
+          } else if (pc.connectionState === 'failed') {
+            setErrorMessage(
+              'WebRTC connection failed. Please check your internet connection or firewall settings.'
+            );
+          } else if (pc.connectionState === 'disconnected') {
             handleEndCall();
           }
         };
+
+        // Set 25-second connection timeout to prevent hanging indefinitely
+        connectionTimeoutRef.current = setTimeout(() => {
+          if (
+            pcRef.current &&
+            pcRef.current.connectionState !== 'connected' &&
+            !isEndingRef.current
+          ) {
+            setErrorMessage(
+              'Connection timed out while securing WebRTC peer connection. The other student may have disconnected or your network blocks peer-to-peer traffic.'
+            );
+          }
+        }, 25000);
 
         // 3. Negotiate Role: Initiator or Receiver
         if (isInitiator) {
@@ -243,6 +312,10 @@ export default function VideoCallModal({
 
             if (data.success && Array.isArray(data.signals)) {
               for (const sig of data.signals) {
+                // Deduplicate signals
+                if (seenSignalIdsRef.current.has(sig.id)) continue;
+                seenSignalIdsRef.current.add(sig.id);
+
                 lastSignalTimestampRef.current = Math.max(
                   lastSignalTimestampRef.current,
                   sig.createdAt
@@ -254,6 +327,13 @@ export default function VideoCallModal({
                   return;
                 }
 
+                if (sig.type === 'call-accept' && isInitiator) {
+                  // Partner accepted call. Re-send offer if ready to ensure reliable sync
+                  if (pc.localDescription) {
+                    await sendSignal('offer', pc.localDescription);
+                  }
+                }
+
                 if (sig.type === 'offer' && !isInitiator) {
                   // Receiver receives offer, creates answer
                   if (pc.signalingState !== 'stable') {
@@ -262,6 +342,8 @@ export default function VideoCallModal({
                     ]).catch(() => {});
                   }
                   await pc.setRemoteDescription(new RTCSessionDescription(sig.payload));
+                  await flushIceCandidateQueue(pc);
+
                   const answer = await pc.createAnswer();
                   await pc.setLocalDescription(answer);
                   await sendSignal('answer', answer);
@@ -274,15 +356,20 @@ export default function VideoCallModal({
                     await pc.setRemoteDescription(
                       new RTCSessionDescription(sig.payload)
                     );
+                    await flushIceCandidateQueue(pc);
                     setCallState('CONNECTING');
                   }
                 }
 
                 if (sig.type === 'ice-candidate' && sig.payload) {
-                  try {
-                    await pc.addIceCandidate(new RTCIceCandidate(sig.payload));
-                  } catch (e) {
-                    // ICE race tolerance
+                  if (!pc.remoteDescription) {
+                    iceCandidateQueueRef.current.push(sig.payload);
+                  } else {
+                    try {
+                      await pc.addIceCandidate(new RTCIceCandidate(sig.payload));
+                    } catch (e) {
+                      // ICE race tolerance
+                    }
                   }
                 }
               }
@@ -404,19 +491,21 @@ export default function VideoCallModal({
         {/* Center Video Canvas */}
         <div className="relative flex-1 bg-navy-950 flex items-center justify-center overflow-hidden">
           {errorMessage ? (
-            /* Error State (Permissions / Devices) */
-            <div className="max-w-md p-6 text-center space-y-3 z-10">
+            /* Error State (Permissions / Devices / Timeout) */
+            <div className="max-w-md p-6 text-center space-y-3 z-10 animate-fade-in">
               <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
                 <AlertCircle className="w-6 h-6" />
               </div>
               <h4 className="text-base font-bold text-white">Video Call Unavailable</h4>
               <p className="text-xs text-rose-300 leading-relaxed">{errorMessage}</p>
-              <button
-                onClick={onClose}
-                className="mt-3 px-5 py-2.5 rounded-xl bg-navy-800 hover:bg-navy-750 text-white text-xs font-semibold"
-              >
-                Close Call Window
-              </button>
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <button
+                  onClick={handleEndCall}
+                  className="px-5 py-2.5 rounded-xl bg-navy-800 hover:bg-navy-750 text-white text-xs font-semibold"
+                >
+                  Close Call Window
+                </button>
+              </div>
             </div>
           ) : callState === 'ENDED' ? (
             /* Call Ended State */

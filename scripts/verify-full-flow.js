@@ -226,25 +226,76 @@ async function run() {
   const callReqRes = await request(`/api/chat/${convId}/signaling`, {
     method: 'POST',
     headers: { Cookie: s1Cookie },
-    body: JSON.stringify({ type: 'call-request', payload: { sdp: 'dummy-offer-sdp-test' } }),
+    body: JSON.stringify({ type: 'call-request' }),
   });
   assert(callReqRes.status === 200 && callReqRes.data.success, 'Student 1 sent WebRTC call-request signal');
 
-  // Student 2 receives call-request signal
-  const getSignalsRes = await request(`/api/chat/${convId}/signaling`, {
+  // Student 1 generates SDP offer
+  const offerRes = await request(`/api/chat/${convId}/signaling`, {
+    method: 'POST',
+    headers: { Cookie: s1Cookie },
+    body: JSON.stringify({ type: 'offer', payload: { type: 'offer', sdp: 'v=0\r\no=caller 12345 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\n' } }),
+  });
+  assert(offerRes.status === 200 && offerRes.data.success, 'Student 1 sent WebRTC offer signal');
+
+  // Student 1 generates ICE candidate
+  const iceCand1Res = await request(`/api/chat/${convId}/signaling`, {
+    method: 'POST',
+    headers: { Cookie: s1Cookie },
+    body: JSON.stringify({
+      type: 'ice-candidate',
+      payload: { candidate: 'candidate:1 1 UDP 2122260223 192.168.1.100 50000 typ host', sdpMid: '0', sdpMLineIndex: 0 },
+    }),
+  });
+  assert(iceCand1Res.status === 200 && iceCand1Res.data.success, 'Student 1 sent local ICE candidate');
+
+  // Student 2 receives call-request, offer, and ICE candidate signals
+  const getSignalsRes = await request(`/api/chat/${convId}/signaling?since=0`, {
     headers: { Cookie: s2Cookie },
   });
   assert(getSignalsRes.status === 200 && getSignalsRes.data.success, 'Student 2 received signaling events');
-  const incomingSignal = getSignalsRes.data.signals.find((s) => s.type === 'call-request');
-  assert(Boolean(incomingSignal), 'Student 2 received incoming call-request from Student 1');
+  const incomingReq = getSignalsRes.data.signals.find((s) => s.type === 'call-request');
+  const incomingOffer = getSignalsRes.data.signals.find((s) => s.type === 'offer');
+  const incomingCand = getSignalsRes.data.signals.find((s) => s.type === 'ice-candidate');
+  assert(Boolean(incomingReq), 'Student 2 received incoming call-request from Student 1');
+  assert(Boolean(incomingOffer) && incomingOffer.payload.type === 'offer', 'Student 2 received SDP offer from Student 1');
+  assert(Boolean(incomingCand) && Boolean(incomingCand.payload.candidate), 'Student 2 received ICE candidate from Student 1');
 
-  // Student 2 accepts call
+  // Student 2 accepts call and sends SDP answer
   const callAcceptRes = await request(`/api/chat/${convId}/signaling`, {
     method: 'POST',
     headers: { Cookie: s2Cookie },
-    body: JSON.stringify({ type: 'call-accept', payload: { sdp: 'dummy-answer-sdp-test' } }),
+    body: JSON.stringify({ type: 'call-accept' }),
   });
   assert(callAcceptRes.status === 200 && callAcceptRes.data.success, 'Student 2 sent WebRTC call-accept signal');
+
+  const answerRes = await request(`/api/chat/${convId}/signaling`, {
+    method: 'POST',
+    headers: { Cookie: s2Cookie },
+    body: JSON.stringify({ type: 'answer', payload: { type: 'answer', sdp: 'v=0\r\no=callee 54321 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\n' } }),
+  });
+  assert(answerRes.status === 200 && answerRes.data.success, 'Student 2 sent WebRTC answer signal');
+
+  // Student 2 sends ICE candidate
+  const iceCand2Res = await request(`/api/chat/${convId}/signaling`, {
+    method: 'POST',
+    headers: { Cookie: s2Cookie },
+    body: JSON.stringify({
+      type: 'ice-candidate',
+      payload: { candidate: 'candidate:2 1 UDP 2122260223 192.168.1.101 50001 typ host', sdpMid: '0', sdpMLineIndex: 0 },
+    }),
+  });
+  assert(iceCand2Res.status === 200 && iceCand2Res.data.success, 'Student 2 sent local ICE candidate');
+
+  // Student 1 fetches answer and candidate
+  const getS1SignalsRes = await request(`/api/chat/${convId}/signaling?since=0`, {
+    headers: { Cookie: s1Cookie },
+  });
+  assert(getS1SignalsRes.status === 200 && getS1SignalsRes.data.success, 'Student 1 received signaling response');
+  const incomingAnswer = getS1SignalsRes.data.signals.find((s) => s.type === 'answer');
+  const incomingCand2 = getS1SignalsRes.data.signals.find((s) => s.type === 'ice-candidate' && s.payload.candidate.includes('192.168.1.101'));
+  assert(Boolean(incomingAnswer) && incomingAnswer.payload.type === 'answer', 'Student 1 received SDP answer from Student 2');
+  assert(Boolean(incomingCand2), 'Student 1 received ICE candidate from Student 2');
 
   // Student 1 ends call
   const callEndRes = await request(`/api/chat/${convId}/signaling`, {
@@ -253,6 +304,13 @@ async function run() {
     body: JSON.stringify({ type: 'call-end' }),
   });
   assert(callEndRes.status === 200 && callEndRes.data.success, 'WebRTC call terminated cleanly');
+
+  // Verify Student 2 receives call-end
+  const getS2EndSignalsRes = await request(`/api/chat/${convId}/signaling?since=0`, {
+    headers: { Cookie: s2Cookie },
+  });
+  const incomingEnd = getS2EndSignalsRes.data.signals.find((s) => s.type === 'call-end');
+  assert(Boolean(incomingEnd), 'Student 2 received call-end signal successfully');
 
   console.log('\n🎉 ALL 10 VERIFICATION PHASES PASSED SUCCESSFULLY!');
 }

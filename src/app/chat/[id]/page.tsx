@@ -25,7 +25,7 @@ import VideoCallModal from '@/components/VideoCallModal';
 export default function ChatRoomPage() {
   const params = useParams();
   const router = useRouter();
-  const conversationId = params.id as string;
+  const conversationId = params?.id ? decodeURIComponent(params.id as string) : '';
 
   const [conversation, setConversation] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Sparkles, AlertCircle, Loader2, KeyRound, ArrowRight } from 'lucide-react';
+import { KeyRound, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
 import { APP_CONFIG } from '@/lib/config';
 
 export default function LoginPage() {
@@ -43,11 +43,6 @@ export default function LoginPage() {
     }
   };
 
-  const fillDemoAccount = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-  };
-
   return (
     <div className="py-16 px-4 sm:px-6 lg:px-8 max-w-md mx-auto">
       <div className="text-center mb-8">
@@ -76,7 +71,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. aarav.sharma@lpu.in"
+              placeholder="e.g. yourname@university.edu"
               className="w-full px-4 py-2.5 rounded-xl bg-navy-900 border border-navy-700 text-white placeholder-slate-500 focus:outline-none focus:border-electric-500 transition-colors"
             />
           </div>
@@ -111,39 +106,6 @@ export default function LoginPage() {
             )}
           </button>
         </form>
-
-        {/* Demo Fast-Fill Buttons for Instant Evaluation */}
-        <div className="mt-8 pt-6 border-t border-navy-800">
-          <p className="text-[11px] font-semibold text-slate-400 mb-2 uppercase tracking-wider">
-            Quick Test Accounts:
-          </p>
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => fillDemoAccount('aarav.sharma@lpu.in', 'StudentPass123!')}
-              className="w-full p-2 rounded-lg bg-navy-900 hover:bg-navy-850 border border-navy-750 text-left text-[11px] text-slate-300 flex items-center justify-between"
-            >
-              <span>👤 Aarav (LPU B.Tech, 5 Credits)</span>
-              <span className="text-electric-400 font-mono">Fill</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => fillDemoAccount('priya.patel@lpu.in', 'StudentPass123!')}
-              className="w-full p-2 rounded-lg bg-navy-900 hover:bg-navy-850 border border-navy-750 text-left text-[11px] text-slate-300 flex items-center justify-between"
-            >
-              <span>👤 Priya (LPU MBA, 8 Credits)</span>
-              <span className="text-electric-400 font-mono">Fill</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => fillDemoAccount('admin@campusconnect.edu', 'AdminSecurePassword123!')}
-              className="w-full p-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-left text-[11px] text-amber-300 flex items-center justify-between"
-            >
-              <span>🛡️ Platform Super Admin</span>
-              <span className="text-amber-400 font-mono">Fill</span>
-            </button>
-          </div>
-        </div>
 
         <div className="mt-6 text-center text-xs text-slate-400">
           New student?{' '}

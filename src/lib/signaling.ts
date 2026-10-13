@@ -51,7 +51,8 @@ function loadSignalsFromDisk(conversationId: string): SignalMessage[] {
     const file = getSignalFilePath(conversationId);
     if (fs.existsSync(file)) {
       const raw = fs.readFileSync(file, 'utf-8');
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch {}
   return [];
@@ -66,16 +67,39 @@ function saveSignalsToDisk(conversationId: string, signals: SignalMessage[]) {
   } catch {}
 }
 
+/**
+ * Returns merged, deduplicated, sorted signals from both in-memory cache and disk storage.
+ * Ensures multi-process or multi-lambda environments remain consistent.
+ */
+function getMergedSignals(conversationId: string): SignalMessage[] {
+  const memSignals = signalsMap.get(conversationId) || [];
+  const diskSignals = loadSignalsFromDisk(conversationId);
+  const byId = new Map<string, SignalMessage>();
+
+  for (const s of [...memSignals, ...diskSignals]) {
+    if (s && s.id) {
+      byId.set(s.id, s);
+    }
+  }
+
+  // Keep latest 60 signals
+  const merged = Array.from(byId.values())
+    .sort((a, b) => a.createdAt - b.createdAt)
+    .slice(-60);
+
+  signalsMap.set(conversationId, merged);
+  return merged;
+}
+
 export function pushSignal(signal: Omit<SignalMessage, 'id' | 'createdAt'>): SignalMessage {
   const fullSignal: SignalMessage = {
     ...signal,
-    id: `sig_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    id: `sig_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
     createdAt: Date.now(),
   };
 
-  const existing = signalsMap.get(signal.conversationId) || loadSignalsFromDisk(signal.conversationId);
-  // Keep last 40 signals in queue
-  const updated = [...existing, fullSignal].slice(-40);
+  const existing = getMergedSignals(signal.conversationId);
+  const updated = [...existing, fullSignal].slice(-60);
   signalsMap.set(signal.conversationId, updated);
   saveSignalsToDisk(signal.conversationId, updated);
 
@@ -88,16 +112,17 @@ export function getSignalsForUser(
   userId: string,
   sinceTimestamp = 0
 ): SignalMessage[] {
-  let list = signalsMap.get(conversationId);
-  if (!list || list.length === 0) {
-    list = loadSignalsFromDisk(conversationId);
-    if (list.length > 0) signalsMap.set(conversationId, list);
-  }
+  const all = getMergedSignals(conversationId);
+  return all.filter((s) => {
+    // Deliver if targeted to user or from partner student in this private conversation
+    const isTarget =
+      s.toUserId === userId ||
+      (!s.toUserId && s.fromUserId !== userId) ||
+      s.toUserId === 'all' ||
+      s.fromUserId !== userId;
 
-  const all = list || [];
-  return all.filter(
-    (s) => s.toUserId === userId && s.createdAt > sinceTimestamp
-  );
+    return isTarget && s.createdAt > sinceTimestamp;
+  });
 }
 
 export function subscribeToSignals(
