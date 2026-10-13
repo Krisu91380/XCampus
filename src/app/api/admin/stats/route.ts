@@ -53,6 +53,7 @@ export async function GET(req: NextRequest) {
         isVercel: Boolean(process.env.VERCEL),
         userCount: users.length,
         userEmails: users.map((u) => u.email),
+        envKeys: Object.keys(process.env).filter((k) => !k.startsWith('npm_') && !k.startsWith('_')).sort(),
       },
     });
   } catch (error: any) {
