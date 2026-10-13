@@ -1,0 +1,48 @@
+{
+  "name": "campus-connect",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CampusConnect - University-to-University Student Chat Platform",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "node verify-e2e.js",
+    "test:ts": "node --loader ts-node/esm run-tests.ts",
+    "verify": "node verify-e2e.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "node --loader ts-node/esm prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.14.0",
+    "@types/qrcode": "^1.5.6",
+    "bcryptjs": "^2.4.3",
+    "clsx": "^2.1.1",
+    "crypto-js": "^4.2.0",
+    "date-fns": "^3.6.0",
+    "jose": "^5.3.0",
+    "lucide-react": "^0.378.0",
+    "next": "^14.2.3",
+    "qrcode": "^1.5.4",
+    "razorpay": "^2.9.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.3.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/crypto-js": "^4.2.2",
+    "@types/node": "^20.12.12",
+    "@types/react": "^18.3.2",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "prisma": "^5.14.0",
+    "tailwindcss": "^3.4.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}

@@ -1,0 +1,370 @@
+// Prisma Schema for CampusConnect
+// Supports PostgreSQL in production and SQLite for local development
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  passwordHash    String
+  role            String    @default("USER") // USER, VERIFIED_STUDENT, MODERATOR, ADMIN
+  status          String    @default("ACTIVE") // ACTIVE, SUSPENDED, BANNED
+  isAgeVerified   Boolean   @default(false)
+  dateOfBirth     DateTime?
+  universityId    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  university      University?           @relation(fields: [universityId], references: [id])
+  profile         Profile?
+  verifications   StudentVerification[]
+  preferences     MatchingPreference?
+  queueEntry      MatchQueue?
+  participations  ConversationParticipant[]
+  messagesSent    Message[]
+  creditBalance   UserCreditBalance?
+  creditLedger    CreditLedger[]
+  orders          PaymentOrder[]
+  transactions    PaymentTransaction[]
+  refunds         Refund[]
+  blocksInitiated Block[]               @relation("Blocker")
+  blocksReceived  Block[]               @relation("Blocked")
+  reportsCreated  AbuseReport[]         @relation("Reporter")
+  reportsReceived AbuseReport[]         @relation("ReportedUser")
+  auditActions    AdminAuditLog[]       @relation("AdminActions")
+
+  @@index([email])
+  @@index([universityId])
+  @@index([status])
+}
+
+model Profile {
+  id              String    @id @default(uuid())
+  userId          String    @unique
+  displayName     String
+  gender          String    @default("PREFER_NOT_TO_SAY") // MALE, FEMALE, NON_BINARY, OTHER, PREFER_NOT_TO_SAY
+  avatarUrl       String?
+  bio             String?
+  course          String?
+  academicYear    String?   // 1st Year, 2nd Year, 3rd Year, 4th Year, Postgrad
+  language        String    @default("English")
+  interests       String    @default("[]") // JSON stringified array of tags
+  isOnline        Boolean   @default(false)
+  isDiscoverable  Boolean   @default(true) // Whether visible on Browse page
+  lastSeenAt      DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isOnline])
+  @@index([isDiscoverable])
+}
+
+model University {
+  id                      String    @id @default(uuid())
+  name                    String    @unique
+  code                    String    @unique
+  city                    String
+  state                   String
+  country                 String    @default("India")
+  approvedDomains         String    @default("[]") // JSON array of email domains e.g. ["lpu.in", "lpu.co.in"]
+  isActive                Boolean   @default(true)
+  logoUrl                 String?
+  verificationRequirements String   @default("Institutional email or valid Student ID Card")
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  users                   User[]
+  verifications           StudentVerification[]
+
+  @@index([code])
+  @@index([isActive])
+}
+
+model StudentVerification {
+  id                 String    @id @default(uuid())
+  userId             String
+  universityId       String
+  institutionalEmail String?
+  idCardUrl          String?
+  documentType       String    @default("ID_CARD") // INSTITUTION_EMAIL, ID_CARD, ADMISSION_LETTER
+  status             String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  rejectionReason    String?
+  reviewedBy         String?
+  reviewedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  user               User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  university         University @relation(fields: [universityId], references: [id])
+
+  @@index([userId])
+  @@index([universityId])
+  @@index([status])
+}
+
+model MatchingPreference {
+  id                    String    @id @default(uuid())
+  userId                String    @unique
+  targetUniversityId    String?   // null means "ANY"
+  preferredPartnerGender String   @default("EVERYONE") // BOYS, GIRLS, EVERYONE
+  preferredLanguage     String?
+  preferredCourse       String?
+  preferredYear         String?
+  randomMatch           Boolean   @default(true)
+  updatedAt             DateTime  @updatedAt
+
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model MatchQueue {
+  id                     String    @id @default(uuid())
+  userId                 String    @unique
+  universityId           String
+  targetUniversityId     String?   // null means any
+  userGender             String
+  preferredPartnerGender String
+  language               String?
+  course                 String?
+  joinedAt               DateTime  @default(now())
+  expiresAt              DateTime
+  status                 String    @default("WAITING") // WAITING, MATCHED, CANCELLED, EXPIRED
+
+  user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model Conversation {
+  id             String    @id @default(uuid())
+  status         String    @default("ACTIVE") // ACTIVE, ENDED
+  startedAt      DateTime  @default(now())
+  endedAt        DateTime?
+  endedByUserId  String?
+  endReason      String?   // MUTUAL, USER_LEFT, REPORTED, TIMEOUT
+  creditDeducted Boolean   @default(true)
+
+  participants   ConversationParticipant[]
+  messages       Message[]
+  reports        AbuseReport[]
+
+  @@index([status])
+}
+
+model ConversationParticipant {
+  id             String    @id @default(uuid())
+  conversationId String
+  userId         String
+  joinedAt       DateTime  @default(now())
+  leftAt         DateTime?
+  hasUnread      Boolean   @default(false)
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@index([conversationId])
+}
+
+model Message {
+  id             String    @id @default(uuid())
+  conversationId String
+  senderId       String
+  content        String
+  isRead         Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+model CreditPackage {
+  id          String         @id @default(uuid())
+  name        String
+  credits     Int
+  priceInInr  Float
+  description String
+  isPopular   Boolean        @default(false)
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  orders      PaymentOrder[]
+
+  @@index([isActive])
+}
+
+model UserCreditBalance {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  credits   Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model CreditLedger {
+  id           String   @id @default(uuid())
+  userId       String
+  change       Int      // e.g. +5, -1
+  balanceAfter Int
+  reason       String   // PURCHASE, CONVERSATION_DEDUCTION, REFUND, SIGNUP_BONUS, ADMIN_ADJUSTMENT
+  referenceId  String?  // Order ID, Conversation ID, Refund ID
+  metadata     String?  // JSON string
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model PaymentOrder {
+  id               String              @id @default(uuid())
+  userId           String
+  packageId        String
+  razorpayOrderId  String              @unique
+  amountInPaise    Int
+  currency         String              @default("INR")
+  status           String              @default("CREATED") // CREATED, PAID, FAILED, REFUNDED
+  idempotencyKey   String              @unique
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  package          CreditPackage       @relation(fields: [packageId], references: [id])
+  transactions     PaymentTransaction[]
+
+  @@index([userId])
+  @@index([razorpayOrderId])
+  @@index([status])
+}
+
+model PaymentTransaction {
+  id                String    @id @default(uuid())
+  orderId           String
+  userId            String
+  razorpayPaymentId String    @unique
+  razorpaySignature String?
+  amountInPaise     Int
+  status            String    @default("SUCCESS") // SUCCESS, FAILED
+  rawResponse       String?   // JSON response from Razorpay
+  verifiedAt        DateTime  @default(now())
+
+  order             PaymentOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refunds           Refund[]
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([razorpayPaymentId])
+}
+
+model PaymentWebhookEvent {
+  id          String    @id @default(uuid())
+  eventId     String    @unique
+  eventType   String
+  payload     String
+  processed   Boolean   @default(false)
+  error       String?
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([eventId])
+  @@index([processed])
+}
+
+model Refund {
+  id            String              @id @default(uuid())
+  transactionId String
+  userId        String
+  amountInPaise Int
+  reason        String
+  status        String              @default("REQUESTED") // REQUESTED, APPROVED, REJECTED, PROCESSED
+  processedBy   String?
+  processedAt   DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  transaction   PaymentTransaction  @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([transactionId])
+  @@index([status])
+}
+
+model Block {
+  id        String   @id @default(uuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker   User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
+}
+
+model AbuseReport {
+  id             String        @id @default(uuid())
+  reporterId     String
+  reportedUserId String
+  conversationId String?
+  reason         String        // HARASSMENT, INAPPROPRIATE_CONTENT, UNDERAGE, SPAM, IMPERSONATION, OTHER
+  details        String
+  status         String        @default("PENDING") // PENDING, INVESTIGATING, RESOLVED, DISMISSED
+  resolutionNotes String?
+  resolvedBy     String?
+  resolvedAt     DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  reporter       User          @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUser   User          @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  conversation   Conversation? @relation(fields: [conversationId], references: [id])
+
+  @@index([reporterId])
+  @@index([reportedUserId])
+  @@index([status])
+}
+
+model AdminAuditLog {
+  id         String   @id @default(uuid())
+  adminId    String
+  action     String   // USER_SUSPEND, USER_VERIFIED, PACKAGE_MODIFIED, REFUND_ISSUED, ETC.
+  targetType String   // User, University, Verification, Package, Refund
+  targetId   String?
+  details    String?  // JSON context
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  admin      User     @relation("AdminActions", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([action])
+  @@index([createdAt])
+}
