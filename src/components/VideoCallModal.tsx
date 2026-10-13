@@ -192,16 +192,27 @@ export default function VideoCallModal({
           localVideoRef.current.srcObject = stream;
         }
 
-        // 2. Configure ICE Servers (Google STUN + Optional TURN)
+        // 2. Configure ICE Servers (Google STUN + Resilient TURN Relay)
         const iceServers: RTCIceServer[] = [
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
           { urls: 'stun:stun2.l.google.com:19302' },
           { urls: 'stun:stun.services.mozilla.com' },
+          // High-reliability TURN relay for NAT traversal & restrictive firewalls
+          {
+            urls: [
+              'turn:global.relay.metered.ca:80',
+              'turn:global.relay.metered.ca:80?transport=tcp',
+              'turn:global.relay.metered.ca:443',
+              'turns:global.relay.metered.ca:443?transport=tcp',
+            ],
+            username: process.env.NEXT_PUBLIC_TURN_USERNAME || 'openrelayproject',
+            credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL || 'openrelayproject',
+          },
         ];
 
         if (process.env.NEXT_PUBLIC_STUN_SERVER_URL) {
-          iceServers.push({ urls: process.env.NEXT_PUBLIC_STUN_SERVER_URL });
+          iceServers.unshift({ urls: process.env.NEXT_PUBLIC_STUN_SERVER_URL });
         }
 
         if (process.env.NEXT_PUBLIC_TURN_SERVER_URL) {
@@ -210,7 +221,7 @@ export default function VideoCallModal({
             username: process.env.NEXT_PUBLIC_TURN_USERNAME || undefined,
             credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL || undefined,
           };
-          iceServers.push(turnServer);
+          iceServers.unshift(turnServer);
         }
 
         const pc = new RTCPeerConnection({ iceServers });

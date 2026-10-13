@@ -54,11 +54,16 @@ export default function MessagesPage() {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [isCallInitiator, setIsCallInitiator] = useState(false);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior,
+      });
+    }
   };
 
   // 1. Fetch Conversations List
@@ -616,7 +621,7 @@ export default function MessagesPage() {
               </div>
 
               {/* Messages Body */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3.5">
+              <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3.5">
                 {/* Moderation safety banner */}
                 <div className="p-2.5 rounded-xl bg-navy-900/80 border border-navy-800 text-center text-[11px] text-slate-400 max-w-md mx-auto">
                   🔒 Private student conversation. Never share financial passwords or UPI PINs.
@@ -653,7 +658,6 @@ export default function MessagesPage() {
                     </div>
                   ))
                 )}
-                <div ref={messagesEndRef} />
               </div>
 
               {/* Chat Input Bar */}

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { EventEmitter } from 'events';
+import { db } from './db';
 
 export interface SignalMessage {
   id: string;
@@ -72,11 +73,13 @@ function saveSignalsToDisk(conversationId: string, signals: SignalMessage[]) {
  * Ensures multi-process or multi-lambda environments remain consistent.
  */
 function getMergedSignals(conversationId: string): SignalMessage[] {
+  db.store.syncFromDiskIfNeeded();
+  const dbSignals = (db.store.signals.get(conversationId) as SignalMessage[]) || [];
   const memSignals = signalsMap.get(conversationId) || [];
   const diskSignals = loadSignalsFromDisk(conversationId);
   const byId = new Map<string, SignalMessage>();
 
-  for (const s of [...memSignals, ...diskSignals]) {
+  for (const s of [...dbSignals, ...memSignals, ...diskSignals]) {
     if (s && s.id) {
       byId.set(s.id, s);
     }
@@ -101,6 +104,8 @@ export function pushSignal(signal: Omit<SignalMessage, 'id' | 'createdAt'>): Sig
   const existing = getMergedSignals(signal.conversationId);
   const updated = [...existing, fullSignal].slice(-60);
   signalsMap.set(signal.conversationId, updated);
+  db.store.signals.set(signal.conversationId, updated);
+  db.store.saveToDisk();
   saveSignalsToDisk(signal.conversationId, updated);
 
   signalEmitter.emit(`signal:${signal.conversationId}`, fullSignal);
@@ -121,7 +126,7 @@ export function getSignalsForUser(
       s.toUserId === 'all' ||
       s.fromUserId !== userId;
 
-    return isTarget && s.createdAt > sinceTimestamp;
+    return isTarget && s.createdAt >= sinceTimestamp;
   });
 }
 
@@ -138,6 +143,8 @@ export function subscribeToSignals(
 
 export function clearSignals(conversationId: string) {
   signalsMap.delete(conversationId);
+  db.store.signals.delete(conversationId);
+  db.store.saveToDisk();
   try {
     const file = getSignalFilePath(conversationId);
     if (fs.existsSync(file)) fs.unlinkSync(file);

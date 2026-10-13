@@ -47,10 +47,15 @@ export default function ChatRoomPage() {
   const [reportDetails, setReportDetails] = useState('');
   const [submittingReport, setSubmittingReport] = useState(false);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior,
+      });
+    }
   };
 
   const fetchInitialData = async () => {
@@ -151,7 +156,7 @@ export default function ChatRoomPage() {
   useEffect(() => {
     if (!conversationId || isVideoCallOpen) return;
 
-    let lastCheck = Date.now() - 3000;
+    let lastCheck = Date.now() - 45000;
     const callCheckInterval = setInterval(async () => {
       try {
         const res = await fetch(`/api/chat/${conversationId}/signaling?since=${lastCheck}`);
@@ -167,7 +172,7 @@ export default function ChatRoomPage() {
           }
         }
       } catch {}
-    }, 2000);
+    }, 1500);
 
     return () => clearInterval(callCheckInterval);
   }, [conversationId, isVideoCallOpen]);
@@ -442,7 +447,7 @@ export default function ChatRoomPage() {
       )}
 
       {/* 2. Messages Scroll Container */}
-      <div className="flex-1 overflow-y-auto glass-card rounded-2xl p-4 sm:p-6 border border-navy-750 space-y-4 mb-4">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto glass-card rounded-2xl p-4 sm:p-6 border border-navy-750 space-y-4 mb-4">
         {/* Safety Notice Banner */}
         <div className="p-3 rounded-xl bg-navy-900 border border-navy-800 text-center text-[11px] text-slate-400 max-w-lg mx-auto">
           🔒 End-to-end moderated chat session between verified students. Never share sensitive passwords, financial info, or UPI PINs.
@@ -473,7 +478,6 @@ export default function ChatRoomPage() {
             </div>
           ))
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* 3. Message Input or Ended Banner */}

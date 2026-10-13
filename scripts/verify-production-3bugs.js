@@ -248,12 +248,21 @@ async function run() {
   const readMsgsRes = await request(`/api/chat/${conversationId}/messages`, {
     headers: { Cookie: krishCookies },
   });
+  console.log(`  Read messages result:`, JSON.stringify(readMsgsRes.data));
   assert(
     readMsgsRes.status === 200 && readMsgsRes.data.success,
     'Krish successfully retrieved message history'
   );
   const msgs = readMsgsRes.data.messages || [];
+  console.log(`  Fetched ${msgs.length} messages:`, msgs);
   const foundMsg = msgs.find((m) => m.content === 'Hello Krish! Excited to connect on CampusConnect!');
+  if (!foundMsg) {
+    // Check if newStudent sees it
+    const newStudentMsgsRes = await request(`/api/chat/${conversationId}/messages`, {
+      headers: { Cookie: newStudentCookies },
+    });
+    console.log(`  New student messages:`, JSON.stringify(newStudentMsgsRes.data));
+  }
   assert(
     Boolean(foundMsg),
     `Sent message appears in conversation history for both participants`

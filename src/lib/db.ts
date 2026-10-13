@@ -49,6 +49,7 @@ class InMemoryStore {
   abuseReports: Map<string, AbuseReport> = new Map();
   auditLogs: Map<string, AdminAuditLog> = new Map();
   friendRequests: Map<string, FriendRequest> = new Map();
+  signals: Map<string, any[]> = new Map();
 
   initialized = false;
   isSyncing = false;
@@ -91,6 +92,7 @@ class InMemoryStore {
         abuseReports: Array.from(this.abuseReports.entries()),
         auditLogs: Array.from(this.auditLogs.entries()),
         friendRequests: Array.from(this.friendRequests.entries()),
+        signals: Array.from(this.signals.entries()),
       };
       const tmpFile = `${dbFile}.${process.pid}.${Date.now()}.tmp`;
       fs.writeFileSync(tmpFile, JSON.stringify(serialized, null, 2), 'utf-8');
@@ -151,6 +153,7 @@ class InMemoryStore {
     this.hookMapPersistence(this.abuseReports);
     this.hookMapPersistence(this.auditLogs);
     this.hookMapPersistence(this.friendRequests);
+    this.hookMapPersistence(this.signals);
   }
 
   lastDiskLoadTime: number = 0;
@@ -194,6 +197,7 @@ class InMemoryStore {
         if (bundledData.abuseReports) this.abuseReports = new Map(bundledData.abuseReports);
         if (bundledData.auditLogs) this.auditLogs = new Map(bundledData.auditLogs);
         if (bundledData.friendRequests) this.friendRequests = new Map(bundledData.friendRequests);
+        if (bundledData.signals) this.signals = new Map(bundledData.signals);
       }
 
       // 2. If runtime storeFile exists and is distinct from bundledFile, merge runtime modifications on top
@@ -225,6 +229,7 @@ class InMemoryStore {
           mergeMap(this.abuseReports, runtimeData.abuseReports);
           mergeMap(this.auditLogs, runtimeData.auditLogs);
           mergeMap(this.friendRequests, runtimeData.friendRequests);
+          mergeMap(this.signals, runtimeData.signals);
         }
       }
 
@@ -271,6 +276,7 @@ class InMemoryStore {
               mergeMap(this.abuseReports, runtimeData.abuseReports);
               mergeMap(this.auditLogs, runtimeData.auditLogs);
               mergeMap(this.friendRequests, runtimeData.friendRequests);
+              mergeMap(this.signals, runtimeData.signals);
             } finally {
               this.isSyncing = false;
             }
@@ -694,6 +700,7 @@ export const db = {
 
   matchingPreference: {
     findUnique: async ({ where }: { where: { userId: string } }): Promise<MatchingPreference | null> => {
+      store.syncFromDiskIfNeeded();
       return store.preferences.get(where.userId) || null;
     },
     upsert: async ({
@@ -705,10 +712,12 @@ export const db = {
       create: Omit<MatchingPreference, 'id' | 'updatedAt'>;
       update: Partial<MatchingPreference>;
     }) => {
+      store.syncFromDiskIfNeeded();
       const existing = store.preferences.get(where.userId);
       if (existing) {
         const updated = { ...existing, ...update, updatedAt: new Date() };
         store.preferences.set(where.userId, updated);
+        store.saveToDisk();
         return updated;
       }
       const newPref: MatchingPreference = {
@@ -717,15 +726,18 @@ export const db = {
         updatedAt: new Date(),
       };
       store.preferences.set(where.userId, newPref);
+      store.saveToDisk();
       return newPref;
     },
   },
 
   matchQueue: {
     findUnique: async ({ where }: { where: { userId: string } }): Promise<MatchQueueEntry | null> => {
+      store.syncFromDiskIfNeeded();
       return store.matchQueue.get(where.userId) || null;
     },
     findMany: async (args?: { where?: { status?: string } }): Promise<MatchQueueEntry[]> => {
+      store.syncFromDiskIfNeeded();
       const all = Array.from(store.matchQueue.values());
       if (args?.where?.status) {
         return all.filter((q) => q.status === args.where!.status);
@@ -741,10 +753,12 @@ export const db = {
       create: Omit<MatchQueueEntry, 'id' | 'joinedAt'>;
       update: Partial<MatchQueueEntry>;
     }) => {
+      store.syncFromDiskIfNeeded();
       const existing = store.matchQueue.get(where.userId);
       if (existing) {
         const updated = { ...existing, ...update };
         store.matchQueue.set(where.userId, updated);
+        store.saveToDisk();
         return updated;
       }
       const entry: MatchQueueEntry = {
@@ -753,16 +767,22 @@ export const db = {
         joinedAt: new Date(),
       };
       store.matchQueue.set(where.userId, entry);
+      store.saveToDisk();
       return entry;
     },
     delete: async ({ where }: { where: { userId: string } }) => {
-      return store.matchQueue.delete(where.userId);
+      store.syncFromDiskIfNeeded();
+      const res = store.matchQueue.delete(where.userId);
+      store.saveToDisk();
+      return res;
     },
     update: async ({ where, data }: { where: { userId: string }; data: Partial<MatchQueueEntry> }) => {
+      store.syncFromDiskIfNeeded();
       const existing = store.matchQueue.get(where.userId);
       if (!existing) return null;
       const updated = { ...existing, ...data };
       store.matchQueue.set(where.userId, updated);
+      store.saveToDisk();
       return updated;
     },
   },

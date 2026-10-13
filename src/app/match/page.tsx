@@ -246,6 +246,21 @@ export default function MatchmakingPage() {
         </div>
       )}
 
+      {statusMessage && !isSearching && !matchResult && (
+        <div className="p-4 rounded-xl bg-electric-500/10 border border-electric-500/30 text-slate-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="w-4 h-4 text-electric-400 flex-shrink-0" />
+            <span>{statusMessage}</span>
+          </div>
+          <button
+            onClick={handleStartMatch}
+            className="px-4 py-1.5 rounded-lg bg-electric-500 hover:bg-electric-400 text-white font-semibold text-xs transition-colors self-start sm:self-auto shrink-0"
+          >
+            Retry Search
+          </button>
+        </div>
+      )}
+
       {/* Search Radar Active State */}
       {isSearching ? (
         <div className="glass-card rounded-3xl p-10 border border-brand-purple/40 text-center relative overflow-hidden space-y-6">

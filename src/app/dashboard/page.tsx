@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -21,6 +21,10 @@ import {
   Layers,
   Settings,
   ChevronRight,
+  Camera,
+  Trash2,
+  Loader2,
+  Upload,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -31,6 +35,10 @@ export default function DashboardPage() {
   const [onlineToggle, setOnlineToggle] = useState(true);
   const [discoverableToggle, setDiscoverableToggle] = useState(true);
   const [savingPrivacy, setSavingPrivacy] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [photoSuccess, setPhotoSuccess] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchDashboardData = async () => {
     try {
@@ -69,6 +77,76 @@ export default function DashboardPage() {
     // Persist via browse or auth state
   };
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError('Image file is larger than 5MB limit.');
+      return;
+    }
+
+    setUploadingPhoto(true);
+    setPhotoError(null);
+    setPhotoSuccess(null);
+
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    try {
+      const res = await fetch('/api/profile/photo', {
+        method: 'POST',
+        body: formData,
+      });
+      const resData = await res.json();
+      if (!res.ok || !resData.success) {
+        throw new Error(resData.message || 'Failed to upload photo');
+      }
+
+      setData((prev: any) => ({
+        ...prev,
+        profile: {
+          ...prev?.profile,
+          avatarUrl: resData.avatarUrl,
+        },
+      }));
+      setPhotoSuccess('Profile photo updated successfully!');
+      setTimeout(() => setPhotoSuccess(null), 3500);
+    } catch (err: any) {
+      setPhotoError(err.message || 'Failed to upload photo.');
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    if (!confirm('Are you sure you want to remove your profile photo?')) return;
+    setUploadingPhoto(true);
+    setPhotoError(null);
+    setPhotoSuccess(null);
+    try {
+      const res = await fetch('/api/profile/photo', { method: 'DELETE' });
+      const resData = await res.json();
+      if (!res.ok || !resData.success) {
+        throw new Error(resData.message || 'Failed to remove photo');
+      }
+      setData((prev: any) => ({
+        ...prev,
+        profile: {
+          ...prev?.profile,
+          avatarUrl: null,
+        },
+      }));
+      setPhotoSuccess('Profile photo removed.');
+      setTimeout(() => setPhotoSuccess(null), 3000);
+    } catch (err: any) {
+      setPhotoError(err.message || 'Failed to remove photo.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const activeConversations = conversations.filter((c) => c.status === 'ACTIVE');
   const pastConversations = conversations.filter((c) => c.status === 'ENDED');
 
@@ -96,30 +174,97 @@ export default function DashboardPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* 1. Header Banner */}
       <div className="glass-card rounded-3xl p-6 sm:p-8 border border-navy-750 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-              Welcome back, {profile?.displayName || 'Student'}!
-            </h1>
-            {isVerified ? (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-xs font-semibold">
-                <ShieldCheck className="w-3.5 h-3.5" /> Verified Student
-              </span>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+          {/* Avatar with Camera upload trigger */}
+          <div className="relative group shrink-0">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={handlePhotoUpload}
+            />
+            {profile?.avatarUrl ? (
+              <img
+                src={profile.avatarUrl}
+                alt={profile.displayName || 'Profile Photo'}
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-brand-purple/40 shadow-md group-hover:opacity-90 transition-opacity"
+              />
             ) : (
-              <Link
-                href="/dashboard/verification"
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-xs font-semibold hover:bg-amber-500/25"
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center text-white font-black text-2xl shadow-md border-2 border-white/10">
+                {profile?.displayName?.[0] || data?.email?.[0]?.toUpperCase() || 'S'}
+              </div>
+            )}
+
+            {/* Camera / Upload Action Button */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingPhoto}
+              aria-label="Upload or change profile photo"
+              className="absolute -bottom-1 -right-1 p-2 rounded-xl bg-electric-500 hover:bg-electric-400 text-white shadow-lg transition-transform active:scale-95 disabled:opacity-50"
+              title="Upload or change profile photo (max 5MB)"
+            >
+              {uploadingPhoto ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Camera className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+                Welcome back, {profile?.displayName || 'Student'}!
+              </h1>
+              {isVerified ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-xs font-semibold">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Verified Student
+                </span>
+              ) : (
+                <Link
+                  href="/dashboard/verification"
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-xs font-semibold hover:bg-amber-500/25"
+                >
+                  <ShieldAlert className="w-3.5 h-3.5" /> Verify Student ID
+                </Link>
+              )}
+            </div>
+            <p className="text-xs text-slate-400 flex flex-wrap items-center gap-2">
+              <GraduationCap className="w-4 h-4 text-brand-purple shrink-0" />
+              <span>{data?.university?.name || 'Lovely Professional University'}</span>
+              <span>•</span>
+              <span>{profile?.course || 'Student'} ({profile?.academicYear || 'Undergrad'})</span>
+            </p>
+
+            <div className="flex items-center gap-3 pt-1 text-[11px]">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                className="text-electric-400 hover:text-electric-300 font-medium underline flex items-center gap-1"
               >
-                <ShieldAlert className="w-3.5 h-3.5" /> Verify Student ID
-              </Link>
+                <Camera className="w-3 h-3" />
+                <span>{profile?.avatarUrl ? 'Change photo' : 'Upload photo'}</span>
+              </button>
+              {profile?.avatarUrl && (
+                <button
+                  onClick={handleRemovePhoto}
+                  disabled={uploadingPhoto}
+                  className="text-rose-400 hover:text-rose-300 font-medium underline flex items-center gap-1"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Remove photo</span>
+                </button>
+              )}
+            </div>
+
+            {photoError && (
+              <p className="text-xs text-rose-400 font-medium">{photoError}</p>
+            )}
+            {photoSuccess && (
+              <p className="text-xs text-emerald-400 font-medium">{photoSuccess}</p>
             )}
           </div>
-          <p className="text-xs text-slate-400 flex items-center gap-2">
-            <GraduationCap className="w-4 h-4 text-brand-purple" />
-            <span>{data?.university?.name || 'Lovely Professional University'}</span>
-            <span>•</span>
-            <span>{profile?.course || 'Student'} ({profile?.academicYear || 'Undergrad'})</span>
-          </p>
         </div>
 
         {/* Action Controls & Credit Count */}
