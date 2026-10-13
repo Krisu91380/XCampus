@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { getUserBalance, deductCreditForConversation } from '@/lib/ledger';
+import { generateSignedConversationId, ensureConversationAndParticipants } from '@/lib/conversation';
 
 export async function GET(req: NextRequest) {
   try {
@@ -132,29 +133,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'You have blocked this user.' }, { status: 403 });
     }
 
-    // Create conversation
+    // Create deterministic signed conversation
+    const conversationId = generateSignedConversationId(session.userId, targetUserId);
     const conversation = await db.conversation.create({
       data: {
+        id: conversationId,
         status: 'ACTIVE',
         creditDeducted: true,
-      },
+      } as any,
     });
 
-    await db.conversationParticipant.create({
-      data: {
-        conversationId: conversation.id,
-        userId: session.userId,
-        hasUnread: false,
-      },
-    });
-
-    await db.conversationParticipant.create({
-      data: {
-        conversationId: conversation.id,
-        userId: targetUserId,
-        hasUnread: true,
-      },
-    });
+    await ensureConversationAndParticipants(conversationId, session.userId, targetUserId);
 
     // Deduct 1 credit from initiator
     await deductCreditForConversation({

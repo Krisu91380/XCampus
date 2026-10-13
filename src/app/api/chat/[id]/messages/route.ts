@@ -4,6 +4,7 @@ import { sendMessageSchema } from '@/validators/chat';
 import { db } from '@/lib/db';
 import { broadcastMessage } from '@/lib/events';
 import { APP_CONFIG } from '@/lib/config';
+import { verifyAndResolveParticipants } from '@/lib/conversation';
 
 // In-memory rate limiting map: userId -> lastMessageTimestamp
 const userMessageRateMap = new Map<string, number>();
@@ -16,27 +17,31 @@ export async function GET(
     const session = await requireAuth(req);
     const conversationId = params.id;
 
-    // Verify participant authorization (IDOR protection)
-    const participant = await db.conversationParticipant.findFirst({
-      where: { conversationId, userId: session.userId },
-    });
-    if (!participant) {
+    // Verify participant authorization (IDOR protection & signed recovery)
+    const verified = await verifyAndResolveParticipants(conversationId, session.userId);
+    if (!verified) {
       return NextResponse.json(
         { success: false, message: 'Access denied. You are not a participant in this conversation.' },
         { status: 403 }
       );
     }
 
-    const conv = await db.conversation.findUnique({ where: { id: conversationId } });
+    let conv = await db.conversation.findUnique({ where: { id: conversationId } });
     if (!conv) {
-      return NextResponse.json({ success: false, message: 'Conversation not found.' }, { status: 404 });
+      conv = await db.conversation.create({
+        data: {
+          id: conversationId,
+          status: 'ACTIVE',
+          creditDeducted: true,
+        } as any,
+      });
     }
 
     // Mark unread as false for this participant
     await db.conversationParticipant.update({
       where: { conversationId_userId: { conversationId, userId: session.userId } },
       data: { hasUnread: false },
-    });
+    }).catch(() => {});
 
     const messages = await db.message.findMany({
       where: { conversationId },
@@ -44,19 +49,17 @@ export async function GET(
     });
 
     // Partner details
-    const allParts = await db.conversationParticipant.findMany({ where: { conversationId } });
-    const partnerPart = allParts.find((x) => x.userId !== session.userId);
-
+    const partnerId = verified.partnerId;
     let partner = null;
-    if (partnerPart) {
-      const pProfile = await db.profile.findUnique({ where: { userId: partnerPart.userId } });
-      const pUser = await db.user.findUnique({ where: { id: partnerPart.userId } });
+    if (partnerId) {
+      const pProfile = await db.profile.findUnique({ where: { userId: partnerId } });
+      const pUser = await db.user.findUnique({ where: { id: partnerId } });
       const pUni = pUser?.universityId
         ? await db.university.findUnique({ where: { id: pUser.universityId } })
         : null;
 
       partner = {
-        id: partnerPart.userId,
+        id: partnerId,
         displayName: pProfile?.displayName || 'Student',
         gender: pProfile?.gender,
         avatarUrl: pProfile?.avatarUrl,
@@ -103,11 +106,9 @@ export async function POST(
     const session = await requireAuth(req);
     const conversationId = params.id;
 
-    // Verify participant authorization
-    const participant = await db.conversationParticipant.findFirst({
-      where: { conversationId, userId: session.userId },
-    });
-    if (!participant) {
+    // Verify participant authorization (IDOR protection & signed recovery)
+    const verified = await verifyAndResolveParticipants(conversationId, session.userId);
+    if (!verified) {
       return NextResponse.json(
         { success: false, message: 'Access denied. You are not a participant in this conversation.' },
         { status: 403 }

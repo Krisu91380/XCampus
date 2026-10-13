@@ -35,24 +35,35 @@ export async function POST(req: NextRequest) {
     const receipt = `rcpt_${session.userId.substring(0, 8)}_${Date.now()}`;
     const idempotencyKey = `idemp_${session.userId}_${pkg.id}_${Date.now()}`;
 
-    // Create payment order (via Razorpay API or test sandbox)
-    const razorpayOrder = await createRazorpayOrder({
-      amountInPaise,
-      receipt,
-      notes: {
-        userId: session.userId,
-        packageId: pkg.id,
-        credits: String(pkg.credits),
-        packageName: pkg.name,
-      },
-    });
+    // Create payment order reference (internal order reference by default, or Razorpay order if configured)
+    let orderRef = `CC_ORDER_${Date.now()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    let isSandbox = true;
+
+    if (isRazorpayConfigured()) {
+      try {
+        const razorpayOrder = await createRazorpayOrder({
+          amountInPaise,
+          receipt,
+          notes: {
+            userId: session.userId,
+            packageId: pkg.id,
+            credits: String(pkg.credits),
+            packageName: pkg.name,
+          },
+        });
+        orderRef = razorpayOrder.orderId;
+        isSandbox = razorpayOrder.isSandboxSimulation;
+      } catch (err: any) {
+        console.warn('Razorpay order fallback to direct UPI order reference:', err?.message);
+      }
+    }
 
     // Save order in database
     const order = await db.paymentOrder.create({
       data: {
         userId: session.userId,
         packageId: pkg.id,
-        razorpayOrderId: razorpayOrder.orderId,
+        razorpayOrderId: orderRef,
         amountInPaise,
         currency: 'INR',
         status: 'CREATED',
@@ -65,7 +76,7 @@ export async function POST(req: NextRequest) {
     const upiNote = encodeURIComponent(`CampusConnect ${pkg.credits} Credits Ref ${order.id.slice(-6)}`);
     
     // Standard National Payments Corporation of India (NPCI) UPI Intent URL
-    const upiUrl = `upi://pay?pa=${merchantVpa}&pn=${encodeURIComponent(paymentSettings.receiverName || 'CampusConnect')}&am=${amountInInr.toFixed(2)}&tr=${razorpayOrder.orderId}&tn=${upiNote}&cu=INR`;
+    const upiUrl = `upi://pay?pa=${merchantVpa}&pn=${encodeURIComponent(paymentSettings.receiverName || 'CampusConnect')}&am=${amountInInr.toFixed(2)}&tr=${orderRef}&tn=${upiNote}&cu=INR`;
 
     // Render QR Code as fallback if no custom QR image uploaded
     let qrCodeDataUrl = '';
@@ -84,7 +95,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       orderId: order.id,
-      razorpayOrderId: razorpayOrder.orderId,
+      razorpayOrderId: orderRef,
       amountInInr,
       amountInPaise,
       packageName: pkg.name,
@@ -94,12 +105,12 @@ export async function POST(req: NextRequest) {
       qrCodeDataUrl,
       status: 'CREATED',
       keyId: getRazorpayKeyId(),
-      isSandbox: razorpayOrder.isSandboxSimulation,
+      isSandbox,
       isRazorpayConfigured: isRazorpayConfigured(),
       // Custom UPI QR settings
       customQrImageUrl: paymentSettings.qrImageUrl || null,
       receiverName: paymentSettings.receiverName || 'KRISH SO ANIL KUMAR',
-      upiId: paymentSettings.upiId || '',
+      upiId: paymentSettings.upiId || '9138060466@naviaxis',
       instructions: paymentSettings.instructions,
       isCustomQr: Boolean(paymentSettings.qrImageUrl),
     });

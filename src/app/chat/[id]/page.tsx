@@ -15,8 +15,12 @@ import {
   Loader2,
   AlertCircle,
   CheckCheck,
+  Video,
+  PhoneCall,
+  PhoneOff,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import VideoCallModal from '@/components/VideoCallModal';
 
 export default function ChatRoomPage() {
   const params = useParams();
@@ -29,6 +33,11 @@ export default function ChatRoomPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Video Calling States
+  const [isVideoCallOpen, setIsVideoCallOpen] = useState(false);
+  const [isCallInitiator, setIsCallInitiator] = useState(false);
+  const [incomingCall, setIncomingCall] = useState(false);
 
   // Modals
   const [showReportModal, setShowReportModal] = useState(false);
@@ -127,6 +136,48 @@ export default function ChatRoomPage() {
       clearInterval(pollInterval);
     };
   }, [conversationId]);
+
+  // Incoming Video Call Listener
+  useEffect(() => {
+    if (!conversationId || isVideoCallOpen) return;
+
+    let lastCheck = Date.now() - 3000;
+    const callCheckInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/chat/${conversationId}/signaling?since=${lastCheck}`);
+        const data = await res.json();
+        if (data.success && Array.isArray(data.signals)) {
+          for (const sig of data.signals) {
+            lastCheck = Math.max(lastCheck, sig.createdAt);
+            if (sig.type === 'call-request') {
+              setIncomingCall(true);
+            } else if (sig.type === 'call-end' || sig.type === 'call-reject') {
+              setIncomingCall(false);
+            }
+          }
+        }
+      } catch {}
+    }, 2000);
+
+    return () => clearInterval(callCheckInterval);
+  }, [conversationId, isVideoCallOpen]);
+
+  const handleAcceptIncomingCall = () => {
+    setIncomingCall(false);
+    setIsCallInitiator(false);
+    setIsVideoCallOpen(true);
+  };
+
+  const handleDeclineIncomingCall = async () => {
+    setIncomingCall(false);
+    try {
+      await fetch(`/api/chat/${conversationId}/signaling`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'call-reject' }),
+      });
+    } catch {}
+  };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -303,16 +354,30 @@ export default function ChatRoomPage() {
           </div>
         </div>
 
-        {/* Action Controls: End, Block, Report */}
+        {/* Action Controls: Video Call, End, Block, Report */}
         <div className="flex items-center gap-2">
           {!isEnded && (
-            <button
-              onClick={handleEndConversation}
-              className="px-3 py-1.5 rounded-xl border border-navy-700 hover:bg-navy-850 text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
-            >
-              <XCircle className="w-3.5 h-3.5 text-slate-400" />
-              <span>End Chat</span>
-            </button>
+            <>
+              <button
+                onClick={() => {
+                  setIsCallInitiator(true);
+                  setIsVideoCallOpen(true);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 hover:opacity-95 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-brand-purple/20 transition-all"
+                title="Start Live WebRTC Video Call"
+              >
+                <Video className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Video Call</span>
+              </button>
+
+              <button
+                onClick={handleEndConversation}
+                className="px-3 py-1.5 rounded-xl border border-navy-700 hover:bg-navy-850 text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+              >
+                <XCircle className="w-3.5 h-3.5 text-slate-400" />
+                <span>End Chat</span>
+              </button>
+            </>
           )}
 
           <button
@@ -332,6 +397,39 @@ export default function ChatRoomPage() {
           </button>
         </div>
       </div>
+
+      {/* Incoming Video Call Ringing Banner */}
+      {incomingCall && (
+        <div className="mb-4 p-4 rounded-2xl bg-gradient-to-r from-brand-purple/30 to-electric-500/30 border border-brand-purple/50 flex items-center justify-between animate-pulse shadow-xl shadow-brand-purple/20">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white animate-bounce">
+              <PhoneCall className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-white">Incoming Live Video Call</h4>
+              <p className="text-[11px] text-slate-200">
+                {partner?.displayName || 'Partner student'} is calling you...
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleAcceptIncomingCall}
+              className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-500/30 transition-all"
+            >
+              <Video className="w-3.5 h-3.5" />
+              <span>Accept</span>
+            </button>
+            <button
+              onClick={handleDeclineIncomingCall}
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-rose-600/30 transition-all"
+            >
+              <PhoneOff className="w-3.5 h-3.5" />
+              <span>Decline</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 2. Messages Scroll Container */}
       <div className="flex-1 overflow-y-auto glass-card rounded-2xl p-4 sm:p-6 border border-navy-750 space-y-4 mb-4">
@@ -457,6 +555,17 @@ export default function ChatRoomPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Real WebRTC Video Call Modal */}
+      {isVideoCallOpen && (
+        <VideoCallModal
+          conversationId={conversationId}
+          partner={partner || { id: '', displayName: 'Student' }}
+          isInitiator={isCallInitiator}
+          isOpen={isVideoCallOpen}
+          onClose={() => setIsVideoCallOpen(false)}
+        />
       )}
     </div>
   );

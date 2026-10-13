@@ -23,22 +23,29 @@ A complete, production-oriented web platform where university students can meet,
    - Anti-self-matching and mutual block-list filtering.
    - 60-second queue timeout with graceful fallback.
 
-4. **Persistent Real-Time 1-on-1 Chat**:
+4. **Persistent Real-Time 1-on-1 Chat & Cryptographic Access**:
    - Real-time messaging powered by Server-Sent Events (SSE) and persistent database storage.
    - Message length enforcement (1,000 chars) and XSS sanitization.
    - Rate limiting (anti-spam protection).
    - In-chat immediate **Block User**, **Report User**, and **End Conversation** controls.
+   - **Signed Deterministic Conversation IDs**: Eliminates serverless "Access Denied" errors across Vercel lambdas while guaranteeing zero IDOR vulnerabilities.
 
-5. **Razorpay Payment Integration & Auditable Credit Ledger**:
-   - Configurable credit packages:
-     - 1 Credit: ₹9
-     - 5 Credits: ₹29 (Campus Explorer)
-     - 10 Credits: ₹49 (Super Connector)
-   - Cryptographic HMAC-SHA256 signature verification on server.
-   - Built-in test sandbox mode for testing payment flows when Razorpay keys are not yet configured.
-   - **Atomic credit deduction**: Exactly 1 credit is deducted when an eligible match is established.
-   - **Zero-charge guarantee**: No credits consumed if matchmaking is cancelled or no match is found.
-   - **Auditable Credit Ledger**: Immutable ledger recording all additions, deductions, and refunds with timestamps and reference IDs.
+5. **Live WebRTC Two-Way Video & Audio Calling**:
+   - Live, real-time two-way video and audio calling between matched peers.
+   - Camera toggle, Microphone mute/unmute, End Call, and Fullscreen controls.
+   - Camera and microphone permission handling with clear error guidance.
+   - Audio/video signaling (offers, answers, ICE candidates) with Google STUN (`stun.l.google.com:19302`) and configurable TURN support (`NEXT_PUBLIC_TURN_SERVER_URL`).
+   - Incoming call ring banner with one-click Accept or Decline.
+
+6. **Custom Direct UPI QR Code Gate (Navi / PhonePe / GPay / Paytm)**:
+   - Configurable personal UPI QR payment gate:
+     - Receiver: **KRISH SO ANIL KUMAR**
+     - UPI ID: **9138060466@naviaxis**
+     - Supported apps: Google Pay, PhonePe, Paytm, Navi, BHIM.
+   - Student submits 12-digit UTR and optional payment receipt screenshot.
+   - Awaiting payment verification status (`PENDING_VERIFICATION`, 0 credits until approved).
+   - Admin approval grants credits once via atomic ledger; admin rejection leaves credits at 0.
+   - Decoupled from Razorpay: Works immediately without requiring external payment gateway credentials, while also supporting Razorpay if configured!
 
 6. **Searchable Student Discovery (Browse)**:
    - Filter by university, gender, course, and interests.

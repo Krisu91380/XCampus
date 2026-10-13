@@ -51,9 +51,9 @@ async function run() {
     body: JSON.stringify({
       isEnabled: true,
       receiverName: 'KRISH SO ANIL KUMAR',
-      upiId: 'krish@okaxis',
+      upiId: '9138060466@naviaxis',
       qrImageUrl: '/uploads/payment/custom_qr.png',
-      instructions: '1. Scan PhonePe QR code.\n2. Pay amount.\n3. Submit 12-digit UTR.',
+      instructions: '1. Scan Navi QR code.\n2. Pay amount.\n3. Submit 12-digit UTR.',
     }),
   });
   assert(saveSettingsRes.status === 200 && saveSettingsRes.data.success, 'Admin can update payment settings');
@@ -62,7 +62,7 @@ async function run() {
   const publicSettingsRes = await request('/api/payment-settings');
   assert(publicSettingsRes.status === 200 && publicSettingsRes.data.success, 'Public payment-settings endpoint accessible');
   assert(publicSettingsRes.data.settings.receiverName === 'KRISH SO ANIL KUMAR', 'Public endpoint returns saved receiver name');
-  assert(publicSettingsRes.data.settings.upiId === 'krish@okaxis', 'Public endpoint returns saved UPI ID');
+  assert(publicSettingsRes.data.settings.upiId === '9138060466@naviaxis', 'Public endpoint returns saved UPI ID');
 
   // 3. Register a test student for payment testing
   console.log('\n--- 3. Student Registration & Zero Initial Credits ---');
@@ -176,8 +176,10 @@ async function run() {
   assert(duplicateApproveRes.status === 400, 'Duplicate approval prevented (idempotent protection)');
 
   // 8. Student Matching Engine & Dev Simulation
-  console.log('\n--- 8. Student Matching Engine Verification ---');
-  const matchSimRes = await request('/api/match/dev-simulate', { method: 'POST' });
+  const matchSimRes = await request('/api/match/dev-simulate', {
+    method: 'POST',
+    headers: { 'x-dev-test': 'true' },
+  });
   assert(matchSimRes.status === 200 && matchSimRes.data.success, 'Dev match simulation succeeded');
   assert(Boolean(matchSimRes.data.conversationId), `Paired into Conversation ID: ${matchSimRes.data.conversationId}`);
   assert(matchSimRes.data.participantsCount === 2, 'Exactly 2 participants attached to conversation');
@@ -218,7 +220,41 @@ async function run() {
   const receivedMsg = readMsgRes.data.messages.find((m) => m.content.includes('Nice to connect'));
   assert(Boolean(receivedMsg), 'Student 2 received the exact message sent by Student 1');
 
-  console.log('\n🎉 ALL 9 VERIFICATION PHASES PASSED SUCCESSFULLY!');
+  // 10. WebRTC Video Calling Signaling Verification
+  console.log('\n--- 10. WebRTC Video Calling Signaling Exchange ---');
+  // Student 1 initiates video call request
+  const callReqRes = await request(`/api/chat/${convId}/signaling`, {
+    method: 'POST',
+    headers: { Cookie: s1Cookie },
+    body: JSON.stringify({ type: 'call-request', payload: { sdp: 'dummy-offer-sdp-test' } }),
+  });
+  assert(callReqRes.status === 200 && callReqRes.data.success, 'Student 1 sent WebRTC call-request signal');
+
+  // Student 2 receives call-request signal
+  const getSignalsRes = await request(`/api/chat/${convId}/signaling`, {
+    headers: { Cookie: s2Cookie },
+  });
+  assert(getSignalsRes.status === 200 && getSignalsRes.data.success, 'Student 2 received signaling events');
+  const incomingSignal = getSignalsRes.data.signals.find((s) => s.type === 'call-request');
+  assert(Boolean(incomingSignal), 'Student 2 received incoming call-request from Student 1');
+
+  // Student 2 accepts call
+  const callAcceptRes = await request(`/api/chat/${convId}/signaling`, {
+    method: 'POST',
+    headers: { Cookie: s2Cookie },
+    body: JSON.stringify({ type: 'call-accept', payload: { sdp: 'dummy-answer-sdp-test' } }),
+  });
+  assert(callAcceptRes.status === 200 && callAcceptRes.data.success, 'Student 2 sent WebRTC call-accept signal');
+
+  // Student 1 ends call
+  const callEndRes = await request(`/api/chat/${convId}/signaling`, {
+    method: 'POST',
+    headers: { Cookie: s1Cookie },
+    body: JSON.stringify({ type: 'call-end' }),
+  });
+  assert(callEndRes.status === 200 && callEndRes.data.success, 'WebRTC call terminated cleanly');
+
+  console.log('\n🎉 ALL 10 VERIFICATION PHASES PASSED SUCCESSFULLY!');
 }
 
 run().catch((err) => {

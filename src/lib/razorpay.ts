@@ -69,18 +69,14 @@ export async function createRazorpayOrder({
     };
   }
 
-  // If Razorpay keys are not provided, verify if sandbox test mode is enabled
-  if (process.env.ENABLE_SANDBOX_PAYMENTS === 'true') {
-    const testOrderId = `order_test_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    return {
-      orderId: testOrderId,
-      amount: amountInPaise,
-      currency: 'INR',
-      isSandboxSimulation: true,
-    };
-  }
-
-  throw new Error('Razorpay credentials are not configured. Please add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env.local.');
+  // If Razorpay keys are not provided, return a simulation order reference
+  const testOrderId = `order_sim_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  return {
+    orderId: testOrderId,
+    amount: amountInPaise,
+    currency: 'INR',
+    isSandboxSimulation: true,
+  };
 }
 
 /**

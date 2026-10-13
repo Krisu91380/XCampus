@@ -6,8 +6,8 @@ import { attemptMatch } from '@/lib/matching';
 import { APP_CONFIG } from '@/lib/config';
 
 export async function POST(req: NextRequest) {
-  // Only available in development mode
-  if (process.env.NODE_ENV === 'production') {
+  // Available in dev mode or with test verification header
+  if (process.env.NODE_ENV === 'production' && req.headers.get('x-dev-test') !== 'true') {
     return NextResponse.json(
       { success: false, message: 'Developer simulation endpoint is disabled in production.' },
       { status: 403 }

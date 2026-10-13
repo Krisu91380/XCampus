@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { subscribeToConversation } from '@/lib/events';
 import { Message } from '@/types';
+import { verifyAndResolveParticipants } from '@/lib/conversation';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,10 +19,8 @@ export async function GET(
   const conversationId = params.id;
 
   // Verify participant authorization
-  const participant = await db.conversationParticipant.findFirst({
-    where: { conversationId, userId: session.userId },
-  });
-  if (!participant) {
+  const verified = await verifyAndResolveParticipants(conversationId, session.userId);
+  if (!verified) {
     return new Response('Forbidden', { status: 403 });
   }
 

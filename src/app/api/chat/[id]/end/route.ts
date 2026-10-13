@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { broadcastEndConversation } from '@/lib/events';
+import { verifyAndResolveParticipants } from '@/lib/conversation';
 
 export async function POST(
   req: NextRequest,
@@ -12,10 +13,8 @@ export async function POST(
     const conversationId = params.id;
 
     // Check participation
-    const participant = await db.conversationParticipant.findFirst({
-      where: { conversationId, userId: session.userId },
-    });
-    if (!participant) {
+    const verified = await verifyAndResolveParticipants(conversationId, session.userId);
+    if (!verified) {
       return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
 

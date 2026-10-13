@@ -94,7 +94,7 @@ class InMemoryStore {
 
   scheduleSave() {
     if (this.saveTimeout) clearTimeout(this.saveTimeout);
-    this.saveTimeout = setTimeout(() => this.saveToDisk(), 30);
+    this.saveToDisk();
   }
 
   hookMapPersistence(map: Map<any, any>) {
@@ -629,8 +629,8 @@ export const db = {
       }
       return all;
     },
-    create: async ({ data }: { data: Omit<Conversation, 'id' | 'startedAt'> }) => {
-      const id = `conv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    create: async ({ data }: { data: Omit<Conversation, 'id' | 'startedAt'> & { id?: string } }) => {
+      const id = data.id || `conv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
       const conv: Conversation = {
         id,
         ...data,

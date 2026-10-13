@@ -3,6 +3,7 @@ import { MatchQueueEntry, Conversation } from '@/types';
 import { deductCreditForConversation, getUserBalance } from './ledger';
 import { APP_CONFIG } from './config';
 import { broadcastMatchFound } from './events';
+import { generateSignedConversationId, ensureConversationAndParticipants } from './conversation';
 
 export interface MatchResult {
   matched: boolean;
@@ -143,30 +144,18 @@ export async function attemptMatch(userId: string): Promise<MatchResult> {
       return { matched: false, reason: 'NO_COMPATIBLE_STUDENT_FOUND' };
     }
 
-    // Atomically create single conversation for both students
+    // Atomically create single signed conversation for both students
+    const conversationId = generateSignedConversationId(userId, matchedPartnerEntry.userId);
     const conversation = await db.conversation.create({
       data: {
+        id: conversationId,
         status: 'ACTIVE',
         creditDeducted: true,
-      },
+      } as any,
     });
 
-    // Add both participants
-    await db.conversationParticipant.create({
-      data: {
-        conversationId: conversation.id,
-        userId: userId,
-        hasUnread: false,
-      },
-    });
-
-    await db.conversationParticipant.create({
-      data: {
-        conversationId: conversation.id,
-        userId: matchedPartnerEntry.userId,
-        hasUnread: false,
-      },
-    });
+    // Ensure both participants are registered
+    await ensureConversationAndParticipants(conversationId, userId, matchedPartnerEntry.userId);
 
     // Atomically deduct 1 credit from each participant
     await deductCreditForConversation({ userId, conversationId: conversation.id });

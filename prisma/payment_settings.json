@@ -1,9 +1,9 @@
 {
   "isEnabled": true,
   "receiverName": "KRISH SO ANIL KUMAR",
-  "upiId": "krish@okaxis",
+  "upiId": "9138060466@naviaxis",
   "qrImageUrl": "/uploads/payment/custom_qr.png",
-  "instructions": "1. Scan PhonePe QR code.\n2. Pay amount.\n3. Submit 12-digit UTR.",
-  "updatedAt": "2026-10-12T19:59:02.939Z",
+  "instructions": "1. Scan Navi QR code.\n2. Pay amount.\n3. Submit 12-digit UTR.",
+  "updatedAt": "2026-10-13T07:47:44.543Z",
   "updatedBy": "user-admin-1"
 }

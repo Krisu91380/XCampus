@@ -17,10 +17,10 @@ const TMP_SETTINGS_FILE = '/tmp/payment_settings.json';
 const DEFAULT_SETTINGS: PaymentSettings = {
   isEnabled: true,
   receiverName: 'KRISH SO ANIL KUMAR',
-  upiId: '',
+  upiId: '9138060466@naviaxis',
   qrImageUrl: '/uploads/payment/custom_qr.png',
   instructions:
-    '1. Scan the QR code using any UPI app (PhonePe, Google Pay, Paytm, BHIM).\n2. Pay the exact package amount shown above.\n3. Copy the 12-digit UTR / Transaction Reference Number from your payment app.\n4. Submit the reference number below for instant administrative verification.',
+    '1. Scan the QR code using Google Pay, PhonePe, Paytm, Navi, or any UPI app.\n2. Pay the exact package amount shown above.\n3. Copy the 12-digit UTR / Transaction Reference Number from your payment app.\n4. Submit the reference number below for instant administrative verification.',
   updatedAt: new Date().toISOString(),
 };
 
