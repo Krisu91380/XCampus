@@ -41,6 +41,7 @@ export default function MessagesPage() {
     friends: any[];
   }>({ incoming: [], outgoing: [], friends: [] });
   const [friendActionLoadingId, setFriendActionLoadingId] = useState<string | null>(null);
+  const [friendActionError, setFriendActionError] = useState<string | null>(null);
 
   // Active chat state
   const [messages, setMessages] = useState<any[]>([]);
@@ -238,6 +239,7 @@ export default function MessagesPage() {
 
   const handleAcceptFriendRequest = async (requestId: string) => {
     setFriendActionLoadingId(requestId);
+    setFriendActionError(null);
     try {
       const res = await fetch('/api/friends/respond', {
         method: 'POST',
@@ -246,14 +248,24 @@ export default function MessagesPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Failed to accept request');
+        throw new Error(data.message || 'Failed to accept friend request');
       }
+
+      // Optimistically remove from incoming requests
+      setFriendsData((prev) => ({
+        ...prev,
+        incoming: prev.incoming.filter((r) => r.id !== requestId),
+      }));
+
+      // Background refresh
       await Promise.all([fetchFriends(), fetchConversations()]);
+
       if (data.conversationId) {
         handleSelectConversation(data.conversationId);
       }
     } catch (err: any) {
-      alert(err.message || 'Error accepting friend request');
+      setFriendActionError(err.message || 'Error accepting friend request');
+      fetchFriends();
     } finally {
       setFriendActionLoadingId(null);
     }
@@ -261,6 +273,7 @@ export default function MessagesPage() {
 
   const handleDeclineFriendRequest = async (requestId: string) => {
     setFriendActionLoadingId(requestId);
+    setFriendActionError(null);
     try {
       const res = await fetch('/api/friends/respond', {
         method: 'POST',
@@ -269,11 +282,19 @@ export default function MessagesPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Failed to decline request');
+        throw new Error(data.message || 'Failed to decline friend request');
       }
+
+      // Optimistically remove from incoming requests
+      setFriendsData((prev) => ({
+        ...prev,
+        incoming: prev.incoming.filter((r) => r.id !== requestId),
+      }));
+
       await fetchFriends();
     } catch (err: any) {
-      alert(err.message || 'Error declining friend request');
+      setFriendActionError(err.message || 'Error declining friend request');
+      fetchFriends();
     } finally {
       setFriendActionLoadingId(null);
     }
@@ -324,77 +345,96 @@ export default function MessagesPage() {
           </div>
 
           {/* Pending Friend Requests Section */}
-          {friendsData.incoming.length > 0 && (
+          {(friendsData.incoming.length > 0 || friendActionError) && (
             <div className="p-3 bg-gradient-to-r from-brand-purple/20 via-navy-900 to-electric-500/15 border-b border-navy-750 space-y-2">
               <div className="flex items-center justify-between text-xs font-bold text-white">
                 <span className="flex items-center gap-1.5 text-electric-300">
                   <UserPlus className="w-3.5 h-3.5 text-electric-400" />
                   <span>Friend Requests</span>
                 </span>
-                <span className="px-1.5 py-0.5 rounded-full bg-electric-500 text-[10px] text-white font-mono font-bold animate-pulse">
-                  {friendsData.incoming.length}
-                </span>
+                {friendsData.incoming.length > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-electric-500 text-[10px] text-white font-mono font-bold animate-pulse">
+                    {friendsData.incoming.length}
+                  </span>
+                )}
               </div>
 
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                {friendsData.incoming.map((req) => (
-                  <div
-                    key={req.id}
-                    className="p-2.5 rounded-xl bg-navy-950/90 border border-navy-750 flex items-center justify-between gap-2 shadow-sm"
+              {friendActionError && (
+                <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px] flex items-center justify-between gap-1.5 animate-fade-in">
+                  <span>{friendActionError}</span>
+                  <button
+                    onClick={() => setFriendActionError(null)}
+                    className="p-0.5 hover:text-white"
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      {req.fromUser?.avatarUrl ? (
-                        <img
-                          src={req.fromUser.avatarUrl}
-                          alt={req.fromUser.displayName}
-                          className="w-8 h-8 rounded-full object-cover border border-navy-700 shrink-0"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center text-white font-bold text-xs shrink-0">
-                          {req.fromUser?.displayName?.[0] || 'S'}
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-white truncate flex items-center gap-1">
-                          <span>{req.fromUser?.displayName || 'Student'}</span>
-                          {req.fromUser?.isVerified && (
-                            <ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0" />
-                          )}
-                        </p>
-                        <p className="text-[10px] text-slate-400 truncate">
-                          {req.fromUser?.universityName || req.fromUser?.course || 'Campus Peer'}
-                        </p>
-                      </div>
-                    </div>
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        onClick={() => handleAcceptFriendRequest(req.id)}
-                        disabled={friendActionLoadingId === req.id}
-                        className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 shadow disabled:opacity-50 transition-colors"
-                        title="Accept and start chatting"
+              {friendsData.incoming.length > 0 && (
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {friendsData.incoming.map((req) => {
+                    const student = req.sender || req.fromUser || {};
+                    return (
+                      <div
+                        key={req.id}
+                        className="p-2.5 rounded-xl bg-navy-950/90 border border-navy-750 flex items-center justify-between gap-2 shadow-sm"
                       >
-                        {friendActionLoadingId === req.id ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <>
-                            <Check className="w-3 h-3" />
-                            <span>Accept</span>
-                          </>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => handleDeclineFriendRequest(req.id)}
-                        disabled={friendActionLoadingId === req.id}
-                        className="p-1 rounded-lg bg-navy-800 hover:bg-rose-950/50 hover:text-rose-400 text-slate-400 text-xs border border-navy-700 disabled:opacity-50 transition-colors"
-                        title="Decline request"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          {student.avatarUrl ? (
+                            <img
+                              src={student.avatarUrl}
+                              alt={student.displayName || 'Student'}
+                              className="w-8 h-8 rounded-full object-cover border border-navy-700 shrink-0"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                              {student.displayName?.[0] || 'S'}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-white truncate flex items-center gap-1">
+                              <span>{student.displayName || 'Student'}</span>
+                              {student.isVerified && (
+                                <ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0" />
+                              )}
+                            </p>
+                            <p className="text-[10px] text-slate-400 truncate">
+                              {student.universityName || student.course || 'Campus Peer'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            onClick={() => handleAcceptFriendRequest(req.id)}
+                            disabled={friendActionLoadingId === req.id}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 shadow disabled:opacity-50 transition-colors cursor-pointer"
+                            title="Accept and start chatting"
+                          >
+                            {friendActionLoadingId === req.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <>
+                                <Check className="w-3 h-3" />
+                                <span>Accept</span>
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleDeclineFriendRequest(req.id)}
+                            disabled={friendActionLoadingId === req.id}
+                            className="p-1 rounded-lg bg-navy-800 hover:bg-rose-950/50 hover:text-rose-400 text-slate-400 text-xs border border-navy-700 disabled:opacity-50 transition-colors cursor-pointer"
+                            title="Decline request"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

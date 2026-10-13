@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { registerSchema } from '@/validators/auth';
-import { hashPassword, createSessionToken, setSessionCookie } from '@/lib/auth';
+import { hashPassword, createSessionToken, setSessionCookie, createVaultToken, setVaultCookie } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { addCredits } from '@/lib/ledger';
 
@@ -116,15 +116,36 @@ export async function POST(req: NextRequest) {
       autoVerified = true;
     }
 
-    // Create session token
-    const sessionToken = await createSessionToken({
-      userId: user.id,
-      email: user.email,
-      role: autoVerified ? 'VERIFIED_STUDENT' : 'USER',
+    const assignedRole = autoVerified ? 'VERIFIED_STUDENT' : 'USER';
+
+    const userSnapshot = {
+      id: user.id,
+      email: normalizedEmail,
+      passwordHash: user.passwordHash,
+      role: assignedRole,
+      status: 'ACTIVE',
       isAgeVerified: true,
       universityId: user.universityId,
       displayName,
+      gender,
+      course: course || null,
+      academicYear: academicYear || null,
+      credits: 5,
+    };
+
+    // Create session token with snapshot embedded
+    const sessionToken = await createSessionToken({
+      userId: user.id,
+      email: user.email,
+      role: assignedRole,
+      isAgeVerified: true,
+      universityId: user.universityId,
+      displayName,
+      userSnapshot,
     });
+
+    // Create long-lived vault token to survive multi-container cold rotations
+    const vaultToken = await createVaultToken(userSnapshot);
 
     const response = NextResponse.json(
       {
@@ -134,7 +155,7 @@ export async function POST(req: NextRequest) {
           id: user.id,
           email: user.email,
           displayName,
-          role: autoVerified ? 'VERIFIED_STUDENT' : 'USER',
+          role: assignedRole,
           universityName: uni.name,
           credits: 5,
         },
@@ -143,6 +164,10 @@ export async function POST(req: NextRequest) {
     );
 
     await setSessionCookie(sessionToken, response);
+    await setVaultCookie(vaultToken, response);
+
+    // Synchronously commit disk store to avoid container rotation loss
+    db.store.saveToDisk();
 
     return response;
   } catch (error: any) {

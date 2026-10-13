@@ -51,6 +51,7 @@ class InMemoryStore {
   friendRequests: Map<string, FriendRequest> = new Map();
 
   initialized = false;
+  isSyncing = false;
   saveTimeout: NodeJS.Timeout | null = null;
 
   constructor() {
@@ -99,12 +100,14 @@ class InMemoryStore {
         fs.copyFileSync(tmpFile, dbFile);
         try { fs.unlinkSync(tmpFile); } catch {}
       }
+      this.lastDiskLoadTime = Date.now();
     } catch {
       // Ignore write error on read-only environments
     }
   }
 
   scheduleSave() {
+    if (this.isSyncing) return;
     if (this.saveTimeout) clearTimeout(this.saveTimeout);
     this.saveToDisk();
   }
@@ -241,31 +244,36 @@ class InMemoryStore {
           const raw = fs.readFileSync(storeFile, 'utf-8');
           if (raw && raw.trim().startsWith('{')) {
             const runtimeData = JSON.parse(raw);
-            const mergeMap = (target: Map<any, any>, entries: [any, any][] | undefined) => {
-              if (entries && Array.isArray(entries)) {
-                for (const [k, v] of entries) {
-                  target.set(k, v);
+            this.isSyncing = true;
+            try {
+              const mergeMap = (target: Map<any, any>, entries: [any, any][] | undefined) => {
+                if (entries && Array.isArray(entries)) {
+                  for (const [k, v] of entries) {
+                    target.set(k, v);
+                  }
                 }
-              }
-            };
-            mergeMap(this.users, runtimeData.users);
-            mergeMap(this.profiles, runtimeData.profiles);
-            mergeMap(this.universities, runtimeData.universities);
-            mergeMap(this.verifications, runtimeData.verifications);
-            mergeMap(this.preferences, runtimeData.preferences);
-            mergeMap(this.matchQueue, runtimeData.matchQueue);
-            mergeMap(this.conversations, runtimeData.conversations);
-            mergeMap(this.conversationParticipants, runtimeData.conversationParticipants);
-            mergeMap(this.messages, runtimeData.messages);
-            mergeMap(this.creditPackages, runtimeData.creditPackages);
-            mergeMap(this.creditBalances, runtimeData.creditBalances);
-            mergeMap(this.creditLedgers, runtimeData.creditLedgers);
-            mergeMap(this.paymentOrders, runtimeData.paymentOrders);
-            mergeMap(this.paymentTransactions, runtimeData.paymentTransactions);
-            mergeMap(this.blocks, runtimeData.blocks);
-            mergeMap(this.abuseReports, runtimeData.abuseReports);
-            mergeMap(this.auditLogs, runtimeData.auditLogs);
-            mergeMap(this.friendRequests, runtimeData.friendRequests);
+              };
+              mergeMap(this.users, runtimeData.users);
+              mergeMap(this.profiles, runtimeData.profiles);
+              mergeMap(this.universities, runtimeData.universities);
+              mergeMap(this.verifications, runtimeData.verifications);
+              mergeMap(this.preferences, runtimeData.preferences);
+              mergeMap(this.matchQueue, runtimeData.matchQueue);
+              mergeMap(this.conversations, runtimeData.conversations);
+              mergeMap(this.conversationParticipants, runtimeData.conversationParticipants);
+              mergeMap(this.messages, runtimeData.messages);
+              mergeMap(this.creditPackages, runtimeData.creditPackages);
+              mergeMap(this.creditBalances, runtimeData.creditBalances);
+              mergeMap(this.creditLedgers, runtimeData.creditLedgers);
+              mergeMap(this.paymentOrders, runtimeData.paymentOrders);
+              mergeMap(this.paymentTransactions, runtimeData.paymentTransactions);
+              mergeMap(this.blocks, runtimeData.blocks);
+              mergeMap(this.abuseReports, runtimeData.abuseReports);
+              mergeMap(this.auditLogs, runtimeData.auditLogs);
+              mergeMap(this.friendRequests, runtimeData.friendRequests);
+            } finally {
+              this.isSyncing = false;
+            }
             this.lastDiskLoadTime = Date.now();
           }
         }
@@ -542,23 +550,31 @@ export const db = {
         updatedAt: new Date(),
       };
       store.users.set(id, user);
+      store.saveToDisk();
       return user;
     },
     update: async ({ where, data }: { where: { id: string }; data: Partial<User> }): Promise<User> => {
+      store.syncFromDiskIfNeeded();
       const existing = store.users.get(where.id);
       if (!existing) throw new Error(`User ${where.id} not found`);
       const updated = { ...existing, ...data, updatedAt: new Date() };
       store.users.set(where.id, updated);
+      store.saveToDisk();
       return updated;
     },
-    count: async () => store.users.size,
+    count: async () => {
+      store.syncFromDiskIfNeeded();
+      return store.users.size;
+    },
   },
 
   profile: {
     findUnique: async ({ where }: { where: { userId: string } }): Promise<Profile | null> => {
+      store.syncFromDiskIfNeeded();
       return store.profiles.get(where.userId) || null;
     },
     findMany: async (args?: { where?: { isDiscoverable?: boolean; isOnline?: boolean } }): Promise<Profile[]> => {
+      store.syncFromDiskIfNeeded();
       const all = Array.from(store.profiles.values());
       if (!args?.where) return all;
       return all.filter((p) => {
@@ -576,10 +592,12 @@ export const db = {
       create: Omit<Profile, 'id' | 'createdAt' | 'updatedAt'>;
       update: Partial<Profile>;
     }) => {
+      store.syncFromDiskIfNeeded();
       const existing = store.profiles.get(where.userId);
       if (existing) {
         const updated = { ...existing, ...update, updatedAt: new Date() };
         store.profiles.set(where.userId, updated);
+        store.saveToDisk();
         return updated;
       }
       const id = `profile-${Date.now()}`;
@@ -590,13 +608,16 @@ export const db = {
         updatedAt: new Date(),
       };
       store.profiles.set(where.userId, newProfile);
+      store.saveToDisk();
       return newProfile;
     },
     update: async ({ where, data }: { where: { userId: string }; data: Partial<Profile> }) => {
+      store.syncFromDiskIfNeeded();
       const existing = store.profiles.get(where.userId);
       if (!existing) throw new Error(`Profile for user ${where.userId} not found`);
       const updated = { ...existing, ...data, updatedAt: new Date() };
       store.profiles.set(where.userId, updated);
+      store.saveToDisk();
       return updated;
     },
   },
@@ -748,9 +769,11 @@ export const db = {
 
   conversation: {
     findUnique: async ({ where }: { where: { id: string } }): Promise<Conversation | null> => {
+      store.syncFromDiskIfNeeded();
       return store.conversations.get(where.id) || null;
     },
     findMany: async (args?: { where?: { status?: string } }): Promise<Conversation[]> => {
+      store.syncFromDiskIfNeeded();
       const all = Array.from(store.conversations.values());
       if (args?.where?.status) {
         return all.filter((c) => c.status === args.where!.status);
@@ -758,6 +781,7 @@ export const db = {
       return all;
     },
     create: async ({ data }: { data: Omit<Conversation, 'id' | 'startedAt'> & { id?: string } }) => {
+      store.syncFromDiskIfNeeded();
       const id = data.id || `conv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
       const conv: Conversation = {
         id,
@@ -765,19 +789,23 @@ export const db = {
         startedAt: new Date(),
       };
       store.conversations.set(id, conv);
+      store.saveToDisk();
       return conv;
     },
     update: async ({ where, data }: { where: { id: string }; data: Partial<Conversation> }) => {
+      store.syncFromDiskIfNeeded();
       const existing = store.conversations.get(where.id);
       if (!existing) throw new Error(`Conversation ${where.id} not found`);
       const updated = { ...existing, ...data };
       store.conversations.set(where.id, updated);
+      store.saveToDisk();
       return updated;
     },
   },
 
   conversationParticipant: {
     findMany: async ({ where }: { where: { userId?: string; conversationId?: string } }): Promise<ConversationParticipant[]> => {
+      store.syncFromDiskIfNeeded();
       const all = Array.from(store.conversationParticipants.values());
       return all.filter((p) => {
         if (where.userId && p.userId !== where.userId) return false;
@@ -786,11 +814,13 @@ export const db = {
       });
     },
     findFirst: async ({ where }: { where: { userId: string; conversationId: string } }): Promise<ConversationParticipant | null> => {
+      store.syncFromDiskIfNeeded();
       return Array.from(store.conversationParticipants.values()).find(
         (p) => p.userId === where.userId && p.conversationId === where.conversationId
       ) || null;
     },
     create: async ({ data }: { data: Omit<ConversationParticipant, 'id' | 'joinedAt'> }) => {
+      store.syncFromDiskIfNeeded();
       const id = `part-${data.conversationId}-${data.userId}`;
       const part: ConversationParticipant = {
         id,
@@ -798,6 +828,7 @@ export const db = {
         joinedAt: new Date(),
       };
       store.conversationParticipants.set(id, part);
+      store.saveToDisk();
       return part;
     },
     update: async ({
@@ -807,17 +838,20 @@ export const db = {
       where: { conversationId_userId: { conversationId: string; userId: string } };
       data: Partial<ConversationParticipant>;
     }) => {
+      store.syncFromDiskIfNeeded();
       const id = `part-${where.conversationId_userId.conversationId}-${where.conversationId_userId.userId}`;
       const existing = store.conversationParticipants.get(id);
       if (!existing) return null;
       const updated = { ...existing, ...data };
       store.conversationParticipants.set(id, updated);
+      store.saveToDisk();
       return updated;
     },
   },
 
   message: {
     findMany: async ({ where, orderBy }: { where: { conversationId: string }; orderBy?: { createdAt: 'asc' | 'desc' } }): Promise<Message[]> => {
+      store.syncFromDiskIfNeeded();
       const msgs = Array.from(store.messages.values()).filter((m) => m.conversationId === where.conversationId);
       if (orderBy?.createdAt === 'desc') {
         return msgs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -825,6 +859,7 @@ export const db = {
       return msgs.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     },
     create: async ({ data }: { data: Omit<Message, 'id' | 'createdAt'> }) => {
+      store.syncFromDiskIfNeeded();
       const id = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
       const msg: Message = {
         id,
@@ -832,6 +867,7 @@ export const db = {
         createdAt: new Date(),
       };
       store.messages.set(id, msg);
+      store.saveToDisk();
       return msg;
     },
   },
@@ -869,7 +905,20 @@ export const db = {
 
   userCreditBalance: {
     findUnique: async ({ where }: { where: { userId: string } }) => {
+      store.syncFromDiskIfNeeded();
       return store.creditBalances.get(where.userId) || { id: `bal-${where.userId}`, userId: where.userId, credits: 0, updatedAt: new Date() };
+    },
+    create: async ({ data }: { data: { userId: string; credits: number } }) => {
+      store.syncFromDiskIfNeeded();
+      const bal: UserCreditBalance = {
+        id: `bal-${data.userId}`,
+        userId: data.userId,
+        credits: Math.max(0, data.credits),
+        updatedAt: new Date(),
+      };
+      store.creditBalances.set(data.userId, bal);
+      store.saveToDisk();
+      return bal;
     },
     upsert: async ({
       where,
@@ -880,6 +929,7 @@ export const db = {
       create: { userId: string; credits: number };
       update: { credits?: number | { increment?: number; decrement?: number; set?: number } };
     }) => {
+      store.syncFromDiskIfNeeded();
       const existing = store.creditBalances.get(where.userId);
       let currentCredits = existing ? existing.credits : create.credits;
 
@@ -902,16 +952,19 @@ export const db = {
         updatedAt: new Date(),
       };
       store.creditBalances.set(where.userId, bal);
+      store.saveToDisk();
       return bal;
     },
   },
 
   creditLedger: {
     findMany: async ({ where, orderBy }: { where: { userId: string }; orderBy?: { createdAt: 'desc' } }): Promise<CreditLedgerEntry[]> => {
+      store.syncFromDiskIfNeeded();
       const all = Array.from(store.creditLedgers.values()).filter((l) => l.userId === where.userId);
       return all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     },
     create: async ({ data }: { data: Omit<CreditLedgerEntry, 'id' | 'createdAt'> }) => {
+      store.syncFromDiskIfNeeded();
       const id = `ledger-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
       const entry: CreditLedgerEntry = {
         id,
@@ -919,6 +972,7 @@ export const db = {
         createdAt: new Date(),
       };
       store.creditLedgers.set(id, entry);
+      store.saveToDisk();
       return entry;
     },
   },
@@ -1068,9 +1122,12 @@ export const db = {
 
   friendRequest: {
     findUnique: async ({ where }: { where: { id: string } }): Promise<FriendRequest | null> => {
-      return store.friendRequests.get(where.id) || null;
+      store.syncFromDiskIfNeeded();
+      const targetId = where.id.trim();
+      return store.friendRequests.get(targetId) || Array.from(store.friendRequests.values()).find((r) => r.id === targetId) || null;
     },
     findFirst: async ({ where }: { where: { senderId?: string; receiverId?: string; status?: FriendRequestStatus } }): Promise<FriendRequest | null> => {
+      store.syncFromDiskIfNeeded();
       const all = Array.from(store.friendRequests.values());
       return all.find((r) => {
         if (where.senderId && r.senderId !== where.senderId) return false;
@@ -1080,6 +1137,7 @@ export const db = {
       }) || null;
     },
     findMany: async (args?: { where?: { senderId?: string; receiverId?: string; status?: FriendRequestStatus } }): Promise<FriendRequest[]> => {
+      store.syncFromDiskIfNeeded();
       const all = Array.from(store.friendRequests.values());
       if (!args?.where) return all;
       return all.filter((r) => {
@@ -1090,6 +1148,7 @@ export const db = {
       });
     },
     create: async ({ data }: { data: Omit<FriendRequest, 'id' | 'createdAt' | 'updatedAt'> }) => {
+      store.syncFromDiskIfNeeded();
       const id = `freq-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const req: FriendRequest = {
         id,
@@ -1098,17 +1157,23 @@ export const db = {
         updatedAt: new Date(),
       };
       store.friendRequests.set(id, req);
+      store.saveToDisk();
       return req;
     },
     update: async ({ where, data }: { where: { id: string }; data: Partial<FriendRequest> }) => {
-      const existing = store.friendRequests.get(where.id);
+      store.syncFromDiskIfNeeded();
+      const existing = store.friendRequests.get(where.id) || Array.from(store.friendRequests.values()).find((r) => r.id === where.id);
       if (!existing) throw new Error(`Friend request ${where.id} not found`);
       const updated = { ...existing, ...data, updatedAt: new Date() };
-      store.friendRequests.set(where.id, updated);
+      store.friendRequests.set(existing.id, updated);
+      store.saveToDisk();
       return updated;
     },
     delete: async ({ where }: { where: { id: string } }) => {
-      return store.friendRequests.delete(where.id);
+      store.syncFromDiskIfNeeded();
+      const res = store.friendRequests.delete(where.id);
+      store.saveToDisk();
+      return res;
     },
   },
 };

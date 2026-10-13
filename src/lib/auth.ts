@@ -99,7 +99,9 @@ export function isAtLeast18(dateOfBirth: Date | string): boolean {
   return age >= 18;
 }
 
-export async function createSessionToken(payload: AuthenticatedUserSession): Promise<string> {
+export const VAULT_COOKIE_NAME = 'campusconnect_vault';
+
+export async function createSessionToken(payload: AuthenticatedUserSession & { userSnapshot?: any }): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -112,6 +114,23 @@ export async function verifySessionToken(token: string): Promise<AuthenticatedUs
     const { payload } = await jwtVerify(token, JWT_SECRET);
     return payload as unknown as AuthenticatedUserSession;
   } catch (err) {
+    return null;
+  }
+}
+
+export async function createVaultToken(payload: any): Promise<string> {
+  return new SignJWT({ ...payload })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('30d')
+    .sign(JWT_SECRET);
+}
+
+export async function verifyVaultToken(token: string): Promise<any | null> {
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    return payload;
+  } catch {
     return null;
   }
 }
@@ -130,15 +149,35 @@ export async function setSessionCookie(token: string, res?: NextResponse) {
   }
 }
 
+export async function setVaultCookie(token: string, res?: NextResponse) {
+  const options = {
+    ...COOKIE_OPTIONS,
+    maxAge: 60 * 60 * 24 * 30, // 30 days
+  };
+  if (res) {
+    res.cookies.set(VAULT_COOKIE_NAME, token, options);
+    return;
+  }
+  try {
+    const { cookies } = await import('next/headers');
+    const cookieStore = cookies();
+    cookieStore.set(VAULT_COOKIE_NAME, token, options);
+  } catch {
+    //
+  }
+}
+
 export async function clearSessionCookie(res?: NextResponse) {
   if (res) {
     res.cookies.set(COOKIE_NAME, '', { ...COOKIE_OPTIONS, maxAge: 0 });
+    res.cookies.set(VAULT_COOKIE_NAME, '', { ...COOKIE_OPTIONS, maxAge: 0 });
     return;
   }
   try {
     const { cookies } = await import('next/headers');
     const cookieStore = cookies();
     cookieStore.set(COOKIE_NAME, '', { ...COOKIE_OPTIONS, maxAge: 0 });
+    cookieStore.set(VAULT_COOKIE_NAME, '', { ...COOKIE_OPTIONS, maxAge: 0 });
   } catch {
     //
   }
@@ -169,8 +208,51 @@ export async function getSession(req?: NextRequest): Promise<AuthenticatedUserSe
   const session = await verifySessionToken(token);
   if (!session) return null;
 
-  // Verify user still exists and is not suspended/banned
-  const user = await db.user.findUnique({ where: { id: session.userId } });
+  // Verify user still exists or resurrect from verified session snapshot (cold-container resilience)
+  let user = await db.user.findUnique({ where: { id: session.userId } });
+  if (!user && (session as any).userSnapshot) {
+    const snap = (session as any).userSnapshot;
+    user = await db.user.create({
+      data: {
+        id: snap.id || session.userId,
+        email: (snap.email || session.email).toLowerCase().trim(),
+        passwordHash: snap.passwordHash || '',
+        role: snap.role || session.role || 'USER',
+        status: snap.status || 'ACTIVE',
+        isAgeVerified: snap.isAgeVerified ?? true,
+        universityId: snap.universityId || session.universityId,
+      },
+    });
+
+    await db.profile.upsert({
+      where: { userId: user.id },
+      create: {
+        userId: user.id,
+        displayName: snap.displayName || session.displayName || user.email.split('@')[0],
+        gender: snap.gender || 'PREFER_NOT_TO_SAY',
+        course: snap.course || null,
+        academicYear: snap.academicYear || null,
+        language: 'English',
+        interests: ['Coding', 'Campus Life'],
+        isOnline: true,
+        isDiscoverable: true,
+        lastSeenAt: new Date(),
+      },
+      update: {},
+    });
+
+    const bal = await db.userCreditBalance.findUnique({ where: { userId: user.id } });
+    if (!bal || bal.credits === 0) {
+      await db.userCreditBalance.upsert({
+        where: { userId: user.id },
+        create: { userId: user.id, credits: snap.credits ?? 5 },
+        update: { credits: snap.credits ?? 5 },
+      });
+    }
+
+    db.store.saveToDisk();
+  }
+
   if (!user || user.status !== 'ACTIVE') return null;
 
   return session;

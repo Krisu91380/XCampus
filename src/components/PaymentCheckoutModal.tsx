@@ -236,34 +236,7 @@ export default function PaymentCheckoutModal({
     }
   };
 
-  // Sandbox simulation payment (when gateway credentials are not configured)
-  const handleSimulateSandboxPayment = async () => {
-    if (!orderData) return;
 
-    setIsVerifying(true);
-    setStatus('PROCESSING');
-    try {
-      const res = await fetch('/api/payments/simulate-sandbox', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: orderData.orderId }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Sandbox verification failed');
-      }
-
-      setVerifiedBalance(data.newBalance ?? data.balance);
-      setStatus('SUCCESS');
-      onSuccess(data.newBalance ?? data.balance);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Payment verification failed');
-      setStatus('ERROR');
-    } finally {
-      setIsVerifying(false);
-    }
-  };
 
   // Copy helper
   const handleCopy = (text: string, field: string) => {
@@ -537,26 +510,23 @@ export default function PaymentCheckoutModal({
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-1.5">
-                        <div className="flex items-center gap-1.5 font-bold text-amber-300">
-                          <Info className="w-4 h-4 text-amber-400 shrink-0" />
-                          <span>Gateway Notice</span>
+                      <div className="p-4 rounded-2xl bg-navy-850 border border-navy-750 text-slate-300 text-xs space-y-2">
+                        <div className="flex items-center gap-2 font-bold text-amber-400">
+                          <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+                          <span>Online Payments Temporarily Unavailable</span>
                         </div>
-                        <p className="text-[11px] text-slate-300 leading-relaxed">
-                          To accept live card and UPI payments through the Razorpay popup, configure <code className="text-amber-300 font-mono">RAZORPAY_KEY_ID</code> and <code className="text-amber-300 font-mono">RAZORPAY_KEY_SECRET</code> on Vercel.
-                        </p>
-                        <p className="text-[11px] text-emerald-300 font-semibold">
-                          💡 You can also switch to the <strong>Direct UPI QR</strong> tab above to pay via any UPI app, or complete in Test Mode below.
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          Online card and netbanking payments are currently undergoing maintenance. Please switch to the <strong className="text-electric-300">Direct UPI QR</strong> option above to pay via any UPI app.
                         </p>
                       </div>
 
                       <button
                         type="button"
-                        onClick={handleSimulateSandboxPayment}
-                        className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        onClick={() => handleSwitchTab('UPI_QR')}
+                        className="w-full py-3.5 rounded-xl bg-gradient-to-r from-electric-600 to-electric-500 hover:opacity-95 text-white font-bold text-xs shadow-lg shadow-electric-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
                       >
-                        <Sparkles className="w-4 h-4 text-amber-300" />
-                        <span>Complete Test Payment & Add {credits} Credits</span>
+                        <QrCode className="w-4 h-4 text-white" />
+                        <span>Pay via Direct UPI QR</span>
                       </button>
                     </div>
                   )}

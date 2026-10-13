@@ -47,6 +47,7 @@ export async function GET(req: NextRequest) {
             status: r.status,
             createdAt: r.createdAt,
             sender: senderDetails,
+            fromUser: senderDetails,
           });
         } else if (r.status === 'ACCEPTED') {
           const convId = generateSignedConversationId(r.senderId, r.receiverId);
@@ -78,6 +79,7 @@ export async function GET(req: NextRequest) {
           status: r.status,
           createdAt: r.createdAt,
           receiver: receiverDetails,
+          toUser: receiverDetails,
         });
 
         if (r.status === 'ACCEPTED') {

@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { loginSchema } from '@/validators/auth';
-import { verifyPassword, createSessionToken, setSessionCookie } from '@/lib/auth';
+import {
+  verifyPassword,
+  createSessionToken,
+  setSessionCookie,
+  createVaultToken,
+  setVaultCookie,
+  verifyVaultToken,
+} from '@/lib/auth';
 import { db } from '@/lib/db';
 
 export async function POST(req: NextRequest) {
@@ -50,6 +57,58 @@ export async function POST(req: NextRequest) {
       user = await db.user.findUnique({ where: { email: `${lowerId}@lpu.in` } });
     }
 
+    // 5. If still not found, check campusconnect_vault cookie from this browser to resurrect user across cold Vercel containers
+    if (!user) {
+      const vaultCookie = req.cookies.get('campusconnect_vault')?.value;
+      if (vaultCookie) {
+        const snap = await verifyVaultToken(vaultCookie);
+        if (
+          snap &&
+          snap.email &&
+          (snap.email.toLowerCase().trim() === lowerId ||
+            snap.email.toLowerCase().trim().split('@')[0] === lowerId ||
+            snap.displayName?.toLowerCase().trim() === lowerId)
+        ) {
+          user = await db.user.create({
+            data: {
+              id: snap.id,
+              email: snap.email.toLowerCase().trim(),
+              passwordHash: snap.passwordHash || '',
+              role: snap.role || 'USER',
+              status: snap.status || 'ACTIVE',
+              isAgeVerified: snap.isAgeVerified ?? true,
+              universityId: snap.universityId,
+            },
+          });
+          await db.profile.upsert({
+            where: { userId: user.id },
+            create: {
+              userId: user.id,
+              displayName: snap.displayName || user.email.split('@')[0],
+              gender: snap.gender || 'PREFER_NOT_TO_SAY',
+              course: snap.course || null,
+              academicYear: snap.academicYear || null,
+              language: 'English',
+              interests: ['Coding', 'Campus Life'],
+              isOnline: true,
+              isDiscoverable: true,
+              lastSeenAt: new Date(),
+            },
+            update: {},
+          });
+          const bal = await db.userCreditBalance.findUnique({ where: { userId: user.id } });
+          if (!bal || bal.credits === 0) {
+            await db.userCreditBalance.upsert({
+              where: { userId: user.id },
+              create: { userId: user.id, credits: snap.credits ?? 5 },
+              update: { credits: snap.credits ?? 5 },
+            });
+          }
+          db.store.saveToDisk();
+        }
+      }
+    }
+
     if (!user) {
       return NextResponse.json(
         {
@@ -90,6 +149,20 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const userSnapshot = {
+      id: user.id,
+      email: user.email,
+      passwordHash: user.passwordHash,
+      role: user.role,
+      status: user.status,
+      isAgeVerified: user.isAgeVerified,
+      universityId: user.universityId,
+      displayName,
+      gender: profile?.gender,
+      course: profile?.course,
+      academicYear: profile?.academicYear,
+    };
+
     const token = await createSessionToken({
       userId: user.id,
       email: user.email,
@@ -97,7 +170,10 @@ export async function POST(req: NextRequest) {
       isAgeVerified: user.isAgeVerified,
       universityId: user.universityId,
       displayName,
+      userSnapshot,
     });
+
+    const vaultToken = await createVaultToken(userSnapshot);
 
     const response = NextResponse.json({
       success: true,
@@ -112,6 +188,9 @@ export async function POST(req: NextRequest) {
     });
 
     await setSessionCookie(token, response);
+    await setVaultCookie(vaultToken, response);
+
+    db.store.saveToDisk();
 
     return response;
   } catch (error: any) {

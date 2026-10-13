@@ -17,17 +17,71 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const friendReq = await db.friendRequest.findUnique({ where: { id: requestId } });
+    const cleanId = String(requestId).trim();
+
+    // 1. Look up by exact request ID
+    let friendReq = await db.friendRequest.findUnique({ where: { id: cleanId } });
+
+    // 2. Fallback: client might have passed the sender's user ID
+    if (!friendReq) {
+      friendReq = await db.friendRequest.findFirst({
+        where: { senderId: cleanId, receiverId: session.userId },
+      });
+    }
+
+    // 3. Fallback: client might have passed the receiver's user ID
+    if (!friendReq) {
+      friendReq = await db.friendRequest.findFirst({
+        where: { senderId: session.userId, receiverId: cleanId },
+      });
+    }
+
+    // 4. Fallback: Search all friend requests if still not found
+    if (!friendReq) {
+      const all = await db.friendRequest.findMany();
+      friendReq = all.find(
+        (r) =>
+          r.id === cleanId ||
+          (r.receiverId === session.userId && r.senderId === cleanId) ||
+          (r.senderId === session.userId && r.receiverId === cleanId)
+      ) || null;
+    }
+
     if (!friendReq) {
       return NextResponse.json({ success: false, message: 'Friend request not found.' }, { status: 404 });
     }
 
-    // Verify current user is the recipient of the request
-    if (friendReq.receiverId !== session.userId) {
+    // Verify current user is a participant
+    if (friendReq.receiverId !== session.userId && friendReq.senderId !== session.userId) {
       return NextResponse.json(
-        { success: false, message: 'Forbidden. You are not the recipient of this request.' },
+        { success: false, message: 'Forbidden. You are not a participant in this friend request.' },
         { status: 403 }
       );
+    }
+
+    // Handle already ACCEPTED
+    if (friendReq.status === 'ACCEPTED') {
+      const conversationId = generateSignedConversationId(friendReq.senderId, friendReq.receiverId);
+      await ensureConversationAndParticipants(conversationId, friendReq.senderId, friendReq.receiverId);
+      return NextResponse.json({
+        success: true,
+        status: 'ACCEPTED',
+        alreadyProcessed: true,
+        message: 'Friend request was already accepted! Private conversation is ready.',
+        conversationId,
+        request: friendReq,
+      });
+    }
+
+    // Handle already DECLINED
+    if (friendReq.status === 'DECLINED' && action === 'DECLINE') {
+      return NextResponse.json({
+        success: true,
+        status: 'DECLINED',
+        alreadyProcessed: true,
+        message: 'Friend request was already declined.',
+        request: friendReq,
+      });
     }
 
     if (action === 'DECLINE') {
@@ -70,6 +124,7 @@ export async function POST(req: NextRequest) {
     if (error.message === 'UNAUTHORIZED') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    console.error('Error in friends/respond:', error);
+    return NextResponse.json({ success: false, message: error.message || 'Internal server error' }, { status: 500 });
   }
 }

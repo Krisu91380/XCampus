@@ -31,6 +31,7 @@ export default function BrowseStudentsPage() {
   }>({ incoming: [], outgoing: [], friends: [] });
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [errorNotice, setErrorNotice] = useState<string | null>(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -109,7 +110,7 @@ export default function BrowseStudentsPage() {
         });
       }
     } catch (err: any) {
-      alert(err.message);
+      setErrorNotice(err.message || 'Error sending friend request');
     } finally {
       setActionLoadingId(null);
     }
@@ -117,6 +118,7 @@ export default function BrowseStudentsPage() {
 
   const handleAcceptFriendRequest = async (requestId: string) => {
     setActionLoadingId(requestId);
+    setErrorNotice(null);
     try {
       const res = await fetch('/api/friends/respond', {
         method: 'POST',
@@ -134,7 +136,7 @@ export default function BrowseStudentsPage() {
         fetchStudents();
       }
     } catch (err: any) {
-      alert(err.message);
+      setErrorNotice(err.message || 'Error accepting friend request');
     } finally {
       setActionLoadingId(null);
     }
@@ -142,6 +144,7 @@ export default function BrowseStudentsPage() {
 
   const handleDeclineFriendRequest = async (requestId: string) => {
     setActionLoadingId(requestId);
+    setErrorNotice(null);
     try {
       const res = await fetch('/api/friends/respond', {
         method: 'POST',
@@ -154,7 +157,7 @@ export default function BrowseStudentsPage() {
       }
       fetchStudents();
     } catch (err: any) {
-      alert(err.message);
+      setErrorNotice(err.message || 'Error declining friend request');
     } finally {
       setActionLoadingId(null);
     }
@@ -162,6 +165,18 @@ export default function BrowseStudentsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+      {errorNotice && (
+        <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between gap-2 animate-fade-in">
+          <span>{errorNotice}</span>
+          <button
+            onClick={() => setErrorNotice(null)}
+            className="p-1 text-slate-400 hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
