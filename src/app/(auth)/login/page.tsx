@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { KeyRound, ArrowRight, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { APP_CONFIG } from '@/lib/config';
+import { GoogleSignInButton } from '@/components/GoogleSignInButton';
+import { OAuthErrorBanner } from '@/components/OAuthErrorBanner';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,7 +25,7 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
 
       const data = await res.json();
@@ -57,12 +59,30 @@ export default function LoginPage() {
       </div>
 
       <div className="glass-card rounded-2xl p-6 sm:p-8 border border-navy-750 shadow-2xl">
+        <Suspense fallback={null}>
+          <OAuthErrorBanner />
+        </Suspense>
+
         {errorMessage && (
           <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2.5 mb-6 animate-fade-in">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{errorMessage}</span>
           </div>
         )}
+
+        {/* Continue with Google */}
+        <GoogleSignInButton label="Continue with Google" />
+
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-navy-750"></div>
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-navy-850 px-3 text-slate-500 font-semibold tracking-wider text-[11px] uppercase">
+              Or continue with email
+            </span>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>

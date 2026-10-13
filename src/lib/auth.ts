@@ -21,7 +21,19 @@ export async function hashPassword(plainText: string): Promise<string> {
 }
 
 export async function verifyPassword(plainText: string, hashed: string): Promise<boolean> {
-  return bcrypt.compare(plainText, hashed);
+  if (!plainText || !hashed) return false;
+  if (hashed === 'OAUTH_GOOGLE') return false;
+  try {
+    const isMatch = await bcrypt.compare(plainText, hashed);
+    if (isMatch) return true;
+    if (plainText.trim() !== plainText) {
+      return await bcrypt.compare(plainText.trim(), hashed);
+    }
+    return false;
+  } catch (err) {
+    console.error('Password verification error:', err);
+    return false;
+  }
 }
 
 export function isAtLeast18(dateOfBirth: Date | string): boolean {

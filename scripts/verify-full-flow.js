@@ -256,7 +256,57 @@ async function run() {
   });
   assert(incomingCallAfterEndRes.status === 200 && !incomingCallAfterEndRes.data.hasIncomingCall, 'Global incoming call banner dismissed automatically after call ended');
 
-  console.log('\n🎉 ALL 10 VERIFICATION PHASES PASSED SUCCESSFULLY!');
+  // 11. Rigorous Email/Password Authentication & Credential Resolution
+  console.log('\n--- 11. Email/Password Authentication & Credential Resolution ---');
+  // Valid student login (case-insensitive & trimmed)
+  const validLoginRes = await request('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email: `  ${studentEmail.toUpperCase()}  `, password: 'StudentPassword@123' }),
+  });
+  assert(validLoginRes.status === 200 && validLoginRes.data.success, 'Valid student credentials logged in successfully with case-insensitivity & whitespace trimming');
+
+  // Incorrect password rejection
+  const wrongPasswordRes = await request('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email: studentEmail, password: 'WrongPassword999!' }),
+  });
+  assert(wrongPasswordRes.status === 401 && !wrongPasswordRes.data.success, 'Incorrect password securely rejected with 401');
+  assert(wrongPasswordRes.data.message.includes('Invalid email or password credentials'), 'Helpful error message returned without leaking private data');
+
+  // Non-existent email rejection
+  const wrongEmailRes = await request('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email: 'nonexistent_student_999@lpu.in', password: 'SomePassword123!' }),
+  });
+  assert(wrongEmailRes.status === 401 && !wrongEmailRes.data.success, 'Non-existent account rejected with 401');
+
+  // 12. Google OAuth Routes & Error States
+  console.log('\n--- 12. Google OAuth Routes & Security Validation ---');
+  // Initiate Google OAuth without credentials configured
+  const googleInitRes = await fetch(`${BASE_URL}/api/auth/google`, { redirect: 'manual' });
+  const initLocation = googleInitRes.headers.get('location') || '';
+  assert(
+    initLocation.includes('/login?error=google_not_configured'),
+    'Unconfigured Google OAuth cleanly redirects to /login?error=google_not_configured'
+  );
+
+  // Test OAuth cancelled callback
+  const googleCancelRes = await fetch(`${BASE_URL}/api/auth/callback/google?error=access_denied`, { redirect: 'manual' });
+  const cancelLocation = googleCancelRes.headers.get('location') || '';
+  assert(
+    cancelLocation.includes('/login?error=cancelled'),
+    'Cancelled Google authorization redirects to /login?error=cancelled'
+  );
+
+  // Test OAuth invalid CSRF state callback
+  const googleStateRes = await fetch(`${BASE_URL}/api/auth/callback/google?code=fake_code&state=fake_state`, { redirect: 'manual' });
+  const stateLocation = googleStateRes.headers.get('location') || '';
+  assert(
+    stateLocation.includes('/login?error=invalid_state'),
+    'Tampered or expired OAuth state redirects to /login?error=invalid_state'
+  );
+
+  console.log('\n🎉 ALL 12 VERIFICATION PHASES PASSED SUCCESSFULLY!');
 }
 
 run().catch((err) => {

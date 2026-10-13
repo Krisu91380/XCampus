@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     const logs = await db.adminAuditLog.findMany();
 
     const populated = [];
-    for (const log of logs) {
+    for (const log of (logs as any[])) {
       const admin = await db.user.findUnique({ where: { id: log.adminId } });
       populated.push({
         ...log,

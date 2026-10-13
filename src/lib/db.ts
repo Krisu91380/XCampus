@@ -139,7 +139,15 @@ class InMemoryStore {
 
   loadFromDisk() {
     try {
-      const dbFile = this.getStoreFilePath();
+      let dbFile = this.getStoreFilePath();
+      // If store file does not exist (e.g. on fresh Vercel serverless container), fall back to bundled prisma/data_store.json
+      if (!fs.existsSync(dbFile)) {
+        const bundledFile = path.join(process.cwd(), 'prisma', 'data_store.json');
+        if (fs.existsSync(bundledFile)) {
+          dbFile = bundledFile;
+        }
+      }
+
       if (fs.existsSync(dbFile)) {
         const raw = fs.readFileSync(dbFile, 'utf-8');
         const parsed = JSON.parse(raw);
@@ -206,12 +214,14 @@ class InMemoryStore {
       });
     });
 
-    // 3. Seed Admin User
-    const adminPasswordHash = bcrypt.hashSync('AdminSecurePassword123!', 10);
+    // 3. Seed Admin User (respects environment variables)
+    const adminEmail = (process.env.ADMIN_INITIAL_EMAIL || 'admin@campusconnect.edu').toLowerCase().trim();
+    const adminPassword = process.env.ADMIN_INITIAL_PASSWORD || 'AdminSecurePassword123!';
+    const adminPasswordHash = bcrypt.hashSync(adminPassword, 10);
     const adminId = 'user-admin-1';
     this.users.set(adminId, {
       id: adminId,
-      email: 'admin@campusconnect.edu',
+      email: adminEmail,
       passwordHash: adminPasswordHash,
       role: 'ADMIN',
       status: 'ACTIVE',
@@ -377,25 +387,23 @@ class InMemoryStore {
   }
 }
 
-const store = global.__campusConnectDb || new InMemoryStore();
-if (process.env.NODE_ENV !== 'production') {
-  global.__campusConnectDb = store;
-}
+const store: InMemoryStore = (globalThis as any).__campusConnectDb || new InMemoryStore();
+(globalThis as any).__campusConnectDb = store;
 
 export const db = {
   store,
 
   user: {
-    findUnique: async ({ where }: { where: { id?: string; email?: string } }) => {
+    findUnique: async ({ where }: { where: { id?: string; email?: string } }): Promise<User | null> => {
       if (where.id) return store.users.get(where.id) || null;
       if (where.email) {
-        return Array.from(store.users.values()).find(
+        return (Array.from(store.users.values()) as User[]).find(
           (u) => u.email.toLowerCase() === where.email!.toLowerCase() && !u.deletedAt
         ) || null;
       }
       return null;
     },
-    findMany: async (args?: { where?: Partial<User> }) => {
+    findMany: async (args?: { where?: Partial<User> }): Promise<User[]> => {
       const all = Array.from(store.users.values()).filter((u) => !u.deletedAt);
       if (!args?.where) return all;
       return all.filter((u) => {
@@ -405,7 +413,7 @@ export const db = {
         return true;
       });
     },
-    create: async ({ data }: { data: Omit<User, 'id' | 'createdAt' | 'updatedAt'> & { id?: string } }) => {
+    create: async ({ data }: { data: Omit<User, 'id' | 'createdAt' | 'updatedAt'> & { id?: string } }): Promise<User> => {
       const id = data.id || `user-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const user: User = {
         id,
@@ -416,7 +424,7 @@ export const db = {
       store.users.set(id, user);
       return user;
     },
-    update: async ({ where, data }: { where: { id: string }; data: Partial<User> }) => {
+    update: async ({ where, data }: { where: { id: string }; data: Partial<User> }): Promise<User> => {
       const existing = store.users.get(where.id);
       if (!existing) throw new Error(`User ${where.id} not found`);
       const updated = { ...existing, ...data, updatedAt: new Date() };
@@ -427,10 +435,10 @@ export const db = {
   },
 
   profile: {
-    findUnique: async ({ where }: { where: { userId: string } }) => {
+    findUnique: async ({ where }: { where: { userId: string } }): Promise<Profile | null> => {
       return store.profiles.get(where.userId) || null;
     },
-    findMany: async (args?: { where?: { isDiscoverable?: boolean; isOnline?: boolean } }) => {
+    findMany: async (args?: { where?: { isDiscoverable?: boolean; isOnline?: boolean } }): Promise<Profile[]> => {
       const all = Array.from(store.profiles.values());
       if (!args?.where) return all;
       return all.filter((p) => {
@@ -474,14 +482,14 @@ export const db = {
   },
 
   university: {
-    findMany: async (args?: { where?: { isActive?: boolean } }) => {
+    findMany: async (args?: { where?: { isActive?: boolean } }): Promise<University[]> => {
       const all = Array.from(store.universities.values());
       if (args?.where?.isActive !== undefined) {
         return all.filter((u) => u.isActive === args.where!.isActive);
       }
       return all;
     },
-    findUnique: async ({ where }: { where: { id?: string; code?: string } }) => {
+    findUnique: async ({ where }: { where: { id?: string; code?: string } }): Promise<University | null> => {
       if (where.id) return store.universities.get(where.id) || null;
       if (where.code) {
         return Array.from(store.universities.values()).find(
@@ -511,7 +519,7 @@ export const db = {
   },
 
   verification: {
-    findMany: async (args?: { where?: { status?: string; userId?: string } }) => {
+    findMany: async (args?: { where?: { status?: string; userId?: string } }): Promise<StudentVerification[]> => {
       const all = Array.from(store.verifications.values());
       if (!args?.where) return all;
       return all.filter((v) => {
@@ -520,7 +528,7 @@ export const db = {
         return true;
       });
     },
-    findUnique: async ({ where }: { where: { id: string } }) => {
+    findUnique: async ({ where }: { where: { id: string } }): Promise<StudentVerification | null> => {
       return store.verifications.get(where.id) || null;
     },
     create: async ({ data }: { data: Omit<StudentVerification, 'id' | 'createdAt' | 'updatedAt'> }) => {
@@ -544,7 +552,7 @@ export const db = {
   },
 
   matchingPreference: {
-    findUnique: async ({ where }: { where: { userId: string } }) => {
+    findUnique: async ({ where }: { where: { userId: string } }): Promise<MatchingPreference | null> => {
       return store.preferences.get(where.userId) || null;
     },
     upsert: async ({
@@ -573,10 +581,10 @@ export const db = {
   },
 
   matchQueue: {
-    findUnique: async ({ where }: { where: { userId: string } }) => {
+    findUnique: async ({ where }: { where: { userId: string } }): Promise<MatchQueueEntry | null> => {
       return store.matchQueue.get(where.userId) || null;
     },
-    findMany: async (args?: { where?: { status?: string } }) => {
+    findMany: async (args?: { where?: { status?: string } }): Promise<MatchQueueEntry[]> => {
       const all = Array.from(store.matchQueue.values());
       if (args?.where?.status) {
         return all.filter((q) => q.status === args.where!.status);
@@ -619,10 +627,10 @@ export const db = {
   },
 
   conversation: {
-    findUnique: async ({ where }: { where: { id: string } }) => {
+    findUnique: async ({ where }: { where: { id: string } }): Promise<Conversation | null> => {
       return store.conversations.get(where.id) || null;
     },
-    findMany: async (args?: { where?: { status?: string } }) => {
+    findMany: async (args?: { where?: { status?: string } }): Promise<Conversation[]> => {
       const all = Array.from(store.conversations.values());
       if (args?.where?.status) {
         return all.filter((c) => c.status === args.where!.status);
@@ -649,7 +657,7 @@ export const db = {
   },
 
   conversationParticipant: {
-    findMany: async ({ where }: { where: { userId?: string; conversationId?: string } }) => {
+    findMany: async ({ where }: { where: { userId?: string; conversationId?: string } }): Promise<ConversationParticipant[]> => {
       const all = Array.from(store.conversationParticipants.values());
       return all.filter((p) => {
         if (where.userId && p.userId !== where.userId) return false;
@@ -657,7 +665,7 @@ export const db = {
         return true;
       });
     },
-    findFirst: async ({ where }: { where: { userId: string; conversationId: string } }) => {
+    findFirst: async ({ where }: { where: { userId: string; conversationId: string } }): Promise<ConversationParticipant | null> => {
       return Array.from(store.conversationParticipants.values()).find(
         (p) => p.userId === where.userId && p.conversationId === where.conversationId
       ) || null;
@@ -689,7 +697,7 @@ export const db = {
   },
 
   message: {
-    findMany: async ({ where, orderBy }: { where: { conversationId: string }; orderBy?: { createdAt: 'asc' | 'desc' } }) => {
+    findMany: async ({ where, orderBy }: { where: { conversationId: string }; orderBy?: { createdAt: 'asc' | 'desc' } }): Promise<Message[]> => {
       const msgs = Array.from(store.messages.values()).filter((m) => m.conversationId === where.conversationId);
       if (orderBy?.createdAt === 'desc') {
         return msgs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -709,7 +717,7 @@ export const db = {
   },
 
   creditPackage: {
-    findMany: async (args?: { where?: { isActive?: boolean } }) => {
+    findMany: async (args?: { where?: { isActive?: boolean } }): Promise<CreditPackage[]> => {
       const all = Array.from(store.creditPackages.values());
       if (args?.where?.isActive !== undefined) {
         return all.filter((p) => p.isActive === args.where!.isActive);
@@ -779,7 +787,7 @@ export const db = {
   },
 
   creditLedger: {
-    findMany: async ({ where, orderBy }: { where: { userId: string }; orderBy?: { createdAt: 'desc' } }) => {
+    findMany: async ({ where, orderBy }: { where: { userId: string }; orderBy?: { createdAt: 'desc' } }): Promise<CreditLedgerEntry[]> => {
       const all = Array.from(store.creditLedgers.values()).filter((l) => l.userId === where.userId);
       return all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     },
@@ -804,7 +812,7 @@ export const db = {
         return false;
       }) || null;
     },
-    findMany: async (args?: { where?: { userId?: string } }) => {
+    findMany: async (args?: { where?: { userId?: string } }): Promise<PaymentOrder[]> => {
       const all = Array.from(store.paymentOrders.values());
       if (args?.where?.userId) {
         return all.filter((o) => o.userId === args.where!.userId);
@@ -832,7 +840,7 @@ export const db = {
   },
 
   paymentTransaction: {
-    findUnique: async ({ where }: { where: { razorpayPaymentId?: string; orderId?: string } }) => {
+    findUnique: async ({ where }: { where: { razorpayPaymentId?: string; orderId?: string } }): Promise<PaymentTransaction | null> => {
       return Array.from(store.paymentTransactions.values()).find((t) => {
         if (where.razorpayPaymentId && t.razorpayPaymentId === where.razorpayPaymentId) return true;
         if (where.orderId && t.orderId === where.orderId) return true;
@@ -852,11 +860,11 @@ export const db = {
   },
 
   block: {
-    findUnique: async ({ where }: { where: { blockerId_blockedId: { blockerId: string; blockedId: string } } }) => {
+    findUnique: async ({ where }: { where: { blockerId_blockedId: { blockerId: string; blockedId: string } } }): Promise<Block | null> => {
       const key = `${where.blockerId_blockedId.blockerId}_${where.blockerId_blockedId.blockedId}`;
       return store.blocks.get(key) || null;
     },
-    findMany: async ({ where }: { where: { blockerId?: string; blockedId?: string } }) => {
+    findMany: async ({ where }: { where: { blockerId?: string; blockedId?: string } }): Promise<Block[]> => {
       const all = Array.from(store.blocks.values());
       return all.filter((b) => {
         if (where.blockerId && b.blockerId !== where.blockerId) return false;
@@ -881,7 +889,7 @@ export const db = {
   },
 
   abuseReport: {
-    findMany: async (args?: { where?: { status?: string } }) => {
+    findMany: async (args?: { where?: { status?: string } }): Promise<AbuseReport[]> => {
       const all = Array.from(store.abuseReports.values());
       if (args?.where?.status) {
         return all.filter((r) => r.status === args.where!.status);
@@ -909,7 +917,7 @@ export const db = {
   },
 
   adminAuditLog: {
-    findMany: async () => {
+    findMany: async (): Promise<AdminAuditLog[]> => {
       return Array.from(store.auditLogs.values()).sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );

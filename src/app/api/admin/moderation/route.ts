@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
     const reports = await db.abuseReport.findMany();
 
     const populated = [];
-    for (const r of reports) {
+    for (const r of (reports as any[])) {
       const reporter = await db.profile.findUnique({ where: { userId: r.reporterId } });
       const reportedUser = await db.user.findUnique({ where: { id: r.reportedUserId } });
       const reportedProfile = await db.profile.findUnique({ where: { userId: r.reportedUserId } });
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
     const users = await db.user.findMany();
     const userProfiles = [];
-    for (const u of users) {
+    for (const u of (users as any[])) {
       const p = await db.profile.findUnique({ where: { userId: u.id } });
       userProfiles.push({
         id: u.id,

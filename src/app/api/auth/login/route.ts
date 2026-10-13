@@ -16,11 +16,12 @@ export async function POST(req: NextRequest) {
     }
 
     const { email, password } = validated.data;
-    const user = await db.user.findUnique({ where: { email } });
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await db.user.findUnique({ where: { email: normalizedEmail } });
 
     if (!user) {
       return NextResponse.json(
-        { success: false, message: 'Invalid email or password credentials.' },
+        { success: false, message: 'Invalid email or password credentials. Please verify your details or create an account.' },
         { status: 401 }
       );
     }
@@ -32,10 +33,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (user.passwordHash === 'OAUTH_GOOGLE') {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'This account was created with Google Sign-In. Please sign in using the "Continue with Google" button above.',
+        },
+        { status: 400 }
+      );
+    }
+
     const isValid = await verifyPassword(password, user.passwordHash);
     if (!isValid) {
       return NextResponse.json(
-        { success: false, message: 'Invalid email or password credentials.' },
+        { success: false, message: 'Invalid email or password credentials. Please check your password and try again.' },
         { status: 401 }
       );
     }

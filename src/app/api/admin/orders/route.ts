@@ -13,10 +13,10 @@ export async function GET(req: NextRequest) {
     const users = await db.user.findMany();
     const packages = await db.creditPackage.findMany();
 
-    const userMap = new Map(users.map((u) => [u.id, u]));
-    const pkgMap = new Map(packages.map((p) => [p.id, p]));
+    const userMap = new Map((users as any[]).map((u) => [u.id, u]));
+    const pkgMap = new Map((packages as any[]).map((p) => [p.id, p]));
 
-    const enrichedOrders = orders.map((o) => {
+    const enrichedOrders = (orders as any[]).map((o) => {
       const user = userMap.get(o.userId);
       const pkg = pkgMap.get(o.packageId);
       return {
