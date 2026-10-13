@@ -352,42 +352,42 @@
       "pkg-1",
       {
         "id": "pkg-1",
-        "name": "Single Connect",
-        "credits": 1,
-        "priceInInr": 9,
-        "description": "1 Conversation credit. Perfect for a quick chat.",
+        "name": "Campus Explorer",
+        "credits": 5,
+        "priceInInr": 29,
+        "description": "5 Conversation credits. Great starter pack for new connections.",
         "isPopular": false,
         "isActive": true,
         "createdAt": "2026-10-13T11:51:06.441Z",
-        "updatedAt": "2026-10-13T12:25:27.946Z"
+        "updatedAt": "2026-10-13T12:58:25.855Z"
       }
     ],
     [
       "pkg-2",
       {
         "id": "pkg-2",
-        "name": "Campus Explorer",
-        "credits": 5,
-        "priceInInr": 29,
-        "description": "5 Conversation credits. Best value for active students (₹5.8/chat).",
+        "name": "Semester Connector",
+        "credits": 15,
+        "priceInInr": 79,
+        "description": "15 Conversation credits. Best value for active students (₹5.2/chat).",
         "isPopular": true,
         "isActive": true,
         "createdAt": "2026-10-13T11:51:06.442Z",
-        "updatedAt": "2026-10-13T12:25:27.953Z"
+        "updatedAt": "2026-10-13T12:58:25.864Z"
       }
     ],
     [
       "pkg-3",
       {
         "id": "pkg-3",
-        "name": "Semester Pass",
-        "credits": 15,
-        "priceInInr": 69,
-        "description": "15 Conversation credits. Maximum value across campus networks (₹4.6/chat).",
+        "name": "Campus Ultimate",
+        "credits": 35,
+        "priceInInr": 149,
+        "description": "35 Conversation credits. Maximum value across campus networks (₹4.2/chat).",
         "isPopular": false,
         "isActive": true,
         "createdAt": "2026-10-13T11:51:06.444Z",
-        "updatedAt": "2026-10-13T12:25:27.953Z"
+        "updatedAt": "2026-10-13T12:58:25.864Z"
       }
     ]
   ],

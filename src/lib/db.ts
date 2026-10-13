@@ -20,6 +20,8 @@ import {
   Block,
   AbuseReport,
   AdminAuditLog,
+  FriendRequest,
+  FriendRequestStatus,
 } from '@/types';
 
 // Global singleton database store with disk persistence across hot reloads & server restarts
@@ -46,6 +48,7 @@ class InMemoryStore {
   blocks: Map<string, Block> = new Map();
   abuseReports: Map<string, AbuseReport> = new Map();
   auditLogs: Map<string, AdminAuditLog> = new Map();
+  friendRequests: Map<string, FriendRequest> = new Map();
 
   initialized = false;
   saveTimeout: NodeJS.Timeout | null = null;
@@ -86,6 +89,7 @@ class InMemoryStore {
         blocks: Array.from(this.blocks.entries()),
         abuseReports: Array.from(this.abuseReports.entries()),
         auditLogs: Array.from(this.auditLogs.entries()),
+        friendRequests: Array.from(this.friendRequests.entries()),
       };
       const tmpFile = `${dbFile}.${process.pid}.${Date.now()}.tmp`;
       fs.writeFileSync(tmpFile, JSON.stringify(serialized, null, 2), 'utf-8');
@@ -143,6 +147,7 @@ class InMemoryStore {
     this.hookMapPersistence(this.blocks);
     this.hookMapPersistence(this.abuseReports);
     this.hookMapPersistence(this.auditLogs);
+    this.hookMapPersistence(this.friendRequests);
   }
 
   loadFromDisk() {
@@ -177,6 +182,7 @@ class InMemoryStore {
           if (parsed.blocks) this.blocks = new Map(parsed.blocks);
           if (parsed.abuseReports) this.abuseReports = new Map(parsed.abuseReports);
           if (parsed.auditLogs) this.auditLogs = new Map(parsed.auditLogs);
+          if (parsed.friendRequests) this.friendRequests = new Map(parsed.friendRequests);
         }
       }
     } catch (err) {
@@ -877,6 +883,18 @@ export const db = {
       const key = `${where.blockerId_blockedId.blockerId}_${where.blockerId_blockedId.blockedId}`;
       return store.blocks.get(key) || null;
     },
+    findFirst: async ({ where }: { where: { blockerId?: string; blockedId?: string; blockerId_blockedId?: { blockerId: string; blockedId: string } } }): Promise<Block | null> => {
+      if (where.blockerId_blockedId) {
+        const key = `${where.blockerId_blockedId.blockerId}_${where.blockerId_blockedId.blockedId}`;
+        return store.blocks.get(key) || null;
+      }
+      const all = Array.from(store.blocks.values());
+      return all.find((b) => {
+        if (where.blockerId && b.blockerId !== where.blockerId) return false;
+        if (where.blockedId && b.blockedId !== where.blockedId) return false;
+        return true;
+      }) || null;
+    },
     findMany: async ({ where }: { where: { blockerId?: string; blockedId?: string } }): Promise<Block[]> => {
       const all = Array.from(store.blocks.values());
       return all.filter((b) => {
@@ -944,6 +962,52 @@ export const db = {
       };
       store.auditLogs.set(id, log);
       return log;
+    },
+  },
+
+  friendRequest: {
+    findUnique: async ({ where }: { where: { id: string } }): Promise<FriendRequest | null> => {
+      return store.friendRequests.get(where.id) || null;
+    },
+    findFirst: async ({ where }: { where: { senderId?: string; receiverId?: string; status?: FriendRequestStatus } }): Promise<FriendRequest | null> => {
+      const all = Array.from(store.friendRequests.values());
+      return all.find((r) => {
+        if (where.senderId && r.senderId !== where.senderId) return false;
+        if (where.receiverId && r.receiverId !== where.receiverId) return false;
+        if (where.status && r.status !== where.status) return false;
+        return true;
+      }) || null;
+    },
+    findMany: async (args?: { where?: { senderId?: string; receiverId?: string; status?: FriendRequestStatus } }): Promise<FriendRequest[]> => {
+      const all = Array.from(store.friendRequests.values());
+      if (!args?.where) return all;
+      return all.filter((r) => {
+        if (args.where?.senderId && r.senderId !== args.where.senderId) return false;
+        if (args.where?.receiverId && r.receiverId !== args.where.receiverId) return false;
+        if (args.where?.status && r.status !== args.where.status) return false;
+        return true;
+      });
+    },
+    create: async ({ data }: { data: Omit<FriendRequest, 'id' | 'createdAt' | 'updatedAt'> }) => {
+      const id = `freq-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const req: FriendRequest = {
+        id,
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      store.friendRequests.set(id, req);
+      return req;
+    },
+    update: async ({ where, data }: { where: { id: string }; data: Partial<FriendRequest> }) => {
+      const existing = store.friendRequests.get(where.id);
+      if (!existing) throw new Error(`Friend request ${where.id} not found`);
+      const updated = { ...existing, ...data, updatedAt: new Date() };
+      store.friendRequests.set(where.id, updated);
+      return updated;
+    },
+    delete: async ({ where }: { where: { id: string } }) => {
+      return store.friendRequests.delete(where.id);
     },
   },
 };

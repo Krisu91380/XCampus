@@ -24,6 +24,7 @@ export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [pendingFriendRequestsCount, setPendingFriendRequestsCount] = useState<number>(0);
 
   const fetchAuth = async () => {
     try {
@@ -31,11 +32,25 @@ export default function Navbar() {
       const data = await res.json();
       if (data.authenticated) {
         setUser(data.user);
+        // Fetch friend requests count
+        try {
+          const friendRes = await fetch('/api/friends');
+          const friendData = await friendRes.json();
+          if (friendData.success) {
+            setPendingFriendRequestsCount(
+              friendData.incomingCount || (friendData.incoming ? friendData.incoming.length : 0)
+            );
+          }
+        } catch {
+          //
+        }
       } else {
         setUser(null);
+        setPendingFriendRequestsCount(0);
       }
     } catch {
       setUser(null);
+      setPendingFriendRequestsCount(0);
     } finally {
       setLoading(false);
     }
@@ -43,11 +58,14 @@ export default function Navbar() {
 
   useEffect(() => {
     fetchAuth();
+    const interval = setInterval(fetchAuth, 10000);
+    return () => clearInterval(interval);
   }, [pathname]);
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     setUser(null);
+    setPendingFriendRequestsCount(0);
     router.push('/login');
     router.refresh();
   };
@@ -126,7 +144,12 @@ export default function Navbar() {
                 }`}
               >
                 <MessageSquare className="w-4 h-4" />
-                Messages
+                <span>Messages</span>
+                {pendingFriendRequestsCount > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-electric-500 text-[10px] text-white font-mono font-bold animate-pulse">
+                    {pendingFriendRequestsCount}
+                  </span>
+                )}
               </Link>
 
               <Link
@@ -257,9 +280,14 @@ export default function Navbar() {
               <Link
                 href="/messages"
                 onClick={() => setMobileMenuOpen(false)}
-                className="block py-2 text-electric-400 font-medium"
+                className="flex items-center justify-between py-2 text-electric-400 font-medium"
               >
-                💬 Messages & Chats
+                <span>💬 Messages & Chats</span>
+                {pendingFriendRequestsCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-electric-500 text-[10px] text-white font-mono font-bold">
+                    {pendingFriendRequestsCount} new
+                  </span>
+                )}
               </Link>
               <Link
                 href="/match"

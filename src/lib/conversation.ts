@@ -151,3 +151,52 @@ export async function ensureConversationAndParticipants(
     console.warn('ensureConversationAndParticipants warning:', err);
   }
 }
+
+/**
+ * Checks if communication (messages / calls) is permitted between two students:
+ * Permitted if they have an ACCEPTED friend request OR were mutually matched.
+ */
+export async function isConnectionPermitted(
+  user1Id: string,
+  user2Id: string,
+  conversationId: string
+): Promise<{ permitted: boolean; reason?: string }> {
+  // 1. Check if users are accepted friends
+  const friendReq = await db.friendRequest.findFirst({
+    where: {
+      senderId: user1Id,
+      receiverId: user2Id,
+      status: 'ACCEPTED',
+    },
+  }) || await db.friendRequest.findFirst({
+    where: {
+      senderId: user2Id,
+      receiverId: user1Id,
+      status: 'ACCEPTED',
+    },
+  });
+
+  if (friendReq) {
+    return { permitted: true };
+  }
+
+  // 2. Check if mutual conversation was created via matchmaking
+  const conv = await db.conversation.findUnique({ where: { id: conversationId } });
+  if (conv && conv.status === 'ACTIVE') {
+    const p1 = await db.conversationParticipant.findFirst({
+      where: { conversationId, userId: user1Id },
+    });
+    const p2 = await db.conversationParticipant.findFirst({
+      where: { conversationId, userId: user2Id },
+    });
+    if (p1 && p2) {
+      return { permitted: true };
+    }
+  }
+
+  return {
+    permitted: false,
+    reason: 'A friend request must be accepted before starting a private conversation or call.',
+  };
+}
+

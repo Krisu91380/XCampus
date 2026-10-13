@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { KeyRound, ArrowRight, AlertCircle, Loader2, Eye, EyeOff, User, ShieldCheck } from 'lucide-react';
+import { KeyRound, ArrowRight, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { APP_CONFIG } from '@/lib/config';
 
 export default function LoginPage() {
@@ -42,12 +42,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fillDemoAccount = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setErrorMessage(null);
   };
 
   return (
@@ -125,60 +119,6 @@ export default function LoginPage() {
             )}
           </button>
         </form>
-
-        {/* Quick Demo Test Accounts with Fill Buttons */}
-        <div className="mt-6 pt-6 border-t border-navy-750">
-          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5 flex items-center justify-between">
-            <span>Quick Demo Accounts</span>
-            <span className="text-[10px] text-electric-400 font-normal">Click Fill to auto-test</span>
-          </p>
-
-          <div className="space-y-2">
-            <div className="p-2.5 rounded-xl bg-navy-900/90 border border-navy-750 hover:border-navy-700 flex items-center justify-between transition-colors">
-              <div className="min-w-0 pr-2">
-                <div className="flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-brand-purple shrink-0" />
-                  <span className="font-semibold text-white text-xs">Aarav Sharma</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-brand-purple/20 text-brand-purple font-mono">
-                    Student (LPU)
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-400 font-mono truncate mt-0.5">
-                  aarav.sharma@lpu.in
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => fillDemoAccount('aarav.sharma@lpu.in', 'StudentPass123!')}
-                className="px-3 py-1.5 rounded-lg bg-electric-500/20 hover:bg-electric-500/30 text-electric-400 font-bold text-xs transition-colors border border-electric-500/30 shrink-0 cursor-pointer"
-              >
-                Fill
-              </button>
-            </div>
-
-            <div className="p-2.5 rounded-xl bg-navy-900/90 border border-navy-750 hover:border-navy-700 flex items-center justify-between transition-colors">
-              <div className="min-w-0 pr-2">
-                <div className="flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-pink-400 shrink-0" />
-                  <span className="font-semibold text-white text-xs">Priya Patel</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-pink-500/20 text-pink-400 font-mono">
-                    Student (LPU)
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-400 font-mono truncate mt-0.5">
-                  priya.patel@lpu.in
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => fillDemoAccount('priya.patel@lpu.in', 'StudentPass123!')}
-                className="px-3 py-1.5 rounded-lg bg-electric-500/20 hover:bg-electric-500/30 text-electric-400 font-bold text-xs transition-colors border border-electric-500/30 shrink-0 cursor-pointer"
-              >
-                Fill
-              </button>
-            </div>
-          </div>
-        </div>
 
         <div className="mt-6 text-center text-xs text-slate-400">
           New student?{' '}

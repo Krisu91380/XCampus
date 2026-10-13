@@ -13,14 +13,24 @@ import {
   Coins,
   Loader2,
   Sparkles,
+  UserPlus,
+  Clock,
+  Check,
+  X,
+  UserCheck,
 } from 'lucide-react';
 
 export default function BrowseStudentsPage() {
   const router = useRouter();
   const [students, setStudents] = useState<any[]>([]);
   const [universities, setUniversities] = useState<any[]>([]);
+  const [friendsData, setFriendsData] = useState<{
+    incoming: any[];
+    outgoing: any[];
+    friends: any[];
+  }>({ incoming: [], outgoing: [], friends: [] });
   const [loading, setLoading] = useState(true);
-  const [startingChatId, setStartingChatId] = useState<string | null>(null);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,9 +44,10 @@ export default function BrowseStudentsPage() {
       if (selectedUni) params.append('universityId', selectedUni);
       if (selectedGender !== 'ALL') params.append('gender', selectedGender);
 
-      const [studRes, uniRes] = await Promise.all([
+      const [studRes, uniRes, friRes] = await Promise.all([
         fetch(`/api/browse?${params.toString()}`),
         fetch('/api/universities'),
+        fetch('/api/friends').catch(() => ({ json: () => ({ success: false }) })),
       ]);
 
       const studData = await studRes.json();
@@ -47,6 +58,15 @@ export default function BrowseStudentsPage() {
       const uniData = await uniRes.json();
       if (uniData.success) {
         setUniversities(uniData.universities);
+      }
+
+      const friData = await (friRes as any).json();
+      if (friData.success) {
+        setFriendsData({
+          incoming: friData.incoming || [],
+          outgoing: friData.outgoing || [],
+          friends: friData.friends || [],
+        });
       }
     } catch {
       //
@@ -65,31 +85,78 @@ export default function BrowseStudentsPage() {
     fetchStudents();
   };
 
-  const handleStartChat = async (targetUserId: string) => {
-    setStartingChatId(targetUserId);
-
+  const handleSendFriendRequest = async (targetUserId: string) => {
+    setActionLoadingId(targetUserId);
     try {
-      const res = await fetch('/api/browse', {
+      const res = await fetch('/api/friends/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ targetUserId }),
       });
-
       const data = await res.json();
       if (!res.ok || !data.success) {
-        if (data.code === 'INSUFFICIENT_CREDITS') {
-          alert('You need at least 1 chat credit. Please get a chat pass from the pricing page.');
-          router.push('/pricing');
-          return;
-        }
-        throw new Error(data.message || 'Could not start chat');
+        throw new Error(data.message || 'Failed to send friend request');
       }
 
-      router.push(`/chat/${data.conversationId}`);
+      // Refresh friends state
+      const friRes = await fetch('/api/friends');
+      const friData = await friRes.json();
+      if (friData.success) {
+        setFriendsData({
+          incoming: friData.incoming || [],
+          outgoing: friData.outgoing || [],
+          friends: friData.friends || [],
+        });
+      }
     } catch (err: any) {
       alert(err.message);
     } finally {
-      setStartingChatId(null);
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleAcceptFriendRequest = async (requestId: string) => {
+    setActionLoadingId(requestId);
+    try {
+      const res = await fetch('/api/friends/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, action: 'ACCEPT' }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to accept request');
+      }
+
+      if (data.conversationId) {
+        router.push(`/chat/${data.conversationId}`);
+      } else {
+        fetchStudents();
+      }
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleDeclineFriendRequest = async (requestId: string) => {
+    setActionLoadingId(requestId);
+    try {
+      const res = await fetch('/api/friends/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, action: 'DECLINE' }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to decline request');
+      }
+      fetchStudents();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
@@ -267,24 +334,76 @@ export default function BrowseStudentsPage() {
                 )}
               </div>
 
-              {/* Action Button */}
-              <button
-                onClick={() => handleStartChat(st.id)}
-                disabled={startingChatId === st.id}
-                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white text-xs font-bold hover:opacity-95 disabled:opacity-50 transition-opacity flex items-center justify-center gap-1.5 shadow-md shadow-brand-purple/20"
-              >
-                {startingChatId === st.id ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Connecting...</span>
-                  </>
-                ) : (
-                  <>
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>Start 1-on-1 Chat (1 Credit)</span>
-                  </>
-                )}
-              </button>
+              {/* Action Button: Friend Request Workflow */}
+              {(() => {
+                const isFriend = friendsData.friends.find((f: any) => f.partner?.userId === st.id);
+                if (isFriend) {
+                  return (
+                    <Link
+                      href={`/chat/${isFriend.conversationId}`}
+                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 hover:opacity-95 transition-all"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>Open Chat &amp; Call</span>
+                    </Link>
+                  );
+                }
+
+                const incomingReq = friendsData.incoming.find((i: any) => i.sender?.userId === st.id);
+                if (incomingReq) {
+                  return (
+                    <div className="flex items-center gap-2 w-full">
+                      <button
+                        onClick={() => handleAcceptFriendRequest(incomingReq.id)}
+                        disabled={actionLoadingId === incomingReq.id}
+                        className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1 shadow-md shadow-emerald-600/20 cursor-pointer"
+                      >
+                        {actionLoadingId === incomingReq.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Check className="w-3.5 h-3.5" />
+                        )}
+                        <span>Accept</span>
+                      </button>
+                      <button
+                        onClick={() => handleDeclineFriendRequest(incomingReq.id)}
+                        disabled={actionLoadingId === incomingReq.id}
+                        className="px-3 py-2 rounded-xl bg-navy-800 hover:bg-navy-750 text-slate-400 hover:text-white text-xs font-bold cursor-pointer"
+                        title="Decline request"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                }
+
+                const outgoingReq = friendsData.outgoing.find(
+                  (o: any) => o.receiver?.userId === st.id && o.status === 'PENDING'
+                );
+                if (outgoingReq) {
+                  return (
+                    <div className="w-full py-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold flex items-center justify-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Request Sent (Pending)</span>
+                    </div>
+                  );
+                }
+
+                return (
+                  <button
+                    onClick={() => handleSendFriendRequest(st.id)}
+                    disabled={actionLoadingId === st.id}
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white text-xs font-bold hover:opacity-95 disabled:opacity-50 transition-opacity flex items-center justify-center gap-1.5 shadow-md shadow-brand-purple/20 cursor-pointer"
+                  >
+                    {actionLoadingId === st.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <UserPlus className="w-3.5 h-3.5" />
+                    )}
+                    <span>Add Friend</span>
+                  </button>
+                );
+              })()}
             </div>
           ))}
         </div>

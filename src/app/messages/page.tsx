@@ -17,6 +17,9 @@ import {
   User,
   Plus,
   Compass,
+  UserPlus,
+  Check,
+  X,
 } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import VideoCallModal from '@/components/VideoCallModal';
@@ -30,6 +33,14 @@ export default function MessagesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
   const [loadingList, setLoadingList] = useState(true);
+
+  // Friend Requests state
+  const [friendsData, setFriendsData] = useState<{
+    incoming: any[];
+    outgoing: any[];
+    friends: any[];
+  }>({ incoming: [], outgoing: [], friends: [] });
+  const [friendActionLoadingId, setFriendActionLoadingId] = useState<string | null>(null);
 
   // Active chat state
   const [messages, setMessages] = useState<any[]>([]);
@@ -70,9 +81,30 @@ export default function MessagesPage() {
     }
   };
 
+  // 1b. Fetch Friends & Pending Friend Requests
+  const fetchFriends = async () => {
+    try {
+      const res = await fetch('/api/friends');
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setFriendsData({
+          incoming: data.incoming || [],
+          outgoing: data.outgoing || [],
+          friends: data.friends || [],
+        });
+      }
+    } catch {
+      //
+    }
+  };
+
   useEffect(() => {
     fetchConversations();
-    const interval = setInterval(fetchConversations, 5000);
+    fetchFriends();
+    const interval = setInterval(() => {
+      fetchConversations();
+      fetchFriends();
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -204,6 +236,49 @@ export default function MessagesPage() {
     }
   };
 
+  const handleAcceptFriendRequest = async (requestId: string) => {
+    setFriendActionLoadingId(requestId);
+    try {
+      const res = await fetch('/api/friends/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, action: 'ACCEPT' }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to accept request');
+      }
+      await Promise.all([fetchFriends(), fetchConversations()]);
+      if (data.conversationId) {
+        handleSelectConversation(data.conversationId);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error accepting friend request');
+    } finally {
+      setFriendActionLoadingId(null);
+    }
+  };
+
+  const handleDeclineFriendRequest = async (requestId: string) => {
+    setFriendActionLoadingId(requestId);
+    try {
+      const res = await fetch('/api/friends/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, action: 'DECLINE' }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to decline request');
+      }
+      await fetchFriends();
+    } catch (err: any) {
+      alert(err.message || 'Error declining friend request');
+    } finally {
+      setFriendActionLoadingId(null);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-4 sm:py-6 w-full flex-1 flex flex-col h-[calc(100vh-4.5rem)]">
       <div className="glass-card rounded-3xl border border-navy-750 shadow-2xl flex-1 flex overflow-hidden">
@@ -247,6 +322,81 @@ export default function MessagesPage() {
               />
             </div>
           </div>
+
+          {/* Pending Friend Requests Section */}
+          {friendsData.incoming.length > 0 && (
+            <div className="p-3 bg-gradient-to-r from-brand-purple/20 via-navy-900 to-electric-500/15 border-b border-navy-750 space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-white">
+                <span className="flex items-center gap-1.5 text-electric-300">
+                  <UserPlus className="w-3.5 h-3.5 text-electric-400" />
+                  <span>Friend Requests</span>
+                </span>
+                <span className="px-1.5 py-0.5 rounded-full bg-electric-500 text-[10px] text-white font-mono font-bold animate-pulse">
+                  {friendsData.incoming.length}
+                </span>
+              </div>
+
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {friendsData.incoming.map((req) => (
+                  <div
+                    key={req.id}
+                    className="p-2.5 rounded-xl bg-navy-950/90 border border-navy-750 flex items-center justify-between gap-2 shadow-sm"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      {req.fromUser?.avatarUrl ? (
+                        <img
+                          src={req.fromUser.avatarUrl}
+                          alt={req.fromUser.displayName}
+                          className="w-8 h-8 rounded-full object-cover border border-navy-700 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                          {req.fromUser?.displayName?.[0] || 'S'}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-white truncate flex items-center gap-1">
+                          <span>{req.fromUser?.displayName || 'Student'}</span>
+                          {req.fromUser?.isVerified && (
+                            <ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0" />
+                          )}
+                        </p>
+                        <p className="text-[10px] text-slate-400 truncate">
+                          {req.fromUser?.universityName || req.fromUser?.course || 'Campus Peer'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={() => handleAcceptFriendRequest(req.id)}
+                        disabled={friendActionLoadingId === req.id}
+                        className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 shadow disabled:opacity-50 transition-colors"
+                        title="Accept and start chatting"
+                      >
+                        {friendActionLoadingId === req.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <>
+                            <Check className="w-3 h-3" />
+                            <span>Accept</span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleDeclineFriendRequest(req.id)}
+                        disabled={friendActionLoadingId === req.id}
+                        className="p-1 rounded-lg bg-navy-800 hover:bg-rose-950/50 hover:text-rose-400 text-slate-400 text-xs border border-navy-700 disabled:opacity-50 transition-colors"
+                        title="Decline request"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Conversation List Scroll Area */}
           <div className="flex-1 overflow-y-auto divide-y divide-navy-800/40">

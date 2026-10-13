@@ -234,3 +234,14 @@ export interface AuthenticatedUserSession {
   universityId?: string | null;
   displayName: string;
 }
+
+export type FriendRequestStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED';
+
+export interface FriendRequest {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  status: FriendRequestStatus;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}

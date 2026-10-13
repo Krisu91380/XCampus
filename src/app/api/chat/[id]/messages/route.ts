@@ -4,7 +4,7 @@ import { sendMessageSchema } from '@/validators/chat';
 import { db } from '@/lib/db';
 import { broadcastMessage } from '@/lib/events';
 import { APP_CONFIG } from '@/lib/config';
-import { verifyAndResolveParticipants } from '@/lib/conversation';
+import { verifyAndResolveParticipants, isConnectionPermitted } from '@/lib/conversation';
 
 // In-memory rate limiting map: userId -> lastMessageTimestamp
 const userMessageRateMap = new Map<string, number>();
@@ -22,6 +22,15 @@ export async function GET(
     if (!verified) {
       return NextResponse.json(
         { success: false, message: 'Access denied. You are not a participant in this conversation.' },
+        { status: 403 }
+      );
+    }
+
+    // Verify friendship or matchmaking permission
+    const perm = await isConnectionPermitted(session.userId, verified.partnerId, conversationId);
+    if (!perm.permitted) {
+      return NextResponse.json(
+        { success: false, message: perm.reason || 'Friend request must be accepted first.' },
         { status: 403 }
       );
     }
@@ -111,6 +120,15 @@ export async function POST(
     if (!verified) {
       return NextResponse.json(
         { success: false, message: 'Access denied. You are not a participant in this conversation.' },
+        { status: 403 }
+      );
+    }
+
+    // Verify friendship or matchmaking permission
+    const perm = await isConnectionPermitted(session.userId, verified.partnerId, conversationId);
+    if (!perm.permitted) {
+      return NextResponse.json(
+        { success: false, message: perm.reason || 'Friend request must be accepted first.' },
         { status: 403 }
       );
     }

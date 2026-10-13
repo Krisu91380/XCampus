@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { verifyAndResolveParticipants } from '@/lib/conversation';
+import { verifyAndResolveParticipants, isConnectionPermitted } from '@/lib/conversation';
 import { pushSignal, getSignalsForUser } from '@/lib/signaling';
 
 export async function POST(
@@ -19,14 +19,23 @@ export async function POST(
       );
     }
 
+    const partnerId = verified.partnerId;
+
+    // Verify friendship or matchmaking permission
+    const perm = await isConnectionPermitted(session.userId, partnerId, conversationId);
+    if (!perm.permitted) {
+      return NextResponse.json(
+        { success: false, message: perm.reason || 'Friend request must be accepted before calling.' },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const { type, payload } = body;
 
     if (!type) {
       return NextResponse.json({ success: false, message: 'Signal type is required' }, { status: 400 });
     }
-
-    const partnerId = verified.partnerId;
 
     if (type === 'call-end' || type === 'call-reject') {
       const signal = pushSignal({
