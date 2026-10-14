@@ -5,6 +5,9 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import GlobalIncomingCallBanner from '@/components/GlobalIncomingCallBanner';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { ChatProvider } from '@/context/ChatContext';
+import GlobalFloatingChat from '@/components/GlobalFloatingChat';
+import MobileBottomNav from '@/components/MobileBottomNav';
 
 export const metadata: Metadata = {
   title: `${APP_CONFIG.name} — ${APP_CONFIG.tagline}`,
@@ -36,10 +39,14 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen flex flex-col bg-slate-50 text-slate-900 dark:bg-navy-950 dark:text-slate-100 antialiased selection:bg-brand-purple/30 selection:text-white transition-colors duration-150">
         <ThemeProvider>
-          <GlobalIncomingCallBanner />
-          <Navbar />
-          <main className="flex-1 flex flex-col min-h-0">{children}</main>
-          <Footer />
+          <ChatProvider>
+            <GlobalIncomingCallBanner />
+            <Navbar />
+            <main className="flex-1 flex flex-col min-h-0 pb-16 md:pb-0">{children}</main>
+            <Footer />
+            <GlobalFloatingChat />
+            <MobileBottomNav />
+          </ChatProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -25,13 +25,15 @@ import {
   Trash2,
   MoreVertical,
   AlertCircle,
+  Minus,
 } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import VideoCallModal from '@/components/VideoCallModal';
-import { ThemeToggle } from '@/components/ThemeProvider';
+import { useChat } from '@/context/ChatContext';
 
 export default function MessagesPage() {
   const router = useRouter();
+  const { minimizeChat } = useChat();
 
   // Conversations State
   const [conversations, setConversations] = useState<any[]>([]);
@@ -39,6 +41,18 @@ export default function MessagesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
   const [loadingList, setLoadingList] = useState(true);
+
+  // Notify MobileBottomNav when mobile chat is opened/closed
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cc_mobile_chat_open', { detail: { isOpen: !!selectedConvId } }));
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('cc_mobile_chat_open', { detail: { isOpen: false } }));
+      }
+    };
+  }, [selectedConvId]);
 
   // Friend Requests state
   const [friendsData, setFriendsData] = useState<{
@@ -728,31 +742,56 @@ export default function MessagesPage() {
   const handleDeleteChat = async (convId?: string) => {
     const idToDelete = convId || selectedConvId;
     if (!idToDelete) return;
+
+    const convToDelete = conversations.find((c) => c.id === idToDelete);
+    const partnerName = convToDelete?.partner?.displayName || chatPartner?.displayName || 'this student';
+
     if (
       !confirm(
-        'Are you sure you want to delete this chat? The conversation will be removed from your list, but your friend can still message you.'
+        `Are you sure you want to delete this conversation with ${partnerName}? The conversation will be removed from your inbox. Your copy of the message history will be hidden.`
       )
     ) {
       return;
     }
 
+    // 1. Immediate optimistic UI update (0ms delay)
+    const previousConversations = [...conversations];
+    const previousFiltered = [...filteredConversations];
+    setConversations((prev) => prev.filter((c) => c.id !== idToDelete));
+    setFilteredConversations((prev) => prev.filter((c) => c.id !== idToDelete));
+    setActiveMenuOpen(false);
+    setOpenItemMenuId(null);
+
+    if (selectedConvId === idToDelete) {
+      setSelectedConvId(null);
+      setChatPartner(null);
+      window.dispatchEvent(new CustomEvent('cc_mobile_chat_open', { detail: { isOpen: false } }));
+    }
+
+    // Clean up local storage caches
+    try {
+      localStorage.removeItem(`campusconnect_cache_conv_${idToDelete}`);
+      const cached = localStorage.getItem('campusconnect_cached_conversations');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        const filtered = parsed.filter((c: any) => c.id !== idToDelete);
+        localStorage.setItem('campusconnect_cached_conversations', JSON.stringify(filtered));
+      }
+    } catch {}
+
+    // 2. Persist to PostgreSQL via delete API in background
     try {
       const res = await fetch(`/api/chat/${idToDelete}/delete`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Failed to delete chat');
-      }
-
-      setActiveMenuOpen(false);
-      setOpenItemMenuId(null);
-      if (selectedConvId === idToDelete) {
-        setSelectedConvId(null);
-        setChatPartner(null);
+        throw new Error(data.message || 'Failed to delete conversation');
       }
       showToast('Conversation deleted.');
-      fetchConversations();
     } catch (err: any) {
-      alert(err.message);
+      // Restore previous state if database operation fails
+      setConversations(previousConversations);
+      setFilteredConversations(previousFiltered);
+      showToast(err.message || 'Failed to delete conversation. Please try again.');
     }
   };
 
@@ -831,7 +870,6 @@ export default function MessagesPage() {
               </div>
 
               <div className="flex items-center gap-1.5">
-                <ThemeToggle className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 border-slate-200 dark:border-navy-700" />
                 <Link
                   href="/match"
                   className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white text-xs font-semibold flex items-center gap-1 shadow-xs"
@@ -1102,10 +1140,10 @@ export default function MessagesPage() {
 
                           <button
                             onClick={() => handleDeleteChat(conv.id)}
-                            className="w-full px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-navy-800 flex items-center gap-2 cursor-pointer text-slate-600 dark:text-slate-400"
+                            className="w-full px-3.5 py-2 text-left hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2 cursor-pointer text-rose-600 dark:text-rose-400 font-medium"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
-                            <span>Delete Chat</span>
+                            <span>Delete Conversation</span>
                           </button>
 
                           <button
@@ -1194,8 +1232,7 @@ export default function MessagesPage() {
                 </div>
 
                 {/* Right Action Icons */}
-                <div className="flex items-center gap-2">
-                  <ThemeToggle className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 border-slate-200 dark:border-navy-700" />
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   <button
                     onClick={() => {
                       setIsCallInitiator(true);
@@ -1208,25 +1245,19 @@ export default function MessagesPage() {
                     <span className="hidden sm:inline">Video Call</span>
                   </button>
 
-                  {chatPartner.isFriend ? (
-                    <Link
-                      href={`/chat/${selectedConvId}?room=personal&autoCall=true`}
-                      className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-500/20 hover:bg-amber-100 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/40 text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all"
-                      title="Enter private Monkey Room for video call with friend"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                      <span className="hidden sm:inline">Monkey Room</span>
-                    </Link>
-                  ) : (
-                    <Link
-                      href={`/chat/${selectedConvId}?room=match&match=true&autoCall=true`}
-                      className="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-navy-750 hover:bg-slate-100 dark:hover:bg-navy-850 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                      title="Open Match Room view"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-brand-purple" />
-                      <span className="hidden sm:inline">Match Room</span>
-                    </Link>
-                  )}
+                  {/* Minimize Chat Button */}
+                  <button
+                    onClick={() => {
+                      if (selectedConvId && chatPartner) {
+                        minimizeChat(selectedConvId, chatPartner, inputValue);
+                        setSelectedConvId(null);
+                      }
+                    }}
+                    className="p-1.5 rounded-xl border border-slate-200 dark:border-navy-750 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800 transition-colors cursor-pointer"
+                    title="Minimize Chat"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
 
                   {/* Three-dot dropdown menu */}
                   <div className="relative">
@@ -1268,10 +1299,10 @@ export default function MessagesPage() {
                         )}
                         <button
                           onClick={() => handleDeleteChat()}
-                          className="w-full px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-navy-800 text-slate-600 dark:text-slate-400 flex items-center gap-2 cursor-pointer"
+                          className="w-full px-3.5 py-2 text-left hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-400 flex items-center gap-2 cursor-pointer font-medium"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
-                          <span>Delete Chat</span>
+                          <span>Delete Conversation</span>
                         </button>
                         <button
                           onClick={() => handleBlockUser()}

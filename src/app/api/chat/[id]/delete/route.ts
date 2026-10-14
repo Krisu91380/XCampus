@@ -24,19 +24,33 @@ export async function POST(
     // Mark current user's participant record as hidden and set clearedAt to now
     // This hides the conversation only for current user and clears past message history for them,
     // while preserving the partner's chat history untouched.
-    await db.conversationParticipant.update({
+    const existingPart = await db.conversationParticipant.findFirst({
       where: {
-        conversationId_userId: {
-          conversationId,
-          userId: session.userId,
-        },
-      },
-      data: {
-        hidden: true,
-        clearedAt: new Date(),
-        hasUnread: false,
+        conversationId,
+        userId: session.userId,
       },
     });
+
+    if (existingPart) {
+      await db.conversationParticipant.update({
+        where: { id: existingPart.id },
+        data: {
+          hidden: true,
+          clearedAt: new Date(),
+          hasUnread: false,
+        },
+      });
+    } else {
+      await db.conversationParticipant.create({
+        data: {
+          conversationId,
+          userId: session.userId,
+          hidden: true,
+          clearedAt: new Date(),
+          hasUnread: false,
+        },
+      });
+    }
 
     db.store.saveToDisk();
 

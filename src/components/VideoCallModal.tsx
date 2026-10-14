@@ -13,6 +13,7 @@ import {
   Loader2,
   ShieldCheck,
   PhoneCall,
+  Minus,
 } from 'lucide-react';
 
 interface VideoCallModalProps {
@@ -45,6 +46,7 @@ export default function VideoCallModal({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [callDurationSeconds, setCallDurationSeconds] = useState(0);
+  const [isMinimized, setIsMinimized] = useState(false);
 
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -468,43 +470,65 @@ export default function VideoCallModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-navy-950/90 backdrop-blur-lg animate-fade-in">
+    <div
+      className={
+        isMinimized
+          ? "fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 pointer-events-auto"
+          : "fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-navy-950/90 backdrop-blur-lg animate-fade-in"
+      }
+    >
       <div
         ref={containerRef}
-        className="relative w-full max-w-4xl h-[88vh] bg-navy-900 border border-navy-750 rounded-3xl shadow-2xl overflow-hidden flex flex-col justify-between"
+        className={
+          isMinimized
+            ? "relative w-72 sm:w-80 aspect-video bg-navy-950 border-2 border-brand-purple rounded-2xl shadow-2xl overflow-hidden flex flex-col justify-between"
+            : "relative w-full max-w-4xl h-[88vh] bg-navy-900 border border-navy-750 rounded-3xl shadow-2xl overflow-hidden flex flex-col justify-between"
+        }
       >
         {/* Top Floating Header */}
-        <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 sm:p-6 bg-gradient-to-b from-navy-950/80 to-transparent">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center text-white font-bold text-sm shadow-md">
+        <div className={`absolute top-0 left-0 right-0 z-20 flex items-center justify-between ${isMinimized ? 'p-2 bg-navy-950/90' : 'p-4 sm:p-6 bg-gradient-to-b from-navy-950/80 to-transparent'}`}>
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className={`rounded-full bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center text-white font-bold shadow-md shrink-0 ${isMinimized ? 'w-6 h-6 text-xs' : 'w-10 h-10 text-sm'}`}>
               {partner?.displayName?.[0] || 'S'}
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <h4 className="text-sm font-bold text-white">{partner?.displayName}</h4>
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <h4 className="text-xs sm:text-sm font-bold text-white truncate max-w-[100px] sm:max-w-none">{partner?.displayName}</h4>
+                {!isMinimized && <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />}
               </div>
-              <p className="text-[11px] text-slate-300">
-                {partner?.universityName || 'Verified University Student'}
-              </p>
+              {!isMinimized && (
+                <p className="text-[11px] text-slate-300 truncate">
+                  {partner?.universityName || 'Verified University Student'}
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {callState === 'CONNECTED' && (
-              <div className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-bold flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <div className={`px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-mono font-bold flex items-center gap-1 sm:gap-1.5 ${isMinimized ? 'text-[10px]' : 'text-xs'}`}>
+                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span>{formatDuration(callDurationSeconds)}</span>
               </div>
             )}
 
             <button
-              onClick={toggleFullscreen}
-              className="p-2 rounded-xl bg-navy-800/70 hover:bg-navy-750 text-slate-300 hover:text-white transition-colors"
-              title="Toggle Fullscreen"
+              onClick={() => setIsMinimized(!isMinimized)}
+              className="p-1.5 sm:p-2 rounded-xl bg-navy-800/70 hover:bg-navy-750 text-slate-300 hover:text-white transition-colors cursor-pointer"
+              title={isMinimized ? "Restore Call" : "Minimize Call"}
             >
-              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              {isMinimized ? <Maximize2 className="w-3.5 h-3.5" /> : <Minus className="w-4 h-4" />}
             </button>
+
+            {!isMinimized && (
+              <button
+                onClick={toggleFullscreen}
+                className="p-2 rounded-xl bg-navy-800/70 hover:bg-navy-750 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                title="Toggle Fullscreen"
+              >
+                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </button>
+            )}
           </div>
         </div>
 
@@ -585,7 +609,7 @@ export default function VideoCallModal({
               )}
 
               {/* Local Video Stream (Picture-in-Picture in Corner) */}
-              <div className="absolute bottom-20 right-4 z-20 w-32 sm:w-48 aspect-video rounded-2xl overflow-hidden border-2 border-brand-purple/50 bg-navy-900 shadow-2xl">
+              <div className={`absolute z-20 aspect-video rounded-xl sm:rounded-2xl overflow-hidden border-2 border-brand-purple/50 bg-navy-900 shadow-2xl ${isMinimized ? 'w-20 bottom-12 right-2' : 'bottom-20 right-4 w-32 sm:w-48'}`}>
                 <video
                   ref={localVideoRef}
                   autoPlay
@@ -610,41 +634,41 @@ export default function VideoCallModal({
         </div>
 
         {/* Bottom Floating Controls Bar */}
-        <div className="relative z-20 p-4 sm:p-5 bg-gradient-to-t from-navy-950 via-navy-950/80 to-transparent flex items-center justify-center gap-4">
+        <div className={`relative z-20 ${isMinimized ? 'p-1.5 bg-navy-950/90 gap-2' : 'p-4 sm:p-5 bg-gradient-to-t from-navy-950 via-navy-950/80 to-transparent gap-4'} flex items-center justify-center`}>
           {/* Mute Audio Button */}
           <button
             onClick={toggleMic}
-            className={`p-3.5 rounded-full transition-all ${
+            className={`${isMinimized ? 'p-2' : 'p-3.5'} rounded-full transition-all cursor-pointer ${
               isMicMuted
                 ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
                 : 'bg-navy-800 hover:bg-navy-750 text-slate-200'
             }`}
             title={isMicMuted ? 'Unmute Microphone' : 'Mute Microphone'}
           >
-            {isMicMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            {isMicMuted ? <MicOff className={isMinimized ? "w-3.5 h-3.5" : "w-5 h-5"} /> : <Mic className={isMinimized ? "w-3.5 h-3.5" : "w-5 h-5"} />}
           </button>
 
           {/* End Call Button */}
           <button
             onClick={handleEndCall}
-            className="px-6 py-3.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-2 shadow-xl shadow-rose-600/40 hover:scale-105 transition-all"
+            className={`${isMinimized ? 'p-2' : 'px-6 py-3.5 gap-2'} rounded-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center shadow-xl shadow-rose-600/40 hover:scale-105 transition-all cursor-pointer`}
             title="End Video Call"
           >
-            <PhoneOff className="w-5 h-5" />
-            <span className="hidden sm:inline">End Call</span>
+            <PhoneOff className={isMinimized ? "w-3.5 h-3.5" : "w-5 h-5"} />
+            {!isMinimized && <span className="hidden sm:inline">End Call</span>}
           </button>
 
           {/* Toggle Video Button */}
           <button
             onClick={toggleVideo}
-            className={`p-3.5 rounded-full transition-all ${
+            className={`${isMinimized ? 'p-2' : 'p-3.5'} rounded-full transition-all cursor-pointer ${
               isVideoDisabled
                 ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
                 : 'bg-navy-800 hover:bg-navy-750 text-slate-200'
             }`}
             title={isVideoDisabled ? 'Enable Camera' : 'Disable Camera'}
           >
-            {isVideoDisabled ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+            {isVideoDisabled ? <VideoOff className={isMinimized ? "w-3.5 h-3.5" : "w-5 h-5"} /> : <Video className={isMinimized ? "w-3.5 h-3.5" : "w-5 h-5"} />}
           </button>
         </div>
       </div>

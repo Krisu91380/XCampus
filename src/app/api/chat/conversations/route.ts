@@ -22,17 +22,22 @@ export async function GET(req: NextRequest) {
       ...partnerBlocks.map((b) => b.blockerId),
     ]);
 
+    const hiddenConvIds = new Set<string>(
+      participations.filter((p) => p.hidden).map((p) => p.conversationId)
+    );
+
     const myAcceptedFriendships = allFriendRequests.filter(
       (r) =>
         r.status === 'ACCEPTED' &&
         (r.senderId === session.userId || r.receiverId === session.userId)
     );
 
-    // Fast ensure for friends not in blocked list
+    // Fast ensure for friends not in blocked list or hidden list
     for (const fr of myAcceptedFriendships) {
       const partnerId = fr.senderId === session.userId ? fr.receiverId : fr.senderId;
       if (blockedUserIds.has(partnerId)) continue;
       const convId = generateSignedConversationId(session.userId, partnerId);
+      if (hiddenConvIds.has(convId)) continue;
       // Ensure conversation asynchronously or in-memory
       ensureConversationAndParticipants(convId, session.userId, partnerId).catch(() => {});
     }
@@ -129,7 +134,7 @@ export async function GET(req: NextRequest) {
       if (seenPartnerIds.has(partnerId) || blockedUserIds.has(partnerId)) continue;
 
       const convId = generateSignedConversationId(session.userId, partnerId);
-      if (seenConvIds.has(convId)) continue;
+      if (seenConvIds.has(convId) || hiddenConvIds.has(convId)) continue;
 
       const [partnerUser, partnerProfile, latestMessages] = await Promise.all([
         db.user.findUnique({ where: { id: partnerId } }),

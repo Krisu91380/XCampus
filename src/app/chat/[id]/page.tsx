@@ -24,12 +24,12 @@ import {
   Sparkles,
   Maximize2,
   Minimize2,
+  Minus,
   CheckCheck,
   MoreVertical,
   X,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { ThemeToggle } from '@/components/ThemeProvider';
 
 function ChatRoomContent() {
   const params = useParams();
@@ -88,6 +88,7 @@ function ChatRoomContent() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [callDurationSeconds, setCallDurationSeconds] = useState(0);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [isCallMinimized, setIsCallMinimized] = useState(false);
 
   // Friend State
   const [isFriend, setIsFriend] = useState(() => Boolean(conversation?.partner?.isFriend));
@@ -1095,10 +1096,7 @@ function ChatRoomContent() {
             </button>
           )}
 
-          {/* Theme Toggle */}
-          <div className="hidden sm:flex items-center">
-            <ThemeToggle />
-          </div>
+
 
           {/* Three-dot dropdown menu */}
           <div className="relative">
@@ -1153,22 +1151,26 @@ function ChatRoomContent() {
         {isVideoActive ? (
           <div
             ref={videoContainerRef}
-            className="lg:col-span-7 xl:col-span-8 glass-card rounded-3xl border border-navy-750 flex flex-col justify-between overflow-hidden relative shadow-2xl bg-navy-950 min-h-[320px] lg:min-h-0"
+            className={
+              isCallMinimized
+                ? "fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 w-72 sm:w-80 aspect-video rounded-2xl border-2 border-brand-purple shadow-2xl overflow-hidden bg-navy-950 flex flex-col justify-between"
+                : "lg:col-span-7 xl:col-span-8 glass-card rounded-3xl border border-navy-750 flex flex-col justify-between overflow-hidden relative shadow-2xl bg-navy-950 min-h-[320px] lg:min-h-0"
+            }
           >
             {/* Top Video Status Overlay */}
-            <div className="absolute top-0 left-0 right-0 z-20 p-3 sm:p-4 bg-gradient-to-b from-navy-950/90 to-transparent flex items-center justify-between pointer-events-auto">
-              <div className="flex items-center gap-2">
+            <div className={`absolute top-0 left-0 right-0 z-20 ${isCallMinimized ? 'p-2 bg-navy-950/90' : 'p-3 sm:p-4 bg-gradient-to-b from-navy-950/90 to-transparent'} flex items-center justify-between pointer-events-auto`}>
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                 {callState === 'CONNECTED' ? (
-                  <div className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-bold flex items-center gap-1.5 shadow">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <div className={`rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-mono font-bold flex items-center gap-1 sm:gap-1.5 shadow ${isCallMinimized ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-xs'}`}>
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-pulse" />
                     <span>{formatDuration(callDurationSeconds)}</span>
                   </div>
                 ) : (
-                  <div className="px-3 py-1 rounded-full bg-brand-purple/20 border border-brand-purple/30 text-brand-purple text-xs font-semibold flex items-center gap-1.5">
+                  <div className={`rounded-full bg-brand-purple/20 border border-brand-purple/30 text-brand-purple font-semibold flex items-center gap-1.5 ${isCallMinimized ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-xs'}`}>
                     <Loader2 className="w-3 h-3 animate-spin" />
-                    <span>
+                    <span className="truncate">
                       {callState === 'STARTING' && 'Starting camera...'}
-                      {callState === 'CONNECTING' && 'Connecting peer stream...'}
+                      {callState === 'CONNECTING' && 'Connecting...'}
                       {callState === 'RECONNECTING' && 'Reconnecting...'}
                       {callState === 'PARTNER_SKIPPED' && 'Partner Skipped'}
                       {callState === 'ENDED' && 'Call Ended'}
@@ -1177,14 +1179,23 @@ function ChatRoomContent() {
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
                 <button
-                  onClick={handleToggleFullscreen}
-                  className="p-2 rounded-xl bg-navy-900/80 hover:bg-navy-800 text-slate-300 hover:text-white transition-colors"
-                  title="Toggle Fullscreen"
+                  onClick={() => setIsCallMinimized(!isCallMinimized)}
+                  className="p-1.5 sm:p-2 rounded-xl bg-navy-900/80 hover:bg-navy-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                  title={isCallMinimized ? "Restore Call" : "Minimize Call"}
                 >
-                  {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  {isCallMinimized ? <Maximize2 className="w-3.5 h-3.5" /> : <Minus className="w-4 h-4" />}
                 </button>
+                {!isCallMinimized && (
+                  <button
+                    onClick={handleToggleFullscreen}
+                    className="p-2 rounded-xl bg-navy-900/80 hover:bg-navy-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                    title="Toggle Fullscreen"
+                  >
+                    {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1267,7 +1278,7 @@ function ChatRoomContent() {
                   )}
 
                   {/* Local Video Preview (Picture-in-Picture in Corner) */}
-                  <div className="absolute bottom-20 right-4 z-20 w-28 sm:w-40 aspect-video rounded-2xl overflow-hidden border-2 border-brand-purple/50 bg-navy-900 shadow-2xl">
+                  <div className={`absolute z-20 aspect-video rounded-xl sm:rounded-2xl overflow-hidden border-2 border-brand-purple/50 bg-navy-900 shadow-2xl ${isCallMinimized ? 'w-20 bottom-12 right-2' : 'bottom-20 right-4 w-28 sm:w-40'}`}>
                     <video
                       ref={localVideoRef}
                       autoPlay
@@ -1292,22 +1303,22 @@ function ChatRoomContent() {
             </div>
 
             {/* Bottom Video Controls Toolbar */}
-            <div className="p-3 sm:p-4 bg-gradient-to-t from-navy-950 via-navy-950/90 to-transparent flex items-center justify-center gap-3 relative z-20">
+            <div className={`bg-gradient-to-t from-navy-950 via-navy-950/90 to-transparent flex items-center justify-center relative z-20 ${isCallMinimized ? 'p-1.5 gap-2' : 'p-3 sm:p-4 gap-3'}`}>
               {/* Mic Mute Button */}
               <button
                 onClick={handleToggleMic}
-                className={`p-3 rounded-full transition-all cursor-pointer ${
+                className={`${isCallMinimized ? 'p-2' : 'p-3'} rounded-full transition-all cursor-pointer ${
                   isMicMuted
                     ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
                     : 'bg-navy-850 hover:bg-navy-800 text-slate-200'
                 }`}
                 title={isMicMuted ? 'Unmute Microphone' : 'Mute Microphone'}
               >
-                {isMicMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                {isMicMuted ? <MicOff className={isCallMinimized ? "w-3.5 h-3.5" : "w-4 h-4"} /> : <Mic className={isCallMinimized ? "w-3.5 h-3.5" : "w-4 h-4"} />}
               </button>
 
-              {/* Next Match Skip Button (Only in Match Room) */}
-              {!isMoneyRoom && (
+              {/* Next Match Skip Button (Only in Match Room and when not minimized) */}
+              {!isMoneyRoom && !isCallMinimized && (
                 <button
                   onClick={handleNextMatch}
                   className="px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-95 text-navy-950 font-bold text-xs flex items-center gap-1.5 shadow-xl shadow-amber-500/30 hover:scale-105 transition-all cursor-pointer"
@@ -1321,32 +1332,32 @@ function ChatRoomContent() {
               {/* Camera On/Off Button */}
               <button
                 onClick={handleToggleVideo}
-                className={`p-3 rounded-full transition-all cursor-pointer ${
+                className={`${isCallMinimized ? 'p-2' : 'p-3'} rounded-full transition-all cursor-pointer ${
                   isVideoDisabled
                     ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
                     : 'bg-navy-850 hover:bg-navy-800 text-slate-200'
                 }`}
                 title={isVideoDisabled ? 'Enable Camera' : 'Disable Camera'}
               >
-                {isVideoDisabled ? <VideoOff className="w-4 h-4" /> : <Video className="w-4 h-4" />}
+                {isVideoDisabled ? <VideoOff className={isCallMinimized ? "w-3.5 h-3.5" : "w-4 h-4"} /> : <Video className={isCallMinimized ? "w-3.5 h-3.5" : "w-4 h-4"} />}
               </button>
 
               {/* End Video Call */}
               <button
                 onClick={handleEndCall}
-                className="p-3 rounded-full bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/30 cursor-pointer"
+                className={`${isCallMinimized ? 'p-2' : 'p-3'} rounded-full bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/30 cursor-pointer`}
                 title="End video call"
               >
-                <PhoneOff className="w-4 h-4" />
+                <PhoneOff className={isCallMinimized ? "w-3.5 h-3.5" : "w-4 h-4"} />
               </button>
             </div>
           </div>
         ) : null}
 
-        {/* Right Column (or Full Width if text mode): Live Text Chat Feed */}
+        {/* Right Column (or Full Width if text mode or video minimized): Live Text Chat Feed */}
         <div
           className={`${
-            isVideoActive ? 'lg:col-span-5 xl:col-span-4' : 'col-span-12 max-w-4xl mx-auto w-full'
+            isVideoActive && !isCallMinimized ? 'lg:col-span-5 xl:col-span-4' : 'col-span-12 max-w-4xl mx-auto w-full'
           } md:rounded-3xl border-0 md:border border-slate-200 dark:border-navy-750 flex flex-col justify-between overflow-hidden md:shadow-xl flex-1 min-h-0 bg-white dark:bg-navy-950 md:bg-white md:dark:bg-navy-900/60`}
         >
           {/* Chat Messages Scroll Container */}

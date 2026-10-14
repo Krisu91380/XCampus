@@ -33,9 +33,7 @@ import {
   X,
   Save,
   Palette,
-  Image as ImageIcon,
 } from 'lucide-react';
-import { ThemeToggle } from '@/components/ThemeProvider';
 
 const BANNER_PRESETS = [
   { id: 'campus-violet', name: 'Campus Violet', gradient: 'from-purple-600 via-indigo-600 to-purple-800', preview: 'bg-gradient-to-r from-purple-600 to-indigo-700' },
@@ -493,14 +491,7 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* Top-Right Controls */}
-          <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
-            <ThemeToggle className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-md shadow-md" />
-            <div className="px-3 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-md">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>CC Verified Campus</span>
-            </div>
-          </div>
+
 
           {/* Bottom-Right Banner Quick Actions */}
           <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 flex items-center gap-2 z-10">
@@ -547,11 +538,13 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="px-6 sm:px-8 pb-6 sm:pb-8 pt-0 relative z-10">
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-6 -mt-16 sm:-mt-20">
-            {/* Circular Profile Avatar Container */}
-            <div className="flex flex-col items-center shrink-0">
-              <div className="w-32 h-32 sm:w-36 sm:h-36 rounded-full overflow-hidden border-4 border-white dark:border-navy-900 bg-slate-100 dark:bg-navy-800 shadow-xl relative flex items-center justify-center">
+        {/* Profile Content Strictly Below Banner - Instagram DM & Profile Inspired */}
+        <div className="px-5 sm:px-8 py-6 relative z-10">
+          {/* Desktop & Tablet Layout (md and up) */}
+          <div className="hidden md:flex flex-row items-start gap-8 lg:gap-12">
+            {/* Left Column: Prominent Circular Avatar */}
+            <div className="flex flex-col items-center shrink-0 w-36 lg:w-44">
+              <div className="w-36 h-36 lg:w-40 lg:h-40 rounded-full overflow-hidden border-4 border-slate-100 dark:border-navy-800 bg-slate-100 dark:bg-navy-800 shadow-xl relative flex items-center justify-center">
                 {profile?.avatarUrl ? (
                   <img
                     src={profile.avatarUrl}
@@ -559,7 +552,7 @@ export default function ProfilePage() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-3xl sm:text-4xl shadow-inner select-none">
+                  <div className="w-full h-full bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 flex items-center justify-center font-extrabold text-4xl select-none">
                     {profile?.displayName?.[0]?.toUpperCase() || 'S'}
                   </div>
                 )}
@@ -572,7 +565,7 @@ export default function ProfilePage() {
               </div>
 
               {/* Photo Action Buttons */}
-              <div className="flex items-center justify-center gap-2 mt-3">
+              <div className="flex items-center justify-center gap-2 mt-3 w-full">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -588,7 +581,7 @@ export default function ProfilePage() {
                   title="Change Profile Photo"
                 >
                   <Camera className="w-3.5 h-3.5 text-brand-purple" />
-                  <span>{profile?.avatarUrl ? 'Change Photo' : 'Upload Photo'}</span>
+                  <span>{profile?.avatarUrl ? 'Change' : 'Upload'}</span>
                 </button>
 
                 {profile?.avatarUrl && (
@@ -596,88 +589,112 @@ export default function ProfilePage() {
                     type="button"
                     onClick={handleRemovePhoto}
                     disabled={uploadingPhoto}
-                    className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-navy-800 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 border border-slate-300 dark:border-navy-700 text-slate-500 dark:text-slate-400 text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer active:scale-95"
+                    className="p-1.5 rounded-xl bg-slate-100 dark:bg-navy-800 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 border border-slate-300 dark:border-navy-700 text-slate-500 dark:text-slate-400 text-xs font-medium transition-colors cursor-pointer active:scale-95"
                     title="Remove Profile Photo"
                   >
                     <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                    <span className="hidden sm:inline">Remove</span>
                   </button>
                 )}
               </div>
             </div>
 
-            {/* Student Overview Details */}
-            <div className="flex-1 text-center md:text-left space-y-3 pt-2 w-full">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                <div>
-                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-                    <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                      {profile?.displayName}
-                    </h1>
-                    {profile?.isVerified && (
-                      <span
-                        title="Verified University Student"
-                        className="px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-xs font-semibold flex items-center gap-1"
-                      >
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                        <span>Verified</span>
-                      </span>
-                    )}
-                    {profile?.relationshipVisible && profile?.relationshipStatus && (
-                      <span
-                        className="px-2.5 py-0.5 rounded-full bg-pink-50 dark:bg-pink-500/15 border border-pink-200 dark:border-pink-500/30 text-pink-700 dark:text-pink-300 text-xs font-semibold flex items-center gap-1"
-                        title="Relationship Status"
-                      >
-                        <Heart className="w-3.5 h-3.5 text-pink-500 fill-pink-500/30" />
-                        <span>{profile.relationshipStatus}</span>
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-center md:justify-start gap-2.5 mt-1">
-                    <span className="text-xs font-bold text-brand-purple dark:text-electric-400 font-mono">
-                      @{profile?.username || profile?.email?.split('@')[0]}
-                    </span>
-                    <span className="text-slate-400 dark:text-slate-600 text-xs">•</span>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 font-mono">
-                      <Mail className="w-3 h-3 text-slate-400" />
-                      <span>{profile?.email}</span>
-                    </p>
-                  </div>
-                </div>
+            {/* Right Column: Instagram Style Header & Details */}
+            <div className="flex-1 space-y-4">
+              {/* Row 1: Username, Edit Profile, Badges */}
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-xl lg:text-2xl font-bold text-slate-900 dark:text-white">
+                  @{profile?.username || profile?.email?.split('@')[0]}
+                </h1>
 
-                {/* Edit Profile Button */}
                 <button
                   onClick={() => setIsEditModalOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-95 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-purple-500/20 transition-all cursor-pointer self-center md:self-auto"
+                  className="px-4 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-750 text-slate-800 dark:text-slate-100 text-xs font-semibold border border-slate-300 dark:border-navy-700 transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Edit3 className="w-3.5 h-3.5" />
+                  <Edit3 className="w-3.5 h-3.5 text-brand-purple" />
                   <span>Edit Profile</span>
                 </button>
+
+                {profile?.isVerified && (
+                  <span
+                    title="Verified University Student"
+                    className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-xs font-semibold flex items-center gap-1"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>Verified</span>
+                  </span>
+                )}
+
+                {profile?.relationshipVisible && profile?.relationshipStatus && (
+                  <span
+                    className="px-2.5 py-1 rounded-full bg-pink-50 dark:bg-pink-500/15 border border-pink-200 dark:border-pink-500/30 text-pink-700 dark:text-pink-300 text-xs font-semibold flex items-center gap-1"
+                    title="Relationship Status"
+                  >
+                    <Heart className="w-3.5 h-3.5 text-pink-500 fill-pink-500/30" />
+                    <span>{profile.relationshipStatus}</span>
+                  </span>
+                )}
               </div>
 
-              {/* University & Degree Badges */}
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-1 text-xs">
-                <span className="px-3 py-1 rounded-xl bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-750 flex items-center gap-1.5 text-slate-700 dark:text-slate-200 font-medium">
-                  <GraduationCap className="w-4 h-4 text-brand-purple shrink-0" />
+              {/* Row 2: Instagram DM/Profile Style Stats */}
+              <div className="flex items-center gap-8 text-sm">
+                <button
+                  onClick={() => setShowFriendsModal(true)}
+                  className="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer"
+                >
+                  <span className="font-bold text-slate-900 dark:text-white">{friendsCount}</span>
+                  <span className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm">campus friends</span>
+                </button>
+
+                <Link
+                  href="/pricing"
+                  className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+                >
+                  <span className="font-bold text-slate-900 dark:text-white">{credits}</span>
+                  <span className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm">credits</span>
+                </Link>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                    {profile?.isVerified ? 'Verified' : 'Student'}
+                  </span>
+                  <span className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm">status</span>
+                </div>
+              </div>
+
+              {/* Row 3: Full Name */}
+              <div>
+                <p className="text-sm lg:text-base font-bold text-slate-900 dark:text-white">
+                  {profile?.displayName}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 font-mono mt-0.5">
+                  <Mail className="w-3 h-3 text-slate-400" />
+                  <span>{profile?.email}</span>
+                </p>
+              </div>
+
+              {/* Row 4: University & Academic Badges */}
+              <div className="flex flex-wrap items-center gap-2 pt-0.5 text-xs">
+                <span className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-750 flex items-center gap-1.5 text-slate-700 dark:text-slate-200 font-medium">
+                  <GraduationCap className="w-3.5 h-3.5 text-brand-purple shrink-0" />
                   <span>{profile?.universityName || 'University Student'}</span>
                 </span>
 
                 {profile?.course && (
-                  <span className="px-3 py-1 rounded-xl bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-750 flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium">
+                  <span className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-750 flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium">
                     <BookOpen className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
                     <span>{profile?.course}</span>
                   </span>
                 )}
 
                 {profile?.branch && (
-                  <span className="px-3 py-1 rounded-xl bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-750 flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
+                  <span className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-750 flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
                     <Layers className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     <span>{profile?.branch}</span>
                   </span>
                 )}
 
                 {(profile?.academicYear || profile?.semester) && (
-                  <span className="px-3 py-1 rounded-xl bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-750 flex items-center gap-1.5 font-mono text-slate-600 dark:text-slate-400">
+                  <span className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-750 flex items-center gap-1.5 font-mono text-slate-600 dark:text-slate-400">
                     <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     <span>
                       {[profile?.academicYear, profile?.semester].filter(Boolean).join(' • ')}
@@ -686,19 +703,19 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {/* Bio Content */}
+              {/* Row 5: Multiline Bio with clean line spacing */}
               {profile?.bio ? (
-                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 pt-1 leading-relaxed max-w-2xl">
+                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed max-w-2xl whitespace-pre-line">
                   {profile.bio}
                 </p>
               ) : (
-                <p className="text-xs text-slate-400 italic pt-1">
+                <p className="text-xs text-slate-400 italic">
                   No bio added yet. Click &quot;Edit Profile&quot; to introduce yourself to campus peers!
                 </p>
               )}
 
-              {/* Social Links Row */}
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-2">
+              {/* Row 6: Social Links */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
                 {profile?.socialLinks?.github && (
                   <a
                     href={
@@ -776,6 +793,169 @@ export default function ProfilePage() {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Mobile Layout (Strictly Instagram iOS Profile structure) */}
+          <div className="flex md:hidden flex-col gap-4">
+            {/* Top Row: Avatar on left, Stats on right */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="relative shrink-0">
+                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-slate-200 dark:border-navy-700 bg-slate-100 dark:bg-navy-800 shadow-md flex items-center justify-center">
+                  {profile?.avatarUrl ? (
+                    <img
+                      src={profile.avatarUrl}
+                      alt={profile.displayName || 'Profile Avatar'}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 flex items-center justify-center font-extrabold text-2xl select-none">
+                      {profile?.displayName?.[0]?.toUpperCase() || 'S'}
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 p-1.5 rounded-full bg-brand-purple text-white shadow-md active:scale-95 cursor-pointer"
+                  title="Upload Photo"
+                >
+                  <Camera className="w-3 h-3" />
+                </button>
+              </div>
+
+              {/* 3-Column Instagram Stats */}
+              <div className="flex-1 grid grid-cols-3 text-center gap-1">
+                <button
+                  onClick={() => setShowFriendsModal(true)}
+                  className="flex flex-col items-center cursor-pointer"
+                >
+                  <span className="font-bold text-sm text-slate-900 dark:text-white">{friendsCount}</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Friends</span>
+                </button>
+                <Link href="/pricing" className="flex flex-col items-center">
+                  <span className="font-bold text-sm text-slate-900 dark:text-white">{credits}</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Credits</span>
+                </Link>
+                <div className="flex flex-col items-center">
+                  <span className="font-bold text-sm text-emerald-600 dark:text-emerald-400">
+                    {profile?.isVerified ? '✓' : '—'}
+                  </span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Verified</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Identity details below top row */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                  {profile?.displayName}
+                </h2>
+                {profile?.isVerified && (
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                )}
+                {profile?.relationshipVisible && profile?.relationshipStatus && (
+                  <span className="px-2 py-0.5 rounded-full bg-pink-50 dark:bg-pink-500/15 border border-pink-200 dark:border-pink-500/30 text-pink-700 dark:text-pink-300 text-[10px] font-semibold">
+                    {profile.relationshipStatus}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs font-mono font-semibold text-brand-purple dark:text-electric-400">
+                @{profile?.username || profile?.email?.split('@')[0]}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 font-mono">
+                <Mail className="w-3 h-3 text-slate-400" />
+                <span>{profile?.email}</span>
+              </p>
+            </div>
+
+            {/* University & Degree badges on mobile */}
+            <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+              <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-750 text-slate-700 dark:text-slate-300 font-medium">
+                🎓 {profile?.universityName || 'University Student'}
+              </span>
+              {profile?.course && (
+                <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-750 text-slate-700 dark:text-slate-300 font-medium">
+                  {profile.course}
+                </span>
+              )}
+            </div>
+
+            {/* Bio on mobile */}
+            {profile?.bio && (
+              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line">
+                {profile.bio}
+              </p>
+            )}
+
+            {/* Social links row on mobile */}
+            <div className="flex flex-wrap items-center gap-2">
+              {profile?.socialLinks?.github && (
+                <a
+                  href={
+                    profile.socialLinks.github.startsWith('http')
+                      ? profile.socialLinks.github
+                      : `https://github.com/${profile.socialLinks.github}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-750 text-slate-700 dark:text-slate-300"
+                >
+                  <Github className="w-3.5 h-3.5" />
+                </a>
+              )}
+              {profile?.socialLinks?.linkedin && (
+                <a
+                  href={
+                    profile.socialLinks.linkedin.startsWith('http')
+                      ? profile.socialLinks.linkedin
+                      : `https://linkedin.com/in/${profile.socialLinks.linkedin}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-750 text-slate-700 dark:text-slate-300"
+                >
+                  <Linkedin className="w-3.5 h-3.5" />
+                </a>
+              )}
+              {profile?.socialLinks?.instagram && (
+                <a
+                  href={
+                    profile.socialLinks.instagram.startsWith('http')
+                      ? profile.socialLinks.instagram
+                      : `https://instagram.com/${profile.socialLinks.instagram.replace('@', '')}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-750 text-slate-700 dark:text-slate-300"
+                >
+                  <Instagram className="w-3.5 h-3.5" />
+                </a>
+              )}
+              {profile?.socialLinks?.twitter && (
+                <a
+                  href={
+                    profile.socialLinks.twitter.startsWith('http')
+                      ? profile.socialLinks.twitter
+                      : `https://x.com/${profile.socialLinks.twitter.replace('@', '')}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-750 text-slate-700 dark:text-slate-300"
+                >
+                  <Twitter className="w-3.5 h-3.5" />
+                </a>
+              )}
+            </div>
+
+            {/* Full-width Edit Profile button on mobile (Instagram iOS style) */}
+            <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="w-full py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-750 text-slate-900 dark:text-white text-xs font-bold border border-slate-300 dark:border-navy-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-brand-purple" />
+              <span>Edit Profile</span>
+            </button>
           </div>
 
           {/* Quick Stats Grid */}
