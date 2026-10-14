@@ -50,7 +50,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link href="/match" className="hover:text-electric-500 dark:hover:text-electric-400 transition-colors">
-                  Personal Room
+                  Monkey Room
                 </Link>
               </li>
               <li>

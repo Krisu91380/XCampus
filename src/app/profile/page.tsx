@@ -32,8 +32,24 @@ import {
   ArrowRight,
   X,
   Save,
+  Palette,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeProvider';
+
+const BANNER_PRESETS = [
+  { id: 'campus-violet', name: 'Campus Violet', gradient: 'from-purple-600 via-indigo-600 to-purple-800', preview: 'bg-gradient-to-r from-purple-600 to-indigo-700' },
+  { id: 'midnight-navy', name: 'Midnight Navy', gradient: 'from-slate-900 via-indigo-950 to-blue-900', preview: 'bg-gradient-to-r from-slate-900 to-blue-900' },
+  { id: 'emerald-aurora', name: 'Emerald Aurora', gradient: 'from-emerald-700 via-teal-700 to-cyan-800', preview: 'bg-gradient-to-r from-emerald-600 to-cyan-800' },
+  { id: 'amber-sunset', name: 'Amber Sunset', gradient: 'from-amber-600 via-rose-600 to-purple-700', preview: 'bg-gradient-to-r from-amber-600 to-purple-700' },
+  { id: 'cyber-electric', name: 'Cyber Electric', gradient: 'from-fuchsia-600 via-purple-700 to-blue-600', preview: 'bg-gradient-to-r from-fuchsia-600 to-blue-600' },
+  { id: 'ruby-crimson', name: 'Ruby Crimson', gradient: 'from-rose-700 via-red-800 to-slate-900', preview: 'bg-gradient-to-r from-rose-700 to-slate-900' },
+];
+
+const getBannerGradient = (patternId?: string) => {
+  const found = BANNER_PRESETS.find((p) => p.id === patternId);
+  return found ? found.gradient : BANNER_PRESETS[0].gradient;
+};
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -50,6 +66,7 @@ export default function ProfilePage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
 
   // Form Fields
   const [editForm, setEditForm] = useState({
@@ -58,6 +75,8 @@ export default function ProfilePage() {
     relationshipStatus: 'Single',
     relationshipVisible: false,
     gender: 'PREFER_NOT_TO_SAY',
+    bannerUrl: '' as string | null,
+    bannerPattern: 'campus-violet',
     bio: '',
     course: '',
     branch: '',
@@ -74,6 +93,7 @@ export default function ProfilePage() {
   });
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const bannerFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const fetchProfileData = async () => {
     try {
@@ -120,6 +140,8 @@ export default function ProfilePage() {
         relationshipStatus: p.relationshipStatus || 'Single',
         relationshipVisible: Boolean(p.relationshipVisible),
         gender: p.gender || 'PREFER_NOT_TO_SAY',
+        bannerUrl: p.bannerUrl || p.socialLinks?.bannerUrl || null,
+        bannerPattern: p.bannerPattern || p.socialLinks?.bannerPattern || 'campus-violet',
         bio: p.bio || '',
         course: p.course || '',
         branch: p.branch || '',
@@ -225,6 +247,104 @@ export default function ProfilePage() {
     }
   };
 
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setMessage({ type: 'error', text: 'Please select an image file (JPEG, PNG, WebP).' });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage({ type: 'error', text: 'Banner image file size must be less than 5MB.' });
+      return;
+    }
+
+    const previousBanner = profile?.bannerUrl;
+    const previewUrl = URL.createObjectURL(file);
+    setProfile((prev: any) => ({ ...prev, bannerUrl: previewUrl }));
+    setEditForm((prev) => ({ ...prev, bannerUrl: previewUrl }));
+
+    setUploadingBanner(true);
+    setMessage(null);
+
+    const formData = new FormData();
+    formData.append('banner', file);
+
+    try {
+      const res = await fetch('/api/profile/banner', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to upload banner');
+      }
+
+      setProfile((prev: any) => ({ ...prev, bannerUrl: data.bannerUrl }));
+      setEditForm((prev) => ({ ...prev, bannerUrl: data.bannerUrl }));
+      setMessage({ type: 'success', text: 'Profile banner updated successfully!' });
+    } catch (err: any) {
+      setProfile((prev: any) => ({ ...prev, bannerUrl: previousBanner }));
+      setEditForm((prev) => ({ ...prev, bannerUrl: previousBanner }));
+      setMessage({ type: 'error', text: err.message || 'Failed to upload banner.' });
+    } finally {
+      setUploadingBanner(false);
+      if (bannerFileInputRef.current) bannerFileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveBanner = async () => {
+    if (!confirm('Revert banner to default preset palette?')) return;
+    setUploadingBanner(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch('/api/profile/banner', { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to reset banner');
+      }
+
+      setProfile((prev: any) => ({ ...prev, bannerUrl: null, bannerPattern: 'campus-violet' }));
+      setEditForm((prev) => ({ ...prev, bannerUrl: null, bannerPattern: 'campus-violet' }));
+      setMessage({ type: 'success', text: 'Profile banner reverted to default preset.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to reset banner.' });
+    } finally {
+      setUploadingBanner(false);
+    }
+  };
+
+  const handleSelectPreset = async (presetId: string) => {
+    setEditForm((prev) => ({ ...prev, bannerPattern: presetId, bannerUrl: null }));
+    setProfile((prev: any) => ({ ...prev, bannerPattern: presetId, bannerUrl: null }));
+
+    try {
+      if (profile?.bannerUrl) {
+        await fetch('/api/profile/banner', { method: 'DELETE' }).catch(() => {});
+      }
+      await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          displayName: profile?.displayName || 'Student',
+          bannerPattern: presetId,
+          bannerUrl: null,
+          socialLinks: {
+            ...profile?.socialLinks,
+            bannerPattern: presetId,
+            bannerUrl: null,
+          },
+        }),
+      });
+      const selectedPreset = BANNER_PRESETS.find((p) => p.id === presetId);
+      setMessage({ type: 'success', text: `Banner theme updated to ${selectedPreset?.name || 'preset'}!` });
+    } catch {}
+  };
+
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editForm.displayName.trim() || editForm.displayName.trim().length < 2) {
@@ -242,6 +362,8 @@ export default function ProfilePage() {
         relationshipStatus: editForm.relationshipStatus,
         relationshipVisible: editForm.relationshipVisible,
         gender: editForm.gender,
+        bannerUrl: editForm.bannerUrl,
+        bannerPattern: editForm.bannerPattern,
         bio: editForm.bio.trim(),
         course: editForm.course.trim(),
         branch: editForm.branch.trim(),
@@ -265,6 +387,8 @@ export default function ProfilePage() {
           relationshipStatus: editForm.relationshipStatus,
           relationshipVisible: editForm.relationshipVisible,
           username: editForm.username.trim(),
+          bannerUrl: editForm.bannerUrl,
+          bannerPattern: editForm.bannerPattern,
         },
       };
 
@@ -286,6 +410,8 @@ export default function ProfilePage() {
         username: editForm.username.trim(),
         relationshipStatus: editForm.relationshipStatus,
         relationshipVisible: editForm.relationshipVisible,
+        bannerUrl: editForm.bannerUrl,
+        bannerPattern: editForm.bannerPattern,
         bio: editForm.bio.trim(),
         course: editForm.course.trim(),
         branch: editForm.branch.trim(),
@@ -341,14 +467,83 @@ export default function ProfilePage() {
       {/* Main Profile Header Card */}
       <div className="bg-white dark:bg-navy-900 rounded-3xl border border-slate-200 dark:border-navy-800 shadow-sm relative overflow-hidden">
         {/* Cover Banner */}
-        <div className="h-32 sm:h-44 w-full bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-800 relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(#ffffff15_1px,transparent_1px)] [background-size:16px_16px] opacity-70" />
-          <div className="absolute top-4 right-4 flex items-center gap-2">
-            <ThemeToggle className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-md" />
+        <div className="h-44 sm:h-56 w-full relative overflow-hidden group">
+          {profile?.bannerUrl ? (
+            <img
+              src={profile.bannerUrl}
+              alt="Profile Cover Banner"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div
+              className={`w-full h-full bg-gradient-to-r ${getBannerGradient(
+                profile?.bannerPattern || editForm.bannerPattern
+              )} relative overflow-hidden`}
+            >
+              <div className="absolute inset-0 bg-[radial-gradient(#ffffff20_1.5px,transparent_1.5px)] [background-size:20px_20px] opacity-80" />
+            </div>
+          )}
+
+          {uploadingBanner && (
+            <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-xs z-20">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 backdrop-blur-md text-white text-xs font-semibold">
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                <span>Updating banner...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Top-Right Controls */}
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+            <ThemeToggle className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-md shadow-md" />
             <div className="px-3 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-md">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>CC Verified Campus</span>
             </div>
+          </div>
+
+          {/* Bottom-Right Banner Quick Actions */}
+          <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 flex items-center gap-2 z-10">
+            <input
+              ref={bannerFileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleBannerUpload}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => bannerFileInputRef.current?.click()}
+              disabled={uploadingBanner}
+              className="px-3 py-1.5 rounded-xl bg-black/45 hover:bg-black/65 backdrop-blur-md border border-white/25 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md transition-all cursor-pointer active:scale-95"
+              title="Upload custom banner image"
+            >
+              <Camera className="w-3.5 h-3.5 text-white" />
+              <span>{profile?.bannerUrl ? 'Change Banner' : 'Upload Banner'}</span>
+            </button>
+
+            {profile?.bannerUrl && (
+              <button
+                type="button"
+                onClick={handleRemoveBanner}
+                disabled={uploadingBanner}
+                className="px-2.5 py-1.5 rounded-xl bg-black/45 hover:bg-rose-900/70 backdrop-blur-md border border-white/25 text-white hover:text-rose-200 text-xs font-medium flex items-center gap-1 shadow-md transition-all cursor-pointer active:scale-95"
+                title="Revert to preset palette"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Reset</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setIsEditModalOpen(true)}
+              className="px-2.5 py-1.5 rounded-xl bg-black/45 hover:bg-black/65 backdrop-blur-md border border-white/25 text-white text-xs font-semibold flex items-center gap-1 shadow-md transition-all cursor-pointer active:scale-95"
+              title="Customize Banner Themes & Presets"
+            >
+              <Palette className="w-3.5 h-3.5 text-white" />
+              <span className="hidden sm:inline">Theme</span>
+            </button>
           </div>
         </div>
 
@@ -356,7 +551,7 @@ export default function ProfilePage() {
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6 -mt-16 sm:-mt-20">
             {/* Circular Profile Avatar Container */}
             <div className="flex flex-col items-center shrink-0">
-              <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full overflow-hidden border-4 border-white dark:border-navy-900 bg-slate-100 dark:bg-navy-800 shadow-xl relative flex items-center justify-center">
+              <div className="w-32 h-32 sm:w-36 sm:h-36 rounded-full overflow-hidden border-4 border-white dark:border-navy-900 bg-slate-100 dark:bg-navy-800 shadow-xl relative flex items-center justify-center">
                 {profile?.avatarUrl ? (
                   <img
                     src={profile.avatarUrl}
@@ -772,6 +967,88 @@ export default function ProfilePage() {
             </div>
 
             <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
+              {/* Cover Banner Customization */}
+              <div className="space-y-3 pb-4 border-b border-slate-200 dark:border-navy-800">
+                <div className="flex items-center justify-between">
+                  <label className="text-slate-800 dark:text-slate-200 font-semibold flex items-center gap-1.5">
+                    <Palette className="w-4 h-4 text-brand-purple" />
+                    <span>Profile Cover Banner</span>
+                  </label>
+                  <span className="text-[11px] text-slate-500">Pick a preset or upload image</span>
+                </div>
+
+                {/* Banner Mini Preview */}
+                <div className="h-24 w-full rounded-2xl relative overflow-hidden border border-slate-200 dark:border-navy-750 shadow-inner group">
+                  {editForm.bannerUrl ? (
+                    <img
+                      src={editForm.bannerUrl}
+                      alt="Banner Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div
+                      className={`w-full h-full bg-gradient-to-r ${getBannerGradient(
+                        editForm.bannerPattern
+                      )} relative overflow-hidden`}
+                    >
+                      <div className="absolute inset-0 bg-[radial-gradient(#ffffff20_1.5px,transparent_1.5px)] [background-size:16px_16px] opacity-70" />
+                    </div>
+                  )}
+
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => bannerFileInputRef.current?.click()}
+                      className="px-3 py-1.5 rounded-xl bg-white/90 text-slate-900 font-semibold text-xs flex items-center gap-1 hover:bg-white cursor-pointer shadow-md"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>Upload Photo</span>
+                    </button>
+                    {editForm.bannerUrl && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveBanner}
+                        className="px-3 py-1.5 rounded-xl bg-rose-600/90 text-white font-semibold text-xs flex items-center gap-1 hover:bg-rose-600 cursor-pointer shadow-md"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Reset</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Palette Presets Selection Grid */}
+                <div className="space-y-1.5">
+                  <span className="text-[11px] text-slate-500 font-medium">Palette Presets:</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {BANNER_PRESETS.map((preset) => {
+                      const isSelected = !editForm.bannerUrl && editForm.bannerPattern === preset.id;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => {
+                            setEditForm((prev) => ({
+                              ...prev,
+                              bannerPattern: preset.id,
+                              bannerUrl: null,
+                            }));
+                          }}
+                          className={`p-2 rounded-xl border flex items-center gap-2 transition-all cursor-pointer ${
+                            isSelected
+                              ? 'border-brand-purple bg-brand-purple/10 text-brand-purple dark:text-electric-300 ring-2 ring-brand-purple/30'
+                              : 'border-slate-200 dark:border-navy-750 bg-slate-50 dark:bg-navy-950 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-800'
+                          }`}
+                        >
+                          <div className={`w-4 h-4 rounded-full ${preset.preview} shrink-0 shadow-xs`} />
+                          <span className="text-[11px] font-medium truncate">{preset.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
               {/* Full Name & Username */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>

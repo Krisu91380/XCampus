@@ -149,3 +149,78 @@ export async function deleteProfilePhotoFromSupabase(avatarUrl: string): Promise
     return false;
   }
 }
+
+/**
+ * Uploads a profile cover banner to Supabase Storage bucket 'avatars'.
+ * Returns the long-lived signed URL or public URL of the uploaded banner.
+ */
+export async function uploadBannerToSupabase(
+  userId: string,
+  buffer: Buffer,
+  contentType: string
+): Promise<string | null> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
+  try {
+    const bucketName = 'avatars';
+    const ext = contentType.includes('png')
+      ? 'png'
+      : contentType.includes('webp')
+      ? 'webp'
+      : 'jpg';
+    const filePath = `banner-${userId}-${Date.now()}.${ext}`;
+
+    const { error } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, buffer, {
+        contentType,
+        upsert: true,
+      });
+
+    if (error) {
+      console.warn('Supabase banner upload error:', error.message);
+      return null;
+    }
+
+    const { data: signedData } = await supabase.storage
+      .from(bucketName)
+      .createSignedUrl(filePath, 60 * 60 * 24 * 365); // 1-year valid signed URL
+
+    if (signedData?.signedUrl) {
+      return signedData.signedUrl;
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from(bucketName).getPublicUrl(filePath);
+
+    return publicUrl || null;
+  } catch (err: any) {
+    console.warn('Supabase banner upload exception:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Deletes a banner image from Supabase Storage bucket 'avatars'.
+ */
+export async function deleteBannerFromSupabase(bannerUrl: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase || !bannerUrl) return false;
+
+  try {
+    const bucketName = 'avatars';
+    const marker = `/${bucketName}/`;
+    const idx = bannerUrl.indexOf(marker);
+    if (idx === -1) return false;
+
+    const filePath = bannerUrl.substring(idx + marker.length).split('?')[0];
+    if (!filePath) return false;
+
+    const { error } = await supabase.storage.from(bucketName).remove([filePath]);
+    return !error;
+  } catch {
+    return false;
+  }
+}

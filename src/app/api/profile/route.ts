@@ -32,6 +32,8 @@ export async function GET(req: NextRequest) {
         relationshipVisible: Boolean((profile?.socialLinks as any)?.relationshipVisible),
         gender: profile?.gender || 'PREFER_NOT_TO_SAY',
         avatarUrl: profile?.avatarUrl || null,
+        bannerUrl: (profile?.socialLinks as any)?.bannerUrl || null,
+        bannerPattern: (profile?.socialLinks as any)?.bannerPattern || 'default',
         bio: profile?.bio || '',
         course: profile?.course || '',
         branch: profile?.branch || '',
@@ -102,11 +104,15 @@ export async function PUT(req: NextRequest) {
           relationshipStatus: body.relationshipStatus || (body.socialLinks as any)?.relationshipStatus || 'Single',
           relationshipVisible: body.relationshipVisible !== undefined ? Boolean(body.relationshipVisible) : Boolean((body.socialLinks as any)?.relationshipVisible),
           username: body.username ? String(body.username).replace(/^@/, '').trim() : (body.socialLinks as any)?.username || '',
+          bannerUrl: body.bannerUrl !== undefined ? (body.bannerUrl ? String(body.bannerUrl).trim() : null) : (body.socialLinks as any)?.bannerUrl || null,
+          bannerPattern: body.bannerPattern ? String(body.bannerPattern).trim() : (body.socialLinks as any)?.bannerPattern || 'default',
         }
       : {
           relationshipStatus: body.relationshipStatus || 'Single',
           relationshipVisible: Boolean(body.relationshipVisible),
           username: body.username ? String(body.username).replace(/^@/, '').trim() : '',
+          bannerUrl: body.bannerUrl ? String(body.bannerUrl).trim() : null,
+          bannerPattern: body.bannerPattern ? String(body.bannerPattern).trim() : 'default',
         };
 
     const updated = await db.profile.upsert({

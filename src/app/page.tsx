@@ -27,11 +27,11 @@ export default function LandingPage() {
   const faqs = [
     {
       q: 'How does CC student networking work?',
-      a: 'CC allows you to discover, connect, and chat 1-on-1 with verified students from Lovely Professional University and partner campuses across India. You can browse detailed student profiles, send friend requests, exchange messages, and start video calls in your private Personal Room.',
+      a: 'CC allows you to discover, connect, and chat 1-on-1 with verified students from Lovely Professional University and partner campuses across India. You can browse detailed student profiles, send friend requests, exchange messages, and start video calls in your private Monkey Room.',
     },
     {
-      q: 'What is a Personal Room on CC?',
-      a: 'A Personal Room is your private, end-to-end WebRTC video and messaging space where established friends and mutual connections can interact directly, free from random intrusions.',
+      q: 'What is a Monkey Room on CC?',
+      a: 'A Monkey Room is your private, end-to-end WebRTC video and messaging space where established friends and mutual connections can interact directly, free from random intrusions.',
     },
     {
       q: 'How does the chat passes system work?',
@@ -68,7 +68,7 @@ export default function LandingPage() {
 
         <p className="max-w-2xl mx-auto text-base sm:text-lg text-slate-600 dark:text-slate-300 mb-10 leading-relaxed">
           The verified social platform built for university students. Discover peers, chat in real-time,
-          share projects, and hop into 1-on-1 Personal Rooms with students from Lovely Professional University and beyond.
+          share projects, and hop into 1-on-1 Monkey Rooms with students from Lovely Professional University and beyond.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto">
@@ -85,7 +85,7 @@ export default function LandingPage() {
             className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white dark:bg-navy-850 hover:bg-slate-50 dark:hover:bg-navy-800 text-slate-800 dark:text-slate-200 font-semibold border border-slate-200 dark:border-navy-700 transition-colors flex items-center justify-center gap-2"
           >
             <Video className="w-4 h-4 text-electric-500" />
-            <span>Personal Room</span>
+            <span>Monkey Room</span>
           </Link>
         </div>
 
@@ -197,9 +197,9 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xl mb-6">
                 3
               </div>
-              <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Chat & Personal Rooms</h4>
+              <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Chat & Monkey Rooms</h4>
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                Enjoy fast, persistent messaging with read receipts and jump into your 1-on-1 Personal Room
+                Enjoy fast, persistent messaging with read receipts and jump into your 1-on-1 Monkey Room
                 for seamless WebRTC audio and video calling.
               </p>
             </div>

@@ -48,6 +48,7 @@ export async function GET(
         success: true,
         messages: deltaMessages.map((m) => ({
           id: m.id,
+          clientMessageId: m.id,
           senderId: m.senderId,
           content: m.content,
           isRead: m.isRead,
@@ -77,6 +78,7 @@ export async function GET(
         success: true,
         messages: olderMessages.map((m) => ({
           id: m.id,
+          clientMessageId: m.id,
           senderId: m.senderId,
           content: m.content,
           isRead: m.isRead,
@@ -198,6 +200,7 @@ export async function GET(
       },
       messages: filteredMessages.map((m) => ({
         id: m.id,
+        clientMessageId: m.id,
         senderId: m.senderId,
         content: m.content,
         isRead: m.isRead,

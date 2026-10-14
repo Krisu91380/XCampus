@@ -439,7 +439,7 @@ export default function MessagesPage() {
     const content = inputValue.trim();
     const clientMessageId = 'opt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
 
-    // 1. Instant optimistic append
+    // 1. Instant optimistic append (0ms display delay)
     const optimisticMsg = {
       id: clientMessageId,
       clientMessageId,
@@ -452,6 +452,7 @@ export default function MessagesPage() {
       status: 'sending' as const,
     };
 
+    setSending(true);
     isNearBottomRef.current = true;
     setMessages((prev) => [...prev, optimisticMsg]);
     setInputValue('');
@@ -482,13 +483,19 @@ export default function MessagesPage() {
         throw new Error(data.message || 'Failed to send message');
       }
 
-      setMessages((prev) =>
-        prev.map((m) =>
+      setMessages((prev) => {
+        const next = prev.map((m) =>
           m.id === clientMessageId || m.clientMessageId === clientMessageId
-            ? { ...data.message, status: 'delivered' }
+            ? { ...m, ...data.message, id: data.message.id || clientMessageId, status: 'delivered' }
             : m
-        )
-      );
+        );
+        const seen = new Set<string>();
+        return next.filter((m) => {
+          if (seen.has(m.id)) return false;
+          seen.add(m.id);
+          return true;
+        });
+      });
 
       try {
         localStorage.setItem(
@@ -509,6 +516,8 @@ export default function MessagesPage() {
             : m
         )
       );
+    } finally {
+      setSending(false);
     }
   };
 
@@ -517,7 +526,7 @@ export default function MessagesPage() {
     if (!selectedConvId) return;
     const clientMessageId = failedMsg.clientMessageId || failedMsg.id;
     setMessages((prev) =>
-      prev.map((m) => (m.id === failedMsg.id ? { ...m, status: 'sending' } : m))
+      prev.map((m) => (m.id === failedMsg.id ? { ...m, status: 'sending', errorMessage: undefined } : m))
     );
 
     try {
@@ -532,16 +541,26 @@ export default function MessagesPage() {
         throw new Error(data.message || 'Retry failed');
       }
 
+      setMessages((prev) => {
+        const next = prev.map((m) =>
+          m.id === failedMsg.id || m.clientMessageId === clientMessageId
+            ? { ...m, ...data.message, id: data.message.id || clientMessageId, status: 'delivered' }
+            : m
+        );
+        const seen = new Set<string>();
+        return next.filter((m) => {
+          if (seen.has(m.id)) return false;
+          seen.add(m.id);
+          return true;
+        });
+      });
+    } catch (err: any) {
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === failedMsg.id || m.clientMessageId === clientMessageId
-            ? { ...data.message, status: 'delivered' }
+          m.id === failedMsg.id
+            ? { ...m, status: 'failed', errorMessage: err.message }
             : m
         )
-      );
-    } catch {
-      setMessages((prev) =>
-        prev.map((m) => (m.id === failedMsg.id ? { ...m, status: 'failed' } : m))
       );
     }
   };
@@ -1193,10 +1212,10 @@ export default function MessagesPage() {
                     <Link
                       href={`/chat/${selectedConvId}?room=personal&autoCall=true`}
                       className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-500/20 hover:bg-amber-100 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/40 text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all"
-                      title="Enter private Personal Room for video call with friend"
+                      title="Enter private Monkey Room for video call with friend"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                      <span className="hidden sm:inline">Personal Room</span>
+                      <span className="hidden sm:inline">Monkey Room</span>
                     </Link>
                   ) : (
                     <Link

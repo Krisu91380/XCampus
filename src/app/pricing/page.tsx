@@ -19,69 +19,78 @@ import {
 import { format } from 'date-fns';
 import PaymentCheckoutModal from '@/components/PaymentCheckoutModal';
 
+const DEFAULT_PACKAGES = [
+  {
+    id: 'pkg-1',
+    name: 'Campus Explorer',
+    credits: 5,
+    priceInInr: 29,
+    description: '5 Conversation credits. Great starter pack for new connections.',
+    isPopular: false,
+  },
+  {
+    id: 'pkg-2',
+    name: 'Semester Connector',
+    credits: 15,
+    priceInInr: 79,
+    description: '15 Conversation credits. Best value for active students (₹5.2/chat).',
+    isPopular: true,
+  },
+  {
+    id: 'pkg-3',
+    name: 'Campus Ultimate',
+    credits: 35,
+    priceInInr: 149,
+    description: '35 Conversation credits. Maximum value across campus networks (₹4.2/chat).',
+    isPopular: false,
+  },
+];
+
 function PricingContent() {
   const searchParams = useSearchParams();
   const isRequired = searchParams.get('required') === 'true';
 
   const [data, setData] = useState<any>(null);
-  const [packages, setPackages] = useState<any[]>([]);
+  const [packages, setPackages] = useState<any[]>(DEFAULT_PACKAGES);
   const [history, setHistory] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingAuth, setLoadingAuth] = useState(true);
 
   // Modal State
   const [selectedPackage, setSelectedPackage] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const loadData = async () => {
-    try {
-      const [authRes, pkgRes, histRes] = await Promise.all([
-        fetch('/api/auth/me').then((r) => r.json()),
-        fetch('/api/payments/packages').then((r) => r.json()),
-        fetch('/api/payments/history').then((r) => r.json()),
-      ]);
+  // Non-blocking independent fetches:
+  const loadData = () => {
+    // 1. Fetch user auth & credit balance
+    fetch('/api/auth/me')
+      .then((r) => r.json())
+      .then((authRes) => {
+        if (authRes?.authenticated && authRes?.user) {
+          setData(authRes.user);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingAuth(false));
 
-      if (authRes.authenticated) {
-        setData(authRes.user);
-      }
-      if (pkgRes.success && pkgRes.packages?.length > 0) {
-        setPackages(pkgRes.packages);
-      } else {
-        // Fallback default packages
-        setPackages([
-          {
-            id: 'pkg-1',
-            name: 'Campus Explorer',
-            credits: 5,
-            priceInInr: 29,
-            description: '5 Conversation credits. Great starter pack for new connections.',
-            isPopular: false,
-          },
-          {
-            id: 'pkg-2',
-            name: 'Semester Connector',
-            credits: 15,
-            priceInInr: 79,
-            description: '15 Conversation credits. Best value for active students (₹5.2/chat).',
-            isPopular: true,
-          },
-          {
-            id: 'pkg-3',
-            name: 'Campus Ultimate',
-            credits: 35,
-            priceInInr: 149,
-            description: '35 Conversation credits. Maximum value across campus networks (₹4.2/chat).',
-            isPopular: false,
-          },
-        ]);
-      }
-      if (histRes.success) {
-        setHistory(histRes);
-      }
-    } catch {
-      //
-    } finally {
-      setLoading(false);
-    }
+    // 2. Fetch server packages in background (updates only if customized in DB)
+    fetch('/api/payments/packages')
+      .then((r) => r.json())
+      .then((pkgRes) => {
+        if (pkgRes?.success && Array.isArray(pkgRes.packages) && pkgRes.packages.length > 0) {
+          setPackages(pkgRes.packages);
+        }
+      })
+      .catch(() => {});
+
+    // 3. Fetch purchase history in background
+    fetch('/api/payments/history')
+      .then((r) => r.json())
+      .then((histRes) => {
+        if (histRes?.success) {
+          setHistory(histRes);
+        }
+      })
+      .catch(() => {});
   };
 
   useEffect(() => {
@@ -131,12 +140,17 @@ function PricingContent() {
           are only consumed when a mutual connection is created.
         </p>
 
-        {data && (
-          <div className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white dark:bg-navy-850 border border-slate-200 dark:border-navy-750 text-xs text-slate-700 dark:text-slate-200 shadow-sm">
+        {data ? (
+          <div className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white dark:bg-navy-850 border border-slate-200 dark:border-navy-750 text-xs text-slate-700 dark:text-slate-200 shadow-sm animate-fade-in">
             <span>Your current verified balance:</span>
             <strong className="text-amber-600 dark:text-amber-400 font-mono text-sm">{data.credits ?? 0} Credits</strong>
           </div>
-        )}
+        ) : loadingAuth ? (
+          <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-slate-100/80 dark:bg-navy-850/60 border border-slate-200 dark:border-navy-750 text-[11px] text-slate-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+            <span>Loading verified credit balance...</span>
+          </div>
+        ) : null}
       </div>
 
       {/* 2. Packages Grid */}

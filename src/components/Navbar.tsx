@@ -77,17 +77,12 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* CC Brand Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center shadow-md shadow-brand-purple/20 group-hover:scale-105 transition-transform text-white font-extrabold text-base tracking-wider">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center shadow-md shadow-purple-600/20 group-hover:scale-105 transition-transform text-white font-black text-base sm:text-lg tracking-wider shrink-0">
             CC
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-black tracking-tight bg-gradient-to-r from-slate-900 via-brand-purple to-electric-500 dark:from-white dark:via-slate-200 dark:to-electric-400 bg-clip-text text-transparent">
-              CC
-            </span>
-            <span className="hidden sm:inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand-purple/10 text-brand-purple border border-brand-purple/20">
-              Campus Connect
-            </span>
-          </div>
+          <span className="text-xl font-black tracking-tight bg-gradient-to-r from-slate-900 via-purple-700 to-indigo-600 dark:from-white dark:via-slate-200 dark:to-purple-400 bg-clip-text text-transparent">
+            CampusConnect
+          </span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -117,7 +112,7 @@ export default function Navbar() {
 
           {user && (
             <>
-              {/* Personal Room / Match Room */}
+              {/* Monkey Room / Match Room */}
               <Link
                 href="/match"
                 className={`transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold ${
@@ -127,7 +122,7 @@ export default function Navbar() {
                 }`}
               >
                 <Video className="w-3.5 h-3.5 text-electric-500" />
-                Personal Room
+                Monkey Room
               </Link>
 
               {/* Messages */}
@@ -311,7 +306,7 @@ export default function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
                 className="block py-2 text-slate-700 dark:text-slate-300 font-medium"
               >
-                📹 Personal Room
+                📹 Monkey Room
               </Link>
               <Link
                 href="/profile"

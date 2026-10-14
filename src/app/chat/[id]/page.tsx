@@ -795,6 +795,7 @@ function ChatRoomContent() {
     e.preventDefault();
     if (!inputValue.trim() || sending) return;
 
+    setSending(true);
     const content = inputValue.trim();
     const clientMessageId = 'opt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
 
@@ -829,14 +830,20 @@ function ChatRoomContent() {
         throw new Error(data.message || 'Failed to send message');
       }
 
-      // Mark delivered and synchronize server-assigned message ID
-      setMessages((prev) =>
-        prev.map((m) =>
+      // Mark delivered and synchronize server-assigned message ID with deduplication
+      setMessages((prev) => {
+        const next = prev.map((m) =>
           m.id === clientMessageId || m.clientMessageId === clientMessageId
-            ? { ...data.message, status: 'delivered' }
+            ? { ...m, ...data.message, id: data.message.id || clientMessageId, status: 'delivered' }
             : m
-        )
-      );
+        );
+        const seen = new Set<string>();
+        return next.filter((m) => {
+          if (seen.has(m.id)) return false;
+          seen.add(m.id);
+          return true;
+        });
+      });
 
       // Save to local cache
       try {
@@ -859,6 +866,8 @@ function ChatRoomContent() {
             : m
         )
       );
+    } finally {
+      setSending(false);
     }
   };
 
@@ -866,7 +875,7 @@ function ChatRoomContent() {
   const handleRetryMessage = async (failedMsg: any) => {
     const clientMessageId = failedMsg.clientMessageId || failedMsg.id;
     setMessages((prev) =>
-      prev.map((m) => (m.id === failedMsg.id ? { ...m, status: 'sending' } : m))
+      prev.map((m) => (m.id === failedMsg.id ? { ...m, status: 'sending', errorMessage: undefined } : m))
     );
 
     try {
@@ -881,16 +890,24 @@ function ChatRoomContent() {
         throw new Error(data.message || 'Retry failed');
       }
 
+      setMessages((prev) => {
+        const next = prev.map((m) =>
+          m.id === failedMsg.id || m.clientMessageId === clientMessageId
+            ? { ...m, ...data.message, id: data.message.id || clientMessageId, status: 'delivered' }
+            : m
+        );
+        const seen = new Set<string>();
+        return next.filter((m) => {
+          if (seen.has(m.id)) return false;
+          seen.add(m.id);
+          return true;
+        });
+      });
+    } catch (err: any) {
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === failedMsg.id || m.clientMessageId === clientMessageId
-            ? { ...data.message, status: 'delivered' }
-            : m
+          m.id === failedMsg.id ? { ...m, status: 'failed', errorMessage: err.message } : m
         )
-      );
-    } catch {
-      setMessages((prev) =>
-        prev.map((m) => (m.id === failedMsg.id ? { ...m, status: 'failed' } : m))
       );
     }
   };
@@ -998,7 +1015,7 @@ function ChatRoomContent() {
               {isMoneyRoom ? (
                 <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-[10px] font-bold items-center gap-1 shadow-sm shrink-0">
                   <Sparkles className="w-3 h-3 text-amber-500" />
-                  <span>Personal Room</span>
+                  <span>Monkey Room</span>
                 </span>
               ) : (
                 <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-700 dark:text-purple-300 text-[10px] font-bold items-center gap-1 shadow-sm shrink-0">
@@ -1241,7 +1258,7 @@ function ChatRoomContent() {
                           <Loader2 className="w-3.5 h-3.5 animate-spin text-electric-400" />
                           <span>
                             {isMoneyRoom
-                              ? 'Establishing secure Personal Room video feed...'
+                              ? 'Establishing secure Monkey Room video feed...'
                               : 'Establishing live Match Room video connection...'}
                           </span>
                         </p>
