@@ -26,6 +26,24 @@ export async function GET(req: NextRequest) {
     const pendingVerifications = (await db.verification.findMany({ where: { status: 'PENDING' } })).length;
     const pendingReports = (await db.abuseReport.findMany({ where: { status: 'PENDING' } })).length;
 
+    let pgTables: string[] = [];
+    let pgConnectionError: string | null = null;
+    let isPrismaActive = Boolean(db.prisma);
+
+    if (db.prisma) {
+      try {
+        const rows: any = await db.prisma.$queryRaw`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          ORDER BY table_name;
+        `;
+        pgTables = Array.isArray(rows) ? rows.map((r: any) => r.table_name) : [];
+      } catch (e: any) {
+        pgConnectionError = e.message;
+      }
+    }
+
     return NextResponse.json({
       success: true,
       stats: {
@@ -46,14 +64,16 @@ export async function GET(req: NextRequest) {
         role: session.role,
       },
       dbDiagnostics: {
+        isPrismaActive,
+        pgTablesCount: pgTables.length,
+        pgTables,
+        pgConnectionError,
         hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
-        hasPostgresUrl: Boolean(process.env.POSTGRES_URL),
-        hasKvUrl: Boolean(process.env.KV_REST_API_URL || process.env.KV_URL),
+        hasDirectUrl: Boolean(process.env.DIRECT_URL),
         databaseUrlScheme: process.env.DATABASE_URL ? process.env.DATABASE_URL.split(':')[0] : null,
         isVercel: Boolean(process.env.VERCEL),
         userCount: users.length,
         userEmails: users.map((u) => u.email),
-        envKeys: Object.keys(process.env).filter((k) => !k.startsWith('npm_') && !k.startsWith('_')).sort(),
       },
     });
   } catch (error: any) {

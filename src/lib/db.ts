@@ -679,6 +679,20 @@ export const db = {
 
   user: {
     findUnique: async ({ where }: { where: { id?: string; email?: string } }): Promise<User | null> => {
+      if (prismaInstance) {
+        try {
+          if (where.id) {
+            const row = await prismaInstance.user.findUnique({ where: { id: where.id } });
+            if (row && !row.deletedAt) return row as unknown as User;
+          } else if (where.email) {
+            const target = where.email.toLowerCase().trim();
+            const row = await prismaInstance.user.findUnique({ where: { email: target } });
+            if (row && !row.deletedAt) return row as unknown as User;
+          }
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL user.findUnique error:', err.message);
+        }
+      }
       store.syncFromDiskIfNeeded();
       if (where.id) return store.users.get(where.id) || null;
       if (where.email) {
@@ -690,6 +704,21 @@ export const db = {
       return null;
     },
     findMany: async (args?: { where?: Partial<User> }): Promise<User[]> => {
+      if (prismaInstance) {
+        try {
+          const rows = await prismaInstance.user.findMany({
+            where: {
+              deletedAt: null,
+              ...(args?.where?.role ? { role: args.where.role } : {}),
+              ...(args?.where?.status ? { status: args.where.status } : {}),
+              ...(args?.where?.universityId ? { universityId: args.where.universityId } : {}),
+            },
+          });
+          if (rows.length > 0) return rows as unknown as User[];
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL user.findMany error:', err.message);
+        }
+      }
       store.syncFromDiskIfNeeded();
       const all = Array.from(store.users.values()).filter((u) => !u.deletedAt);
       if (!args?.where) return all;
@@ -701,30 +730,80 @@ export const db = {
       });
     },
     create: async ({ data }: { data: Omit<User, 'id' | 'createdAt' | 'updatedAt'> & { id?: string } }): Promise<User> => {
-      store.syncFromDiskIfNeeded();
       const id = data.id || `user-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const normalizedEmail = data.email.toLowerCase().trim();
+      const now = new Date();
+
+      if (prismaInstance) {
+        try {
+          const row = await prismaInstance.user.create({
+            data: {
+              id,
+              email: normalizedEmail,
+              passwordHash: data.passwordHash,
+              role: data.role || 'USER',
+              status: data.status || 'ACTIVE',
+              isAgeVerified: data.isAgeVerified ?? true,
+              dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
+              universityId: data.universityId || null,
+              createdAt: now,
+              updatedAt: now,
+            },
+          });
+          store.users.set(id, row as unknown as User);
+          return row as unknown as User;
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL user.create error:', err.message);
+        }
+      }
+
+      store.syncFromDiskIfNeeded();
       const user: User = {
         id,
         ...data,
         email: normalizedEmail,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: now,
+        updatedAt: now,
       };
       store.users.set(id, user);
       store.saveToDisk();
       return user;
     },
     update: async ({ where, data }: { where: { id: string }; data: Partial<User> }): Promise<User> => {
+      const now = new Date();
+      if (prismaInstance) {
+        try {
+          const row = await prismaInstance.user.update({
+            where: { id: where.id },
+            data: {
+              ...(data.role ? { role: data.role } : {}),
+              ...(data.status ? { status: data.status } : {}),
+              ...(data.universityId !== undefined ? { universityId: data.universityId } : {}),
+              ...(data.passwordHash ? { passwordHash: data.passwordHash } : {}),
+              updatedAt: now,
+            },
+          });
+          store.users.set(where.id, row as unknown as User);
+          return row as unknown as User;
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL user.update error:', err.message);
+        }
+      }
+
       store.syncFromDiskIfNeeded();
       const existing = store.users.get(where.id);
       if (!existing) throw new Error(`User ${where.id} not found`);
-      const updated = { ...existing, ...data, updatedAt: new Date() };
+      const updated = { ...existing, ...data, updatedAt: now };
       store.users.set(where.id, updated);
       store.saveToDisk();
       return updated;
     },
     count: async () => {
+      if (prismaInstance) {
+        try {
+          return await prismaInstance.user.count({ where: { deletedAt: null } });
+        } catch {}
+      }
       store.syncFromDiskIfNeeded();
       return store.users.size;
     },
@@ -732,10 +811,45 @@ export const db = {
 
   profile: {
     findUnique: async ({ where }: { where: { userId: string } }): Promise<Profile | null> => {
+      if (prismaInstance) {
+        try {
+          const row = await prismaInstance.profile.findUnique({ where: { userId: where.userId } });
+          if (row) {
+            let interests = row.interests;
+            try {
+              if (typeof interests === 'string') interests = JSON.parse(interests);
+            } catch {}
+            return { ...row, interests: Array.isArray(interests) ? interests : [] } as unknown as Profile;
+          }
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL profile.findUnique error:', err.message);
+        }
+      }
       store.syncFromDiskIfNeeded();
       return store.profiles.get(where.userId) || null;
     },
     findMany: async (args?: { where?: { isDiscoverable?: boolean; isOnline?: boolean } }): Promise<Profile[]> => {
+      if (prismaInstance) {
+        try {
+          const rows = await prismaInstance.profile.findMany({
+            where: {
+              ...(args?.where?.isDiscoverable !== undefined ? { isDiscoverable: args.where.isDiscoverable } : {}),
+              ...(args?.where?.isOnline !== undefined ? { isOnline: args.where.isOnline } : {}),
+            },
+          });
+          if (rows.length > 0) {
+            return rows.map((r) => {
+              let interests = r.interests;
+              try {
+                if (typeof interests === 'string') interests = JSON.parse(interests);
+              } catch {}
+              return { ...r, interests: Array.isArray(interests) ? interests : [] };
+            }) as unknown as Profile[];
+          }
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL profile.findMany error:', err.message);
+        }
+      }
       store.syncFromDiskIfNeeded();
       const all = Array.from(store.profiles.values());
       if (!args?.where) return all;
@@ -754,6 +868,47 @@ export const db = {
       create: Omit<Profile, 'id' | 'createdAt' | 'updatedAt'>;
       update: Partial<Profile>;
     }) => {
+      if (prismaInstance) {
+        try {
+          const createInterests = typeof create.interests === 'string' ? create.interests : JSON.stringify(create.interests || []);
+          const updateInterests = update.interests !== undefined ? (typeof update.interests === 'string' ? update.interests : JSON.stringify(update.interests)) : undefined;
+
+          const row = await prismaInstance.profile.upsert({
+            where: { userId: where.userId },
+            create: {
+              userId: where.userId,
+              displayName: create.displayName,
+              gender: create.gender || 'PREFER_NOT_TO_SAY',
+              avatarUrl: create.avatarUrl || null,
+              bio: create.bio || null,
+              course: create.course || null,
+              academicYear: create.academicYear || null,
+              language: create.language || 'English',
+              interests: createInterests,
+              isOnline: Boolean(create.isOnline),
+              isDiscoverable: create.isDiscoverable !== false,
+            },
+            update: {
+              ...(update.displayName ? { displayName: update.displayName } : {}),
+              ...(update.gender ? { gender: update.gender } : {}),
+              ...(update.avatarUrl !== undefined ? { avatarUrl: update.avatarUrl } : {}),
+              ...(update.bio !== undefined ? { bio: update.bio } : {}),
+              ...(update.course !== undefined ? { course: update.course } : {}),
+              ...(update.academicYear !== undefined ? { academicYear: update.academicYear } : {}),
+              ...(update.language ? { language: update.language } : {}),
+              ...(updateInterests !== undefined ? { interests: updateInterests } : {}),
+              ...(update.isOnline !== undefined ? { isOnline: update.isOnline } : {}),
+              ...(update.isDiscoverable !== undefined ? { isDiscoverable: update.isDiscoverable } : {}),
+              ...(update.lastSeenAt ? { lastSeenAt: new Date(update.lastSeenAt) } : {}),
+            },
+          });
+          store.profiles.set(where.userId, row as unknown as Profile);
+          return row as unknown as Profile;
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL profile.upsert error:', err.message);
+        }
+      }
+
       store.syncFromDiskIfNeeded();
       const existing = store.profiles.get(where.userId);
       if (existing) {
@@ -945,10 +1100,30 @@ export const db = {
 
   conversation: {
     findUnique: async ({ where }: { where: { id: string } }): Promise<Conversation | null> => {
+      if (prismaInstance) {
+        try {
+          const row = await prismaInstance.conversation.findUnique({ where: { id: where.id } });
+          if (row) return row as unknown as Conversation;
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL conversation.findUnique error:', err.message);
+        }
+      }
       store.syncFromDiskIfNeeded();
       return store.conversations.get(where.id) || null;
     },
     findMany: async (args?: { where?: { status?: string } }): Promise<Conversation[]> => {
+      if (prismaInstance) {
+        try {
+          const rows = await prismaInstance.conversation.findMany({
+            where: {
+              ...(args?.where?.status ? { status: args.where.status } : {}),
+            },
+          });
+          if (rows.length > 0) return rows as unknown as Conversation[];
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL conversation.findMany error:', err.message);
+        }
+      }
       store.syncFromDiskIfNeeded();
       const all = Array.from(store.conversations.values());
       if (args?.where?.status) {
@@ -957,18 +1132,58 @@ export const db = {
       return all;
     },
     create: async ({ data }: { data: Omit<Conversation, 'id' | 'startedAt'> & { id?: string } }) => {
-      store.syncFromDiskIfNeeded();
       const id = data.id || `conv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+      const startedAt = new Date();
+
+      if (prismaInstance) {
+        try {
+          const row = await prismaInstance.conversation.create({
+            data: {
+              id,
+              status: data.status || 'ACTIVE',
+              startedAt,
+              endedAt: data.endedAt ? new Date(data.endedAt) : null,
+              endedByUserId: data.endedByUserId || null,
+              endReason: data.endReason || null,
+              creditDeducted: Boolean(data.creditDeducted),
+            },
+          });
+          store.conversations.set(id, row as unknown as Conversation);
+          return row as unknown as Conversation;
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL conversation.create error:', err.message);
+        }
+      }
+
+      store.syncFromDiskIfNeeded();
       const conv: Conversation = {
         id,
         ...data,
-        startedAt: new Date(),
+        startedAt,
       };
       store.conversations.set(id, conv);
       store.saveToDisk();
       return conv;
     },
     update: async ({ where, data }: { where: { id: string }; data: Partial<Conversation> }) => {
+      if (prismaInstance) {
+        try {
+          const row = await prismaInstance.conversation.update({
+            where: { id: where.id },
+            data: {
+              ...(data.status ? { status: data.status } : {}),
+              ...(data.endedAt !== undefined ? { endedAt: data.endedAt ? new Date(data.endedAt) : null } : {}),
+              ...(data.endedByUserId !== undefined ? { endedByUserId: data.endedByUserId } : {}),
+              ...(data.endReason !== undefined ? { endReason: data.endReason } : {}),
+            },
+          });
+          store.conversations.set(where.id, row as unknown as Conversation);
+          return row as unknown as Conversation;
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL conversation.update error:', err.message);
+        }
+      }
+
       store.syncFromDiskIfNeeded();
       const existing = store.conversations.get(where.id);
       if (!existing) throw new Error(`Conversation ${where.id} not found`);
@@ -981,6 +1196,20 @@ export const db = {
 
   conversationParticipant: {
     findMany: async (args?: { where?: { userId?: string; conversationId?: string; hidden?: boolean } }): Promise<ConversationParticipant[]> => {
+      if (prismaInstance) {
+        try {
+          const rows = await prismaInstance.conversationParticipant.findMany({
+            where: {
+              ...(args?.where?.userId ? { userId: args.where.userId } : {}),
+              ...(args?.where?.conversationId ? { conversationId: args.where.conversationId } : {}),
+            },
+          });
+          if (rows.length > 0) return rows as unknown as ConversationParticipant[];
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL conversationParticipant.findMany error:', err.message);
+        }
+      }
+
       store.syncFromDiskIfNeeded();
       const all = Array.from(store.conversationParticipants.values());
       const where = args?.where;
@@ -993,18 +1222,61 @@ export const db = {
       });
     },
     findFirst: async ({ where }: { where: { userId: string; conversationId: string } }): Promise<ConversationParticipant | null> => {
+      if (prismaInstance) {
+        try {
+          const row = await prismaInstance.conversationParticipant.findFirst({
+            where: {
+              userId: where.userId,
+              conversationId: where.conversationId,
+            },
+          });
+          if (row) return row as unknown as ConversationParticipant;
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL conversationParticipant.findFirst error:', err.message);
+        }
+      }
+
       store.syncFromDiskIfNeeded();
       return Array.from(store.conversationParticipants.values()).find(
         (p) => p.userId === where.userId && p.conversationId === where.conversationId
       ) || null;
     },
     create: async ({ data }: { data: Omit<ConversationParticipant, 'id' | 'joinedAt'> }) => {
-      store.syncFromDiskIfNeeded();
       const id = `part-${data.conversationId}-${data.userId}`;
+      const joinedAt = new Date();
+
+      if (prismaInstance) {
+        try {
+          const row = await prismaInstance.conversationParticipant.upsert({
+            where: {
+              conversationId_userId: {
+                conversationId: data.conversationId,
+                userId: data.userId,
+              },
+            },
+            create: {
+              id,
+              conversationId: data.conversationId,
+              userId: data.userId,
+              joinedAt,
+              hasUnread: Boolean(data.hasUnread),
+            },
+            update: {
+              hasUnread: Boolean(data.hasUnread),
+            },
+          });
+          store.conversationParticipants.set(id, row as unknown as ConversationParticipant);
+          return row as unknown as ConversationParticipant;
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL conversationParticipant.create error:', err.message);
+        }
+      }
+
+      store.syncFromDiskIfNeeded();
       const part: ConversationParticipant = {
         id,
         ...data,
-        joinedAt: new Date(),
+        joinedAt,
       };
       store.conversationParticipants.set(id, part);
       store.saveToDisk();
@@ -1054,6 +1326,29 @@ export const db = {
       where: { conversationId: string; afterTimestamp?: Date | string | number };
       orderBy?: { createdAt: 'asc' | 'desc' };
     }): Promise<Message[]> => {
+      if (prismaInstance) {
+        try {
+          const afterDate = where.afterTimestamp ? new Date(where.afterTimestamp) : undefined;
+          const rows = await prismaInstance.message.findMany({
+            where: {
+              conversationId: where.conversationId,
+              ...(afterDate ? { createdAt: { gt: afterDate } } : {}),
+            },
+            orderBy: {
+              createdAt: orderBy?.createdAt || 'asc',
+            },
+          });
+          if (rows.length > 0) {
+            return rows as unknown as Message[];
+          }
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL message query error:', err.message);
+          if (process.env.NODE_ENV === 'production') {
+            throw new Error(`Database query failed: ${err.message}`);
+          }
+        }
+      }
+
       store.syncFromDiskIfNeeded();
       let msgs = Array.from(store.messages.values()).filter((m) => m.conversationId === where.conversationId);
       if (where.afterTimestamp) {
@@ -1066,12 +1361,35 @@ export const db = {
       return msgs.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     },
     create: async ({ data }: { data: Omit<Message, 'id' | 'createdAt'> }) => {
-      store.syncFromDiskIfNeeded();
       const id = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+      const createdAt = new Date();
+
+      if (prismaInstance) {
+        try {
+          const row = await prismaInstance.message.create({
+            data: {
+              id,
+              conversationId: data.conversationId,
+              senderId: data.senderId,
+              content: data.content,
+              isRead: Boolean(data.isRead),
+              createdAt,
+            },
+          });
+          // Also sync to store in-memory for instant read caching
+          store.messages.set(id, row as unknown as Message);
+          return row as unknown as Message;
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL message insert error:', err.message);
+          throw new Error(`Failed to commit message to persistent database: ${err.message}`);
+        }
+      }
+
+      store.syncFromDiskIfNeeded();
       const msg: Message = {
         id,
         ...data,
-        createdAt: new Date(),
+        createdAt,
       };
       store.messages.set(id, msg);
       store.saveToDisk();
@@ -1344,11 +1662,33 @@ export const db = {
 
   friendRequest: {
     findUnique: async ({ where }: { where: { id: string } }): Promise<FriendRequest | null> => {
-      store.syncFromDiskIfNeeded();
       const targetId = where.id.trim();
+      if (prismaInstance) {
+        try {
+          const row = await prismaInstance.friendRequest.findUnique({ where: { id: targetId } });
+          if (row) return row as unknown as FriendRequest;
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL friendRequest.findUnique error:', err.message);
+        }
+      }
+      store.syncFromDiskIfNeeded();
       return store.friendRequests.get(targetId) || Array.from(store.friendRequests.values()).find((r) => r.id === targetId) || null;
     },
     findFirst: async ({ where }: { where: { senderId?: string; receiverId?: string; status?: FriendRequestStatus } }): Promise<FriendRequest | null> => {
+      if (prismaInstance) {
+        try {
+          const row = await prismaInstance.friendRequest.findFirst({
+            where: {
+              ...(where.senderId ? { senderId: where.senderId } : {}),
+              ...(where.receiverId ? { receiverId: where.receiverId } : {}),
+              ...(where.status ? { status: where.status } : {}),
+            },
+          });
+          if (row) return row as unknown as FriendRequest;
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL friendRequest.findFirst error:', err.message);
+        }
+      }
       store.syncFromDiskIfNeeded();
       const all = Array.from(store.friendRequests.values());
       return all.find((r) => {
@@ -1366,6 +1706,21 @@ export const db = {
         OR?: Array<{ senderId?: string; receiverId?: string; status?: FriendRequestStatus }>;
       };
     }): Promise<FriendRequest[]> => {
+      if (prismaInstance) {
+        try {
+          const rows = await prismaInstance.friendRequest.findMany({
+            where: {
+              ...(args?.where?.senderId ? { senderId: args.where.senderId } : {}),
+              ...(args?.where?.receiverId ? { receiverId: args.where.receiverId } : {}),
+              ...(args?.where?.status ? { status: args.where.status } : {}),
+              ...(args?.where?.OR ? { OR: args.where.OR as any } : {}),
+            },
+          });
+          if (rows.length > 0) return rows as unknown as FriendRequest[];
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL friendRequest.findMany error:', err.message);
+        }
+      }
       store.syncFromDiskIfNeeded();
       const all = Array.from(store.friendRequests.values());
       if (!args?.where) return all;
@@ -1386,28 +1741,73 @@ export const db = {
       });
     },
     create: async ({ data }: { data: Omit<FriendRequest, 'id' | 'createdAt' | 'updatedAt'> }) => {
-      store.syncFromDiskIfNeeded();
       const id = `freq-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const now = new Date();
+
+      if (prismaInstance) {
+        try {
+          const row = await prismaInstance.friendRequest.create({
+            data: {
+              id,
+              senderId: data.senderId,
+              receiverId: data.receiverId,
+              status: data.status || 'PENDING',
+              createdAt: now,
+              updatedAt: now,
+            },
+          });
+          store.friendRequests.set(id, row as unknown as FriendRequest);
+          return row as unknown as FriendRequest;
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL friendRequest.create error:', err.message);
+        }
+      }
+
+      store.syncFromDiskIfNeeded();
       const req: FriendRequest = {
         id,
         ...data,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: now,
+        updatedAt: now,
       };
       store.friendRequests.set(id, req);
       store.saveToDisk();
       return req;
     },
     update: async ({ where, data }: { where: { id: string }; data: Partial<FriendRequest> }) => {
+      const now = new Date();
+      if (prismaInstance) {
+        try {
+          const row = await prismaInstance.friendRequest.update({
+            where: { id: where.id },
+            data: {
+              ...(data.status ? { status: data.status } : {}),
+              updatedAt: now,
+            },
+          });
+          store.friendRequests.set(where.id, row as unknown as FriendRequest);
+          return row as unknown as FriendRequest;
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL friendRequest.update error:', err.message);
+        }
+      }
+
       store.syncFromDiskIfNeeded();
       const existing = store.friendRequests.get(where.id) || Array.from(store.friendRequests.values()).find((r) => r.id === where.id);
       if (!existing) throw new Error(`Friend request ${where.id} not found`);
-      const updated = { ...existing, ...data, updatedAt: new Date() };
+      const updated = { ...existing, ...data, updatedAt: now };
       store.friendRequests.set(existing.id, updated);
       store.saveToDisk();
       return updated;
     },
     delete: async ({ where }: { where: { id: string } }) => {
+      if (prismaInstance) {
+        try {
+          await prismaInstance.friendRequest.delete({ where: { id: where.id } });
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL friendRequest.delete error:', err.message);
+        }
+      }
       store.syncFromDiskIfNeeded();
       const res = store.friendRequests.delete(where.id);
       store.saveToDisk();
