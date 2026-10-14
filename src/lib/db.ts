@@ -1054,32 +1054,79 @@ export const db = {
       const sb = getSupabaseClient();
       if (sb) {
         try {
-          const { data: row, error } = await sb
+          const { data: existingRow } = await sb
             .from('Profile')
-            .upsert({
-              userId: where.userId,
-              displayName: update.displayName || create.displayName,
-              gender: update.gender || create.gender || 'PREFER_NOT_TO_SAY',
-              avatarUrl: update.avatarUrl !== undefined ? update.avatarUrl : (create.avatarUrl || null),
-              bio: update.bio !== undefined ? update.bio : (create.bio || null),
-              course: update.course !== undefined ? update.course : (create.course || null),
-              academicYear: update.academicYear !== undefined ? update.academicYear : (create.academicYear || null),
-              language: update.language || create.language || 'English',
-              interests: updateInterests || createInterests,
-              isOnline: update.isOnline !== undefined ? Boolean(update.isOnline) : Boolean(create.isOnline),
-              isDiscoverable: update.isDiscoverable !== undefined ? Boolean(update.isDiscoverable) : (create.isDiscoverable !== false),
+            .select('*')
+            .eq('userId', where.userId)
+            .maybeSingle();
+
+          let row: any = null;
+          let error: any = null;
+
+          if (existingRow) {
+            const updatePayload: any = {
+              ...(update.displayName !== undefined ? { displayName: update.displayName } : {}),
+              ...(update.gender !== undefined ? { gender: update.gender } : {}),
+              ...(update.avatarUrl !== undefined ? { avatarUrl: update.avatarUrl } : {}),
+              ...(update.bio !== undefined ? { bio: update.bio } : {}),
+              ...(update.course !== undefined ? { course: update.course } : {}),
+              ...(update.academicYear !== undefined ? { academicYear: update.academicYear } : {}),
+              ...(update.language !== undefined ? { language: update.language } : {}),
+              ...(updateInterests !== undefined ? { interests: updateInterests } : {}),
+              ...(update.isOnline !== undefined ? { isOnline: Boolean(update.isOnline) } : {}),
+              ...(update.isDiscoverable !== undefined ? { isDiscoverable: Boolean(update.isDiscoverable) } : {}),
+              ...(update.lastSeenAt ? { lastSeenAt: new Date(update.lastSeenAt).toISOString() } : {}),
               updatedAt: new Date().toISOString(),
-            }, { onConflict: 'userId' })
-            .select()
-            .single();
-          if (!error && row) {
+            };
+            const res = await sb
+              .from('Profile')
+              .update(updatePayload)
+              .eq('userId', where.userId)
+              .select()
+              .single();
+            row = res.data;
+            error = res.error;
+          } else {
+            const newId = (create as any).id || `profile-${where.userId}`;
+            const insertPayload: any = {
+              id: newId,
+              userId: where.userId,
+              displayName: create.displayName,
+              gender: create.gender || 'PREFER_NOT_TO_SAY',
+              avatarUrl: create.avatarUrl || null,
+              bio: create.bio || null,
+              course: create.course || null,
+              academicYear: create.academicYear || null,
+              language: create.language || 'English',
+              interests: createInterests,
+              isOnline: Boolean(create.isOnline),
+              isDiscoverable: create.isDiscoverable !== false,
+              lastSeenAt: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            const res = await sb
+              .from('Profile')
+              .insert(insertPayload)
+              .select()
+              .single();
+            row = res.data;
+            error = res.error;
+          }
+
+          if (error) {
+            console.error('[DATABASE] Supabase profile upsert error:', error.message);
+          } else if (row) {
             let interests = row.interests;
             try { if (typeof interests === 'string') interests = JSON.parse(interests); } catch {}
             const prof = { ...row, interests: Array.isArray(interests) ? interests : [] } as unknown as Profile;
             store.profiles.set(where.userId, prof);
+            store.saveToDisk();
             return prof;
           }
-        } catch {}
+        } catch (err: any) {
+          console.error('[DATABASE] Supabase profile upsert exception:', err.message);
+        }
       }
 
       store.syncFromDiskIfNeeded();
@@ -1102,10 +1149,11 @@ export const db = {
       return newProfile;
     },
     update: async ({ where, data }: { where: { userId: string }; data: Partial<Profile> }) => {
+      let pgUpdated: any = null;
       if (prismaInstance && (await canUsePrisma())) {
         try {
           const updateInterests = data.interests !== undefined ? (typeof data.interests === 'string' ? data.interests : JSON.stringify(data.interests)) : undefined;
-          await prismaInstance.profile.update({
+          pgUpdated = await prismaInstance.profile.update({
             where: { userId: where.userId },
             data: {
               ...(data.displayName ? { displayName: data.displayName } : {}),
@@ -1119,7 +1167,9 @@ export const db = {
               ...(data.lastSeenAt ? { lastSeenAt: new Date(data.lastSeenAt) } : {}),
             },
           });
-        } catch {}
+        } catch (e: any) {
+          console.error('[DATABASE] Prisma profile.update error:', e.message);
+        }
       }
 
       const sb = getSupabaseClient();
@@ -1129,14 +1179,23 @@ export const db = {
           if (payload.interests && typeof payload.interests !== 'string') {
             payload.interests = JSON.stringify(payload.interests);
           }
-          await sb.from('Profile').update(payload).eq('userId', where.userId);
-        } catch {}
+          const { data: sbRow, error: sbErr } = await sb
+            .from('Profile')
+            .update(payload)
+            .eq('userId', where.userId)
+            .select()
+            .maybeSingle();
+          if (sbRow) pgUpdated = sbRow;
+          if (sbErr) console.error('[DATABASE] Supabase profile.update error:', sbErr.message);
+        } catch (e: any) {
+          console.error('[DATABASE] Supabase profile.update exception:', e.message);
+        }
       }
 
       store.syncFromDiskIfNeeded();
       const existing = store.profiles.get(where.userId);
-      if (!existing) throw new Error(`Profile for user ${where.userId} not found`);
-      const updated = { ...existing, ...data, updatedAt: new Date() };
+      if (!existing && !pgUpdated) throw new Error(`Profile for user ${where.userId} not found`);
+      const updated = { ...(existing || {}), ...data, ...(pgUpdated || {}), updatedAt: new Date() } as Profile;
       store.profiles.set(where.userId, updated);
       store.saveToDisk();
       return updated;
@@ -1585,17 +1644,41 @@ export const db = {
       const sb = getSupabaseClient();
       if (sb) {
         try {
-          const { data: row, error } = await sb
+          const { data: existingPart } = await sb
             .from('ConversationParticipant')
-            .upsert({
-              id,
-              conversationId: data.conversationId,
-              userId: data.userId,
-              joinedAt: joinedAt.toISOString(),
-              hasUnread: Boolean(data.hasUnread),
-            }, { onConflict: 'conversationId,userId' })
-            .select()
-            .single();
+            .select('id')
+            .eq('conversationId', data.conversationId)
+            .eq('userId', data.userId)
+            .maybeSingle();
+
+          let row: any = null;
+          let error: any = null;
+
+          if (existingPart) {
+            const res = await sb
+              .from('ConversationParticipant')
+              .update({ hasUnread: Boolean(data.hasUnread) })
+              .eq('id', existingPart.id)
+              .select()
+              .single();
+            row = res.data;
+            error = res.error;
+          } else {
+            const res = await sb
+              .from('ConversationParticipant')
+              .insert({
+                id,
+                conversationId: data.conversationId,
+                userId: data.userId,
+                joinedAt: joinedAt.toISOString(),
+                hasUnread: Boolean(data.hasUnread),
+              })
+              .select()
+              .single();
+            row = res.data;
+            error = res.error;
+          }
+
           if (!error && row) {
             store.conversationParticipants.set(id, row as unknown as ConversationParticipant);
             return row as unknown as ConversationParticipant;
@@ -1902,12 +1985,30 @@ export const db = {
       const sb = getSupabaseClient();
       if (sb) {
         try {
-          await sb.from('UserCreditBalance').upsert({
-            id: `bal-${data.userId}`,
-            userId: data.userId,
-            credits: Math.max(0, data.credits),
-            updatedAt: new Date().toISOString(),
-          }, { onConflict: 'userId' });
+          const { data: existingBal } = await sb
+            .from('UserCreditBalance')
+            .select('id')
+            .eq('userId', data.userId)
+            .maybeSingle();
+
+          if (existingBal) {
+            await sb
+              .from('UserCreditBalance')
+              .update({
+                credits: Math.max(0, data.credits),
+                updatedAt: new Date().toISOString(),
+              })
+              .eq('userId', data.userId);
+          } else {
+            await sb
+              .from('UserCreditBalance')
+              .insert({
+                id: `bal-${data.userId}`,
+                userId: data.userId,
+                credits: Math.max(0, data.credits),
+                updatedAt: new Date().toISOString(),
+              });
+          }
         } catch {}
       }
       store.syncFromDiskIfNeeded();
@@ -1950,12 +2051,30 @@ export const db = {
       const sb = getSupabaseClient();
       if (sb) {
         try {
-          await sb.from('UserCreditBalance').upsert({
-            id: existing?.id || `bal-${where.userId}`,
-            userId: where.userId,
-            credits: balCredits,
-            updatedAt: new Date().toISOString(),
-          }, { onConflict: 'userId' });
+          const { data: existingBal } = await sb
+            .from('UserCreditBalance')
+            .select('id')
+            .eq('userId', where.userId)
+            .maybeSingle();
+
+          if (existingBal) {
+            await sb
+              .from('UserCreditBalance')
+              .update({
+                credits: balCredits,
+                updatedAt: new Date().toISOString(),
+              })
+              .eq('userId', where.userId);
+          } else {
+            await sb
+              .from('UserCreditBalance')
+              .insert({
+                id: existing?.id || `bal-${where.userId}`,
+                userId: where.userId,
+                credits: balCredits,
+                updatedAt: new Date().toISOString(),
+              });
+          }
         } catch {}
       }
 
@@ -2293,18 +2412,45 @@ export const db = {
       const sb = getSupabaseClient();
       if (sb) {
         try {
-          const { data: row, error } = await sb
+          const { data: existingFr } = await sb
             .from('FriendRequest')
-            .upsert({
-              id,
-              senderId: data.senderId,
-              receiverId: data.receiverId,
-              status: data.status || 'PENDING',
-              createdAt: now.toISOString(),
-              updatedAt: now.toISOString(),
-            }, { onConflict: 'senderId,receiverId' })
-            .select()
-            .single();
+            .select('id')
+            .eq('senderId', data.senderId)
+            .eq('receiverId', data.receiverId)
+            .maybeSingle();
+
+          let row: any = null;
+          let error: any = null;
+
+          if (existingFr) {
+            const res = await sb
+              .from('FriendRequest')
+              .update({
+                status: data.status || 'PENDING',
+                updatedAt: now.toISOString(),
+              })
+              .eq('id', existingFr.id)
+              .select()
+              .single();
+            row = res.data;
+            error = res.error;
+          } else {
+            const res = await sb
+              .from('FriendRequest')
+              .insert({
+                id,
+                senderId: data.senderId,
+                receiverId: data.receiverId,
+                status: data.status || 'PENDING',
+                createdAt: now.toISOString(),
+                updatedAt: now.toISOString(),
+              })
+              .select()
+              .single();
+            row = res.data;
+            error = res.error;
+          }
+
           if (!error && row) {
             store.friendRequests.set(id, row as unknown as FriendRequest);
             return row as unknown as FriendRequest;

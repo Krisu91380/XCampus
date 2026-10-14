@@ -11,12 +11,12 @@ async function main() {
   console.log('1️⃣ Checking deployment status & footer suppression...');
   const chatPageRes = await fetch(`${BASE_URL}/chat`);
   const chatPageHtml = await chatPageRes.text();
-  const footerInChat = chatPageHtml.includes('Safety & Governance') || chatPageHtml.includes('Built with student safety first');
+  const footerInChat = chatPageHtml.includes('Safety &amp; Governance') || chatPageHtml.includes('Safety & Governance') || chatPageHtml.includes('Built with student safety first');
   console.log(`   - /chat footer present: ${footerInChat} (Expected: false)`);
 
   const browsePageRes = await fetch(`${BASE_URL}/browse`);
   const browseHtml = await browsePageRes.text();
-  const footerInBrowse = browseHtml.includes('Safety & Governance');
+  const footerInBrowse = browseHtml.includes('Safety &amp; Governance') || browseHtml.includes('Safety & Governance') || browseHtml.includes('Community Guidelines');
   console.log(`   - /browse footer present: ${footerInBrowse} (Expected: true for normal pages)`);
 
   // 2. Authenticate Student 1
