@@ -75,7 +75,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-slate-200/90 bg-white/95 dark:border-navy-850 dark:bg-navy-950/90 backdrop-blur-md transition-colors duration-150">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* CC Brand Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
+        <Link href="/" className="flex items-center gap-2.5 group shrink-0">
           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center shadow-md shadow-purple-600/20 group-hover:scale-105 transition-transform text-white font-black text-base sm:text-lg tracking-wider shrink-0">
             CC
           </div>
@@ -84,8 +84,51 @@ export default function Navbar() {
           </span>
         </Link>
 
+        {/* Primary Horizontal Navigation Row (Desktop Only: md and up) */}
+        <nav aria-label="Desktop Primary Navigation" className="hidden md:flex items-center gap-1 lg:gap-2">
+          {[
+            { label: 'Discover Students', href: '/browse', icon: Compass },
+            { label: 'Passes & Pricing', href: '/pricing', icon: Coins },
+            { label: 'Monkey Room', href: '/match', icon: Video },
+            {
+              label: 'Messages',
+              href: '/messages',
+              icon: MessageSquare,
+              badge: pendingFriendRequestsCount > 0 ? pendingFriendRequestsCount : undefined,
+            },
+            { label: 'Profile', href: '/profile', icon: UserIcon },
+          ].map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all relative ${
+                  isActive
+                    ? 'text-brand-purple dark:text-electric-400 bg-purple-50/90 dark:bg-navy-850 font-bold border border-purple-200/80 dark:border-navy-700 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-navy-850'
+                }`}
+                title={item.label}
+              >
+                <Icon
+                  className={`w-4 h-4 shrink-0 ${
+                    isActive ? 'text-brand-purple dark:text-electric-400 stroke-[2.2]' : 'text-slate-500 dark:text-slate-400 stroke-[1.8]'
+                  }`}
+                />
+                <span className="tracking-tight">{item.label}</span>
+                {item.badge && item.badge > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-brand-purple text-white font-mono font-bold text-[10px] leading-tight shadow-xs">
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
         {/* User Status, Theme Switch & Secondary Action Controls (Desktop) */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-3 shrink-0">
           {/* Light / Dark Mode Toggle */}
           <ThemeToggle />
 
@@ -127,10 +170,12 @@ export default function Navbar() {
                         src={user.profile.avatarUrl}
                         alt={user.profile.displayName || 'Avatar'}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
                       />
-                    ) : (
-                      (user.profile?.displayName?.[0] || user.email?.[0] || 'S').toUpperCase()
-                    )}
+                    ) : null}
+                    {(user.profile?.displayName?.[0] || user.email?.[0] || 'S').toUpperCase()}
                   </div>
                   <span className="text-xs text-slate-700 dark:text-slate-300 font-semibold max-w-[120px] truncate">
                     {user.profile?.displayName || user.email}
@@ -188,10 +233,12 @@ export default function Navbar() {
                     src={user.profile.avatarUrl}
                     alt="Avatar"
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
                   />
-                ) : (
-                  (user.profile?.displayName?.[0] || user.email?.[0] || 'S').toUpperCase()
-                )}
+                ) : null}
+                {(user.profile?.displayName?.[0] || user.email?.[0] || 'S').toUpperCase()}
               </Link>
 
               <button

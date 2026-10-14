@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { verifyAndResolveParticipants } from '@/lib/conversation';
+import { verifyAndResolveParticipants, invalidateConversationCache } from '@/lib/conversation';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,9 +21,10 @@ export async function POST(
       );
     }
 
-    // Mark current user's participant record as hidden and set clearedAt to now
-    // This hides the conversation only for current user and clears past message history for them,
-    // while preserving the partner's chat history untouched.
+    // Mark current user's participant record as left/deleted with leftAt and hidden
+    // This removes the conversation strictly from current user's visible inbox and prevents
+    // automatic re-addition on poll/refresh, while preserving the partner's chat history untouched.
+    const now = new Date();
     const existingPart = await db.conversationParticipant.findFirst({
       where: {
         conversationId,
@@ -36,7 +37,8 @@ export async function POST(
         where: { id: existingPart.id },
         data: {
           hidden: true,
-          clearedAt: new Date(),
+          leftAt: now,
+          clearedAt: now,
           hasUnread: false,
         },
       });
@@ -46,12 +48,26 @@ export async function POST(
           conversationId,
           userId: session.userId,
           hidden: true,
-          clearedAt: new Date(),
+          leftAt: now,
+          clearedAt: now,
+          hasUnread: false,
+        },
+      });
+      await db.conversationParticipant.update({
+        where: {
+          conversationId_userId: { conversationId, userId: session.userId },
+        },
+        data: {
+          hidden: true,
+          leftAt: now,
+          clearedAt: now,
           hasUnread: false,
         },
       });
     }
 
+    invalidateConversationCache(conversationId);
+    invalidateConversationCache();
     db.store.saveToDisk();
 
     return NextResponse.json({

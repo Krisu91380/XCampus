@@ -101,62 +101,11 @@ export default function BottomNav() {
 
   return (
     <nav
-      aria-label="Primary Navigation Bar"
-      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-navy-950/95 backdrop-blur-lg border-t border-slate-200 dark:border-navy-800 pb-[env(safe-area-inset-bottom)] shadow-lg transition-all"
+      aria-label="Mobile Navigation Bar"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-navy-950/95 backdrop-blur-lg border-t border-slate-200 dark:border-navy-800 pb-[env(safe-area-inset-bottom)] shadow-lg transition-all"
     >
-      {/* Desktop / Laptop / Tablet Bar (md and up) */}
-      <div className="hidden md:flex items-center justify-around h-16 max-w-4xl mx-auto px-6">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`flex items-center gap-2.5 px-4 py-2 rounded-xl transition-all cursor-pointer relative ${
-                item.isActive
-                  ? 'text-brand-purple dark:text-electric-400 font-bold bg-purple-50/90 dark:bg-navy-850 border border-purple-200/80 dark:border-navy-700 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/70 dark:hover:bg-navy-900 font-medium'
-              }`}
-              title={item.label}
-            >
-              {item.isAvatar && avatarUrl ? (
-                <div
-                  className={`w-6 h-6 rounded-full overflow-hidden border-2 transition-all shrink-0 ${
-                    item.isActive
-                      ? 'border-brand-purple ring-2 ring-brand-purple/20'
-                      : 'border-slate-300 dark:border-navy-700'
-                  }`}
-                >
-                  <img
-                    src={avatarUrl}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = 'none';
-                    }}
-                  />
-                </div>
-              ) : (
-                <Icon
-                  className={`w-4 h-4 shrink-0 transition-transform ${
-                    item.isActive ? 'stroke-[2.4] text-brand-purple dark:text-electric-400' : 'stroke-[1.8]'
-                  }`}
-                />
-              )}
-              <span className="text-xs tracking-tight">{item.label}</span>
-
-              {item.badge && item.badge > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-brand-purple text-white font-mono font-bold text-[10px] leading-tight shadow-xs">
-                  {item.badge}
-                </span>
-              )}
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* Mobile Bar (below md, touch-friendly iOS experience) */}
-      <div className="flex md:hidden items-center justify-around h-14 px-2 max-w-md mx-auto">
+      {/* Mobile Bar (strictly below md, touch-friendly iOS experience) */}
+      <div className="flex items-center justify-around h-14 px-2 max-w-md mx-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           return (

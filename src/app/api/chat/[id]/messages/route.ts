@@ -305,16 +305,28 @@ export async function POST(
     // Run participant unread and unhide updates asynchronously so HTTP response is returned immediately
     (async () => {
       try {
-        await Promise.all([
-          db.conversationParticipant.update({
-            where: { conversationId_userId: { conversationId, userId: verified.partnerId } },
-            data: { hasUnread: true, hidden: false },
-          }),
+        const partnerPart = await db.conversationParticipant.findFirst({
+          where: { conversationId, userId: verified.partnerId },
+        });
+
+        const updates: Promise<any>[] = [
           db.conversationParticipant.update({
             where: { conversationId_userId: { conversationId, userId: session.userId } },
-            data: { hidden: false },
+            data: { hidden: false, leftAt: undefined },
           }),
-        ]);
+        ];
+
+        // Only mark unread for partner if partner has NOT deleted/hidden this conversation
+        if (partnerPart && !partnerPart.leftAt && !partnerPart.hidden) {
+          updates.push(
+            db.conversationParticipant.update({
+              where: { conversationId_userId: { conversationId, userId: verified.partnerId } },
+              data: { hasUnread: true },
+            })
+          );
+        }
+
+        await Promise.all(updates);
       } catch (err: any) {
         console.warn('Async participant status update error:', err.message);
       }

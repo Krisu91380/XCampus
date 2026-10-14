@@ -42,7 +42,7 @@ export default function RootLayout({
           <ChatProvider>
             <GlobalIncomingCallBanner />
             <Navbar />
-            <main className="flex-1 flex flex-col min-h-0 pb-20 md:pb-24">{children}</main>
+            <main className="flex-1 flex flex-col min-h-0 pb-20 md:pb-0">{children}</main>
             <Footer />
             <GlobalFloatingChat />
             <BottomNav />

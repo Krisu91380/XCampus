@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { invalidateConversationCache } from '@/lib/conversation';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    invalidateConversationCache();
     db.store.saveToDisk();
 
     return NextResponse.json({

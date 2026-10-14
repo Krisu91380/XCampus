@@ -172,6 +172,17 @@ async function run() {
     assert(cdnCheck.status === 200, `Supabase storage avatar is accessible (HTTP ${cdnCheck.status})`);
   }
 
+  // Restore realistic student avatar so profile never displays an artificial 1x1 green circle
+  const realisticStudentAvatar = 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400';
+  await request(`${PROD_URL}/api/profile`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      displayName: 'Krish Barak',
+      avatarUrl: realisticStudentAvatar,
+    }),
+  }, cookieA);
+
   // 5. Deterministic Conversation & Persistent Messaging
   console.log('\n--- 5. Testing Persistent Messaging (Student A -> Student B) ---');
   // Ensure friendship exists between Student A and Student B

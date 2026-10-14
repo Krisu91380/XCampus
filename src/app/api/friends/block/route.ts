@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { broadcastEndConversation } from '@/lib/events';
 import { clearSignals } from '@/lib/signaling';
+import { invalidateConversationCache } from '@/lib/conversation';
 
 export const dynamic = 'force-dynamic';
 
@@ -76,6 +77,7 @@ export async function POST(req: NextRequest) {
       // Keep session in queue but they will not pair with targetUser
     }
 
+    invalidateConversationCache();
     db.store.saveToDisk();
 
     return NextResponse.json({

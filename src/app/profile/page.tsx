@@ -33,6 +33,7 @@ import {
   X,
   Save,
   Palette,
+  Ban,
 } from 'lucide-react';
 
 const BANNER_PRESETS = [
@@ -54,10 +55,14 @@ export default function ProfilePage() {
 
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
+  const [avatarLoadError, setAvatarLoadError] = useState(false);
   const [credits, setCredits] = useState<number>(0);
   const [friendsCount, setFriendsCount] = useState<number>(0);
   const [friendsList, setFriendsList] = useState<any[]>([]);
   const [showFriendsModal, setShowFriendsModal] = useState(false);
+  const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
+  const [showBlockedModal, setShowBlockedModal] = useState(false);
+  const [unblockingId, setUnblockingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Edit Modal State
@@ -95,10 +100,11 @@ export default function ProfilePage() {
 
   const fetchProfileData = async () => {
     try {
-      const [profileRes, authRes, friendsRes] = await Promise.all([
+      const [profileRes, authRes, friendsRes, blockedRes] = await Promise.all([
         fetch('/api/profile'),
         fetch('/api/auth/me'),
         fetch('/api/friends'),
+        fetch('/api/friends/blocked'),
       ]);
 
       const profileData = await profileRes.json();
@@ -115,6 +121,7 @@ export default function ProfilePage() {
 
       const p = profileData.profile;
       setProfile(p);
+      setAvatarLoadError(false);
 
       if (p?.avatarUrl) {
         try {
@@ -129,6 +136,12 @@ export default function ProfilePage() {
       if (friendsData.success && Array.isArray(friendsData.friends)) {
         setFriendsCount(friendsData.friends.length);
         setFriendsList(friendsData.friends);
+      }
+      if (blockedRes.ok) {
+        const blockedData = await blockedRes.json();
+        if (blockedData.success && Array.isArray(blockedData.blockedUsers)) {
+          setBlockedUsers(blockedData.blockedUsers);
+        }
       }
 
       // Initialize edit form
@@ -161,6 +174,27 @@ export default function ProfilePage() {
     }
   };
 
+  const handleUnblockStudent = async (userId: string) => {
+    setUnblockingId(userId);
+    try {
+      const res = await fetch('/api/friends/unblock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: userId }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to unblock student');
+      }
+      setBlockedUsers((prev) => prev.filter((b) => b.userId !== userId));
+      setMessage({ type: 'success', text: 'Student unblocked successfully.' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to unblock student.' });
+    } finally {
+      setUnblockingId(null);
+    }
+  };
+
   useEffect(() => {
     fetchProfileData();
   }, []);
@@ -181,6 +215,7 @@ export default function ProfilePage() {
 
     const previousAvatar = profile?.avatarUrl;
     // Show instant local preview while uploading
+    setAvatarLoadError(false);
     const previewUrl = URL.createObjectURL(file);
     setProfile((prev: any) => ({ ...prev, avatarUrl: previewUrl }));
 
@@ -201,6 +236,7 @@ export default function ProfilePage() {
         throw new Error(data.message || 'Failed to upload photo');
       }
 
+      setAvatarLoadError(false);
       setProfile((prev: any) => ({ ...prev, avatarUrl: data.avatarUrl }));
       try {
         if (profile?.userId) {
@@ -357,6 +393,7 @@ export default function ProfilePage() {
       const payload = {
         displayName: editForm.displayName.trim(),
         username: editForm.username.trim(),
+        avatarUrl: profile?.avatarUrl || undefined,
         relationshipStatus: editForm.relationshipStatus,
         relationshipVisible: editForm.relationshipVisible,
         gender: editForm.gender,
@@ -545,11 +582,12 @@ export default function ProfilePage() {
             {/* Left Column: Prominent Circular Avatar */}
             <div className="flex flex-col items-center shrink-0 w-36 lg:w-44">
               <div className="w-36 h-36 lg:w-40 lg:h-40 rounded-full overflow-hidden border-4 border-slate-100 dark:border-navy-800 bg-slate-100 dark:bg-navy-800 shadow-xl relative flex items-center justify-center">
-                {profile?.avatarUrl ? (
+                {profile?.avatarUrl && !avatarLoadError ? (
                   <img
                     src={profile.avatarUrl}
                     alt={profile.displayName || 'Profile Avatar'}
                     className="w-full h-full object-cover"
+                    onError={() => setAvatarLoadError(true)}
                   />
                 ) : (
                   <div className="w-full h-full bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 flex items-center justify-center font-extrabold text-4xl select-none">
@@ -659,6 +697,17 @@ export default function ProfilePage() {
                   </span>
                   <span className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm">status</span>
                 </div>
+
+                {blockedUsers.length > 0 && (
+                  <button
+                    onClick={() => setShowBlockedModal(true)}
+                    className="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer text-rose-600 dark:text-rose-400"
+                    title="View and manage blocked students"
+                  >
+                    <span className="font-bold">{blockedUsers.length}</span>
+                    <span className="text-xs sm:text-sm">blocked</span>
+                  </button>
+                )}
               </div>
 
               {/* Row 3: Full Name */}
@@ -801,11 +850,12 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between gap-4">
               <div className="relative shrink-0">
                 <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-slate-200 dark:border-navy-700 bg-slate-100 dark:bg-navy-800 shadow-md flex items-center justify-center">
-                  {profile?.avatarUrl ? (
+                  {profile?.avatarUrl && !avatarLoadError ? (
                     <img
                       src={profile.avatarUrl}
                       alt={profile.displayName || 'Profile Avatar'}
                       className="w-full h-full object-cover"
+                      onError={() => setAvatarLoadError(true)}
                     />
                   ) : (
                     <div className="w-full h-full bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 flex items-center justify-center font-extrabold text-2xl select-none">
@@ -1121,6 +1171,69 @@ export default function ProfilePage() {
                     >
                       Chat
                     </Link>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Blocked Accounts Modal */}
+      {showBlockedModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-navy-950/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-navy-800">
+              <div className="flex items-center gap-2">
+                <Ban className="w-4 h-4 text-rose-500" />
+                <h3 className="text-sm font-bold">Blocked Students ({blockedUsers.length})</h3>
+              </div>
+              <button
+                onClick={() => setShowBlockedModal(false)}
+                className="p-1 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="max-h-72 overflow-y-auto space-y-2.5">
+              {blockedUsers.length === 0 ? (
+                <div className="py-8 text-center text-slate-400 text-xs">
+                  <p>No blocked students. You have not blocked any accounts.</p>
+                </div>
+              ) : (
+                blockedUsers.map((b: any) => (
+                  <div
+                    key={b.userId}
+                    className="p-3 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {b.avatarUrl ? (
+                        <img
+                          src={b.avatarUrl}
+                          alt={b.displayName}
+                          className="w-9 h-9 rounded-full object-cover border border-slate-200 dark:border-navy-700 shrink-0"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-navy-800 flex items-center justify-center text-slate-700 dark:text-slate-200 text-xs font-bold shrink-0">
+                          {b.displayName?.[0] || 'S'}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold truncate text-slate-900 dark:text-white">{b.displayName}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{b.universityName || 'Student'}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleUnblockStudent(b.userId)}
+                      disabled={unblockingId === b.userId}
+                      className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-navy-700 hover:bg-slate-200 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-200 text-[11px] font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                    >
+                      {unblockingId === b.userId ? 'Unblocking...' : 'Unblock'}
+                    </button>
                   </div>
                 ))
               )}

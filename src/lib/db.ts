@@ -1667,7 +1667,17 @@ export const db = {
               ...(args?.where?.conversationId ? { conversationId: args.where.conversationId } : {}),
             },
           });
-          if (rows.length > 0) return rows as unknown as ConversationParticipant[];
+          if (rows.length > 0) {
+            const mapped = rows.map((r: any) => ({
+              ...r,
+              hidden: Boolean(r.leftAt),
+            })) as ConversationParticipant[];
+            for (const m of mapped) store.conversationParticipants.set(m.id, m);
+            if (args?.where?.hidden !== undefined) {
+              return mapped.filter((p) => Boolean(p.hidden) === args?.where?.hidden);
+            }
+            return mapped;
+          }
         } catch (err: any) {
           console.error('[DATABASE] PostgreSQL conversationParticipant.findMany error:', err.message);
         }
@@ -1681,8 +1691,15 @@ export const db = {
           if (args?.where?.conversationId) q = q.eq('conversationId', args.where.conversationId);
           const { data: rows, error } = await q;
           if (!error && rows && rows.length > 0) {
-            for (const r of rows) store.conversationParticipants.set(r.id, r as unknown as ConversationParticipant);
-            return rows as unknown as ConversationParticipant[];
+            const mapped = rows.map((r: any) => ({
+              ...r,
+              hidden: Boolean(r.leftAt),
+            })) as ConversationParticipant[];
+            for (const m of mapped) store.conversationParticipants.set(m.id, m);
+            if (args?.where?.hidden !== undefined) {
+              return mapped.filter((p) => Boolean(p.hidden) === args?.where?.hidden);
+            }
+            return mapped;
           }
         } catch {}
       }
@@ -1707,7 +1724,14 @@ export const db = {
               conversationId: where.conversationId,
             },
           });
-          if (row) return row as unknown as ConversationParticipant;
+          if (row) {
+            const mapped = {
+              ...row,
+              hidden: Boolean((row as any).leftAt),
+            } as ConversationParticipant;
+            store.conversationParticipants.set(mapped.id, mapped);
+            return mapped;
+          }
         } catch (err: any) {
           console.error('[DATABASE] PostgreSQL conversationParticipant.findFirst error:', err.message);
         }
@@ -1723,8 +1747,12 @@ export const db = {
             .eq('conversationId', where.conversationId)
             .maybeSingle();
           if (!error && row) {
-            store.conversationParticipants.set(row.id, row as unknown as ConversationParticipant);
-            return row as unknown as ConversationParticipant;
+            const mapped = {
+              ...row,
+              hidden: Boolean((row as any).leftAt),
+            } as ConversationParticipant;
+            store.conversationParticipants.set(mapped.id, mapped);
+            return mapped;
           }
         } catch {}
       }
@@ -1835,24 +1863,46 @@ export const db = {
       const convId = where.conversationId_userId?.conversationId || where.conversationId;
       const uId = where.conversationId_userId?.userId || where.userId;
 
-      if (prismaInstance && (await canUsePrisma()) && convId && uId) {
+      // Extract valid Prisma/Supabase fields only
+      const dbData: any = {};
+      if (data.hasUnread !== undefined) dbData.hasUnread = Boolean(data.hasUnread);
+      if (data.leftAt !== undefined) {
+        dbData.leftAt = data.leftAt ? new Date(data.leftAt) : null;
+      } else if (data.hidden !== undefined) {
+        dbData.leftAt = data.hidden ? new Date() : null;
+      }
+
+      if (prismaInstance && (await canUsePrisma())) {
         try {
-          await prismaInstance.conversationParticipant.update({
-            where: {
-              conversationId_userId: {
-                conversationId: convId,
-                userId: uId,
+          if (convId && uId) {
+            await prismaInstance.conversationParticipant.update({
+              where: {
+                conversationId_userId: {
+                  conversationId: convId,
+                  userId: uId,
+                },
               },
-            },
-            data,
-          });
-        } catch {}
+              data: dbData,
+            });
+          } else if (where.id) {
+            await prismaInstance.conversationParticipant.update({
+              where: { id: where.id },
+              data: dbData,
+            });
+          }
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL conversationParticipant.update error:', err.message);
+        }
       }
 
       const sb = getSupabaseClient();
       if (sb) {
         try {
-          let q = sb.from('ConversationParticipant').update(data);
+          const sbData: any = {};
+          if (dbData.hasUnread !== undefined) sbData.hasUnread = dbData.hasUnread;
+          if (dbData.leftAt !== undefined) sbData.leftAt = dbData.leftAt ? dbData.leftAt.toISOString() : null;
+
+          let q = sb.from('ConversationParticipant').update(sbData);
           if (convId && uId) {
             q = q.eq('conversationId', convId).eq('userId', uId);
           } else if (where.id) {
@@ -1878,6 +1928,10 @@ export const db = {
 
       if (!existing) return null;
       const updated = { ...existing, ...data };
+      if (data.hidden !== undefined) {
+        updated.hidden = data.hidden;
+        updated.leftAt = data.hidden ? new Date() : undefined;
+      }
       store.conversationParticipants.set(existing.id || id, updated);
       store.saveToDisk();
       return updated;
@@ -2291,58 +2345,238 @@ export const db = {
   },
 
   block: {
-    findUnique: async ({ where }: { where: { blockerId_blockedId?: { blockerId: string; blockedId: string }; blockerId?: string; blockedId?: string } }): Promise<Block | null> => {
-      store.syncFromDiskIfNeeded();
+    findUnique: async ({ where }: { where: { blockerId_blockedId?: { blockerId: string; blockedId: string }; blockerId?: string; blockedId?: string; id?: string } }): Promise<Block | null> => {
       const bId = where.blockerId_blockedId?.blockerId || where.blockerId;
       const tId = where.blockerId_blockedId?.blockedId || where.blockedId;
-      if (!bId || !tId) return null;
-      const key = `${bId}_${tId}`;
-      return store.blocks.get(key) || null;
+
+      if (prismaInstance && (await canUsePrisma())) {
+        try {
+          if (bId && tId) {
+            const row = await prismaInstance.block.findUnique({
+              where: {
+                blockerId_blockedId: { blockerId: bId, blockedId: tId },
+              },
+            });
+            if (row) return row as unknown as Block;
+          } else if (where.id) {
+            const row = await prismaInstance.block.findUnique({ where: { id: where.id } });
+            if (row) return row as unknown as Block;
+          }
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL block.findUnique error:', err.message);
+        }
+      }
+
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          let q = sb.from('Block').select('*');
+          if (bId && tId) {
+            q = q.eq('blockerId', bId).eq('blockedId', tId);
+          } else if (where.id) {
+            q = q.eq('id', where.id);
+          }
+          const { data: row, error } = await q.maybeSingle();
+          if (!error && row) {
+            return row as unknown as Block;
+          }
+        } catch {}
+      }
+
+      store.syncFromDiskIfNeeded();
+      if (bId && tId) {
+        const key = `${bId}_${tId}`;
+        return store.blocks.get(key) || null;
+      }
+      return null;
     },
     findFirst: async ({ where }: { where: { blockerId?: string; blockedId?: string; blockerId_blockedId?: { blockerId: string; blockedId: string } } }): Promise<Block | null> => {
+      const bId = where.blockerId_blockedId?.blockerId || where.blockerId;
+      const tId = where.blockerId_blockedId?.blockedId || where.blockedId;
+
+      if (prismaInstance && (await canUsePrisma())) {
+        try {
+          const row = await prismaInstance.block.findFirst({
+            where: {
+              ...(bId ? { blockerId: bId } : {}),
+              ...(tId ? { blockedId: tId } : {}),
+            },
+          });
+          if (row) return row as unknown as Block;
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL block.findFirst error:', err.message);
+        }
+      }
+
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          let q = sb.from('Block').select('*');
+          if (bId) q = q.eq('blockerId', bId);
+          if (tId) q = q.eq('blockedId', tId);
+          const { data: row, error } = await q.maybeSingle();
+          if (!error && row) {
+            return row as unknown as Block;
+          }
+        } catch {}
+      }
+
       store.syncFromDiskIfNeeded();
-      if (where.blockerId_blockedId) {
-        const key = `${where.blockerId_blockedId.blockerId}_${where.blockerId_blockedId.blockedId}`;
-        return store.blocks.get(key) || null;
+      if (bId && tId) {
+        const key = `${bId}_${tId}`;
+        const found = store.blocks.get(key);
+        if (found) return found;
       }
       const all = Array.from(store.blocks.values());
       return all.find((b) => {
-        if (where.blockerId && b.blockerId !== where.blockerId) return false;
-        if (where.blockedId && b.blockedId !== where.blockedId) return false;
+        if (bId && b.blockerId !== bId) return false;
+        if (tId && b.blockedId !== tId) return false;
         return true;
       }) || null;
     },
     findMany: async (args?: { where?: { blockerId?: string; blockedId?: string } }): Promise<Block[]> => {
+      const bId = args?.where?.blockerId;
+      const tId = args?.where?.blockedId;
+
+      if (prismaInstance && (await canUsePrisma())) {
+        try {
+          const rows = await prismaInstance.block.findMany({
+            where: {
+              ...(bId ? { blockerId: bId } : {}),
+              ...(tId ? { blockedId: tId } : {}),
+            },
+          });
+          if (rows.length > 0) return rows as unknown as Block[];
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL block.findMany error:', err.message);
+        }
+      }
+
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          let q = sb.from('Block').select('*');
+          if (bId) q = q.eq('blockerId', bId);
+          if (tId) q = q.eq('blockedId', tId);
+          const { data: rows, error } = await q;
+          if (!error && rows && rows.length > 0) {
+            return rows as unknown as Block[];
+          }
+        } catch {}
+      }
+
       store.syncFromDiskIfNeeded();
       const all = Array.from(store.blocks.values());
       if (!args?.where) return all;
       return all.filter((b) => {
-        if (args.where?.blockerId && b.blockerId !== args.where.blockerId) return false;
-        if (args.where?.blockedId && b.blockedId !== args.where.blockedId) return false;
+        if (bId && b.blockerId !== bId) return false;
+        if (tId && b.blockedId !== tId) return false;
         return true;
       });
     },
     create: async ({ data }: { data: Omit<Block, 'id' | 'createdAt'> }) => {
+      const id = `blk-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const createdAt = new Date();
+
+      if (prismaInstance && (await canUsePrisma())) {
+        try {
+          const row = await prismaInstance.block.upsert({
+            where: {
+              blockerId_blockedId: {
+                blockerId: data.blockerId,
+                blockedId: data.blockedId,
+              },
+            },
+            create: {
+              id,
+              blockerId: data.blockerId,
+              blockedId: data.blockedId,
+              createdAt,
+            },
+            update: {},
+          });
+          const key = `${data.blockerId}_${data.blockedId}`;
+          store.blocks.set(key, row as unknown as Block);
+          return row as unknown as Block;
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL block.create error:', err.message);
+        }
+      }
+
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          const { data: row, error } = await sb
+            .from('Block')
+            .upsert(
+              {
+                id,
+                blockerId: data.blockerId,
+                blockedId: data.blockedId,
+                createdAt: createdAt.toISOString(),
+              },
+              { onConflict: 'blockerId,blockedId' }
+            )
+            .select()
+            .single();
+          if (!error && row) {
+            const key = `${data.blockerId}_${data.blockedId}`;
+            store.blocks.set(key, row as unknown as Block);
+            return row as unknown as Block;
+          }
+        } catch {}
+      }
+
       store.syncFromDiskIfNeeded();
       const key = `${data.blockerId}_${data.blockedId}`;
       const block: Block = {
-        id: `blk-${Date.now()}`,
+        id,
         ...data,
-        createdAt: new Date(),
+        createdAt,
       };
       store.blocks.set(key, block);
       store.saveToDisk();
       return block;
     },
-    delete: async ({ where }: { where: { blockerId_blockedId?: { blockerId: string; blockedId: string }; blockerId?: string; blockedId?: string } }) => {
-      store.syncFromDiskIfNeeded();
+    delete: async ({ where }: { where: { blockerId_blockedId?: { blockerId: string; blockedId: string }; blockerId?: string; blockedId?: string; id?: string } }) => {
       const bId = where.blockerId_blockedId?.blockerId || where.blockerId;
       const tId = where.blockerId_blockedId?.blockedId || where.blockedId;
-      if (!bId || !tId) return false;
-      const key = `${bId}_${tId}`;
-      const res = store.blocks.delete(key);
-      store.saveToDisk();
-      return res;
+
+      if (prismaInstance && (await canUsePrisma())) {
+        try {
+          if (bId && tId) {
+            await prismaInstance.block.deleteMany({
+              where: { blockerId: bId, blockedId: tId },
+            });
+          } else if (where.id) {
+            await prismaInstance.block.delete({ where: { id: where.id } });
+          }
+        } catch (err: any) {
+          console.error('[DATABASE] PostgreSQL block.delete error:', err.message);
+        }
+      }
+
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          let q = sb.from('Block').delete();
+          if (bId && tId) {
+            q = q.eq('blockerId', bId).eq('blockedId', tId);
+          } else if (where.id) {
+            q = q.eq('id', where.id);
+          }
+          await q;
+        } catch {}
+      }
+
+      store.syncFromDiskIfNeeded();
+      if (bId && tId) {
+        const key = `${bId}_${tId}`;
+        const res = store.blocks.delete(key);
+        store.saveToDisk();
+        return res;
+      }
+      return true;
     },
   },
 
