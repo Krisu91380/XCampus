@@ -26,6 +26,8 @@ export async function GET(req: NextRequest) {
         profileFound: Boolean(profile),
         profileId: profile?.id,
         profileRawAvatar: profile?.avatarUrl,
+        profileSource: (profile as any)?._source,
+        profileSbErr: (profile as any)?._sbErr,
       },
       profile: {
         userId: user.id,
