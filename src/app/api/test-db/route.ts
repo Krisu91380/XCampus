@@ -49,6 +49,25 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  const url = new URL(req.url);
+  if (url.searchParams.get('testUpdate')) {
+    const testAvatar = url.searchParams.get('avatarUrl') || 'https://test-avatar-direct.png';
+    if (sb) {
+      const upRes = await sb
+        .from('Profile')
+        .update({ avatarUrl: testAvatar, updatedAt: new Date().toISOString() })
+        .eq('userId', 'user-student-krish')
+        .select();
+      results.testSupabaseUpdate = upRes;
+    }
+    const upDb = await db.profile.upsert({
+      where: { userId: 'user-student-krish' },
+      create: { userId: 'user-student-krish', displayName: 'Krish Barak', avatarUrl: testAvatar },
+      update: { avatarUrl: testAvatar },
+    });
+    results.testDbUpsert = upDb;
+  }
+
   // Test db.profile.findUnique
   try {
     const prof = await db.profile.findUnique({ where: { userId: 'user-student-krish' } });
