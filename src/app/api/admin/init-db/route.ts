@@ -5,6 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import { requireAdmin } from '@/lib/auth';
 import { migrateJsonToPostgres } from '@/lib/migrate-to-postgres';
 import { PRISMA_SCHEMA_SAFE_SQL } from '@/lib/schema-sql';
+import { SEED_PRODUCTION_DATA_SQL } from '@/lib/seed-sql';
 
 function safeParseConnectionUrl(urlStr: string | undefined) {
   if (!urlStr) return { configured: false };
@@ -58,9 +59,9 @@ export async function GET(req: NextRequest) {
         ? dbUrlMeta.projectRef === directUrlMeta.projectRef
         : null;
 
-    let testDbUrlResult: { success: boolean; error?: string; tables?: string[] } = { success: false };
-    let testSessionPoolerResult: { success: boolean; error?: string; tables?: string[] } = { success: false };
-    let testDirectUrlResult: { success: boolean; error?: string; tables?: string[] } = { success: false };
+    let testDbUrlResult: { success: boolean; error?: string; tables?: string[]; rowCounts?: Record<string, any> } = { success: false };
+    let testSessionPoolerResult: { success: boolean; error?: string; tables?: string[]; rowCounts?: Record<string, any> } = { success: false };
+    let testDirectUrlResult: { success: boolean; error?: string; tables?: string[]; rowCounts?: Record<string, any> } = { success: false };
 
     // 1. Test DATABASE_URL (Transaction pooler)
     if (process.env.DATABASE_URL) {
@@ -76,9 +77,17 @@ export async function GET(req: NextRequest) {
         const rows: any = await client.$queryRaw`
           SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;
         `;
+        const [u, p, c, m, fr] = await Promise.all([
+          client.user.count().catch(() => 0),
+          client.profile.count().catch(() => 0),
+          client.conversation.count().catch(() => 0),
+          client.message.count().catch(() => 0),
+          client.friendRequest.count().catch(() => 0),
+        ]);
         testDbUrlResult = {
           success: true,
           tables: Array.isArray(rows) ? rows.map((r: any) => r.table_name) : [],
+          rowCounts: { users: u, profiles: p, conversations: c, messages: m, friendRequests: fr },
         };
       } catch (e: any) {
         testDbUrlResult = { success: false, error: e.message };
@@ -100,9 +109,17 @@ export async function GET(req: NextRequest) {
           const rows: any = await sessionClient.$queryRaw`
             SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;
           `;
+          const [uCount, pCount, cCount, mCount, frCount] = await Promise.all([
+            sessionClient.user.count().catch(() => 0),
+            sessionClient.profile.count().catch(() => 0),
+            sessionClient.conversation.count().catch(() => 0),
+            sessionClient.message.count().catch(() => 0),
+            sessionClient.friendRequest.count().catch(() => 0),
+          ]);
           testSessionPoolerResult = {
             success: true,
             tables: Array.isArray(rows) ? rows.map((r: any) => r.table_name) : [],
+            rowCounts: { users: uCount, profiles: pCount, conversations: cCount, messages: mCount, friendRequests: frCount },
           };
         } catch (e: any) {
           testSessionPoolerResult = { success: false, error: e.message };
@@ -123,9 +140,17 @@ export async function GET(req: NextRequest) {
         const rows: any = await directClient.$queryRaw`
           SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;
         `;
+        const [uCount, pCount, cCount, mCount, frCount] = await Promise.all([
+          directClient.user.count().catch(() => 0),
+          directClient.profile.count().catch(() => 0),
+          directClient.conversation.count().catch(() => 0),
+          directClient.message.count().catch(() => 0),
+          directClient.friendRequest.count().catch(() => 0),
+        ]);
         testDirectUrlResult = {
           success: true,
           tables: Array.isArray(rows) ? rows.map((r: any) => r.table_name) : [],
+          rowCounts: { users: uCount, profiles: pCount, conversations: cCount, messages: mCount, friendRequests: frCount },
         };
       } catch (e: any) {
         testDirectUrlResult = { success: false, error: e.message };
@@ -253,14 +278,41 @@ export async function POST(req: NextRequest) {
       `;
       results.tablesNow = Array.isArray(tableRows) ? tableRows.map((r: any) => r.table_name) : [];
 
-      // 4. Run JSON-to-PostgreSQL migration
+      // 4. Run SQL Data Seeding and JSON migration
       try {
+        const seedStatements = SEED_PRODUCTION_DATA_SQL
+          .split(';')
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0 && !s.startsWith('--'));
+
+        for (const stmt of seedStatements) {
+          if (!stmt || stmt.startsWith('--')) continue;
+          try {
+            await prisma.$executeRawUnsafe(stmt);
+          } catch (e: any) {
+            // Safe to ignore duplicate or conflict
+          }
+        }
         await migrateJsonToPostgres(prisma);
         results.migrationSuccess = true;
       } catch (migErr: any) {
         results.migrationSuccess = false;
         results.ddlErrors.push(`Data migration notice: ${migErr.message}`);
       }
+
+      // 5. Query live row counts
+      let counts: any = {};
+      try {
+        const [u, p, c, m, fr] = await Promise.all([
+          prisma.user.count().catch(() => 0),
+          prisma.profile.count().catch(() => 0),
+          prisma.conversation.count().catch(() => 0),
+          prisma.message.count().catch(() => 0),
+          prisma.friendRequest.count().catch(() => 0),
+        ]);
+        counts = { users: u, profiles: p, conversations: c, messages: m, friendRequests: fr };
+      } catch {}
+      (results as any).rowCounts = counts;
 
       return NextResponse.json({
         success: true,
