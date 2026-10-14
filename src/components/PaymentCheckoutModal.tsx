@@ -337,21 +337,21 @@ export default function PaymentCheckoutModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-navy-950/85 backdrop-blur-md animate-fade-in overflow-y-auto">
-      <div className="relative w-full max-w-lg my-auto bg-navy-900 border border-navy-750 rounded-3xl shadow-2xl shadow-navy-950/90 overflow-hidden text-slate-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 dark:bg-navy-950/85 backdrop-blur-md animate-fade-in overflow-y-auto">
+      <div className="relative w-full max-w-lg my-auto bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-750 rounded-3xl shadow-2xl overflow-hidden text-slate-800 dark:text-slate-200">
         {/* Top Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-navy-800 bg-navy-850/70">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-navy-800 bg-slate-50 dark:bg-navy-850/70">
           <div className="flex items-center gap-2.5">
             <CreditCard className="w-5 h-5 text-brand-purple" />
             <div>
-              <h3 className="text-sm font-bold text-white">Secure Student Checkout</h3>
-              <p className="text-[10px] text-slate-400">CampusConnect Payment Portal</p>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Secure Student Checkout</h3>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">CampusConnect Payment Portal</p>
             </div>
           </div>
           {status !== 'SUCCESS' && (
             <button
               onClick={onClose}
-              className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-navy-800 transition-colors"
+              className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-800 transition-colors"
               title="Close payment window"
             >
               <X className="w-5 h-5" />
@@ -364,36 +364,36 @@ export default function PaymentCheckoutModal({
           {loading || status === 'LOADING' ? (
             <div className="py-16 text-center space-y-3">
               <Loader2 className="w-10 h-10 animate-spin text-brand-purple mx-auto" />
-              <p className="text-xs text-slate-400">Preparing payment order...</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Preparing payment order...</p>
             </div>
           ) : status === 'PROCESSING' ? (
             <div className="py-16 text-center space-y-4 animate-fade-in">
               <Loader2 className="w-12 h-12 animate-spin text-brand-purple mx-auto" />
-              <h4 className="text-base font-bold text-white">Verifying Transaction</h4>
-              <p className="text-xs text-slate-400 max-w-xs mx-auto">
+              <h4 className="text-base font-bold text-slate-900 dark:text-white">Verifying Transaction</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
                 Validating cryptographic payment signature and crediting your account atomically...
               </p>
             </div>
           ) : status === 'ERROR' ? (
             <div className="py-8 text-center space-y-4">
-              <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
+              <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center mx-auto">
                 <AlertCircle className="w-6 h-6" />
               </div>
-              <h4 className="text-sm font-bold text-white">Payment Issue</h4>
-              <p className="text-xs text-rose-300 max-w-xs mx-auto">{errorMessage}</p>
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white">Payment Issue</h4>
+              <p className="text-xs text-rose-600 dark:text-rose-300 max-w-xs mx-auto">{errorMessage}</p>
               <div className="flex items-center justify-center gap-3 pt-2">
                 <button
                   onClick={() => {
                     setStatus('READY');
                     setErrorMessage(null);
                   }}
-                  className="px-4 py-2 rounded-xl bg-navy-800 hover:bg-navy-750 text-xs font-semibold text-white"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-750 text-xs font-semibold text-slate-900 dark:text-white"
                 >
                   Try Again
                 </button>
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 rounded-xl bg-navy-850 hover:bg-navy-800 text-xs font-semibold text-slate-300"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-navy-850 dark:hover:bg-navy-800 text-xs font-semibold text-slate-600 dark:text-slate-300"
                 >
                   Close
                 </button>
@@ -402,23 +402,23 @@ export default function PaymentCheckoutModal({
           ) : status === 'SUCCESS' ? (
             /* SUCCESS STATE */
             <div className="py-6 text-center space-y-5 animate-fade-in">
-              <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto ring-8 ring-emerald-500/10">
+              <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto ring-8 ring-emerald-500/10">
                 <CheckCircle2 className="w-10 h-10" />
               </div>
               <div>
-                <span className="inline-block px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold tracking-wide uppercase mb-2">
+                <span className="inline-block px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold tracking-wide uppercase mb-2">
                   Payment Verified & Completed
                 </span>
-                <h4 className="text-xl font-black text-white">+{credits} Chat Credits Added!</h4>
-                <p className="text-xs text-slate-400 mt-1">
+                <h4 className="text-xl font-black text-slate-900 dark:text-white">+{credits} Chat Credits Added!</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Your chat credits have been credited to your verified student profile.
                 </p>
               </div>
 
               {verifiedBalance !== null && (
-                <div className="p-3.5 rounded-2xl bg-navy-850 border border-navy-750 text-xs text-slate-300">
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-navy-850 border border-slate-200 dark:border-navy-750 text-xs text-slate-700 dark:text-slate-300">
                   <span>Updated verified balance: </span>
-                  <strong className="text-amber-400 font-mono text-sm">
+                  <strong className="text-amber-600 dark:text-amber-400 font-mono text-sm">
                     {verifiedBalance} Credits
                   </strong>
                 </div>
@@ -437,40 +437,40 @@ export default function PaymentCheckoutModal({
             /* READY STATE WITH DUAL TABS */
             <div className="space-y-4">
               {/* Order Summary Box */}
-              <div className="p-4 rounded-2xl bg-navy-850 border border-navy-750 space-y-2.5">
-                <div className="flex items-center justify-between pb-2.5 border-b border-navy-800">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-navy-850 border border-slate-200 dark:border-navy-750 space-y-2.5">
+                <div className="flex items-center justify-between pb-2.5 border-b border-slate-200 dark:border-navy-800">
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
                       Package
                     </span>
-                    <h4 className="text-sm font-bold text-white">{packageName}</h4>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">{packageName}</h4>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
                       Total Due
                     </span>
-                    <p className="text-xl font-black text-white">₹{priceInInr}</p>
+                    <p className="text-xl font-black text-slate-900 dark:text-white">₹{priceInInr}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-slate-300">
-                  <div className="flex items-center gap-1.5 text-amber-300 font-semibold">
-                    <Sparkles className="w-4 h-4 text-amber-400" />
+                <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
+                  <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-300 font-semibold">
+                    <Sparkles className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                     <span>+{credits} Conversation Credits</span>
                   </div>
-                  <span className="text-[11px] text-slate-400">Locked server price</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">Locked server price</span>
                 </div>
               </div>
 
               {/* Payment Mode Selector Tabs */}
-              <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-navy-950/80 border border-navy-750">
+              <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-slate-100 dark:bg-navy-950/80 border border-slate-200 dark:border-navy-750">
                 <button
                   type="button"
                   onClick={() => handleSwitchTab('GATEWAY')}
                   className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                     paymentMode === 'GATEWAY'
                       ? 'bg-brand-purple text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   <CreditCard className="w-3.5 h-3.5" />
@@ -482,7 +482,7 @@ export default function PaymentCheckoutModal({
                   className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                     paymentMode === 'UPI_QR'
                       ? 'bg-electric-500 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   <QrCode className="w-3.5 h-3.5" />
@@ -503,20 +503,20 @@ export default function PaymentCheckoutModal({
                         <Lock className="w-4 h-4" />
                         <span>Pay ₹{priceInInr} via Razorpay Gateway</span>
                       </button>
-                      <p className="text-[11px] text-center text-slate-400 flex items-center justify-center gap-1">
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                      <p className="text-[11px] text-center text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
                         <span>Instant delivery: UPI, Cards & NetBanking</span>
                       </p>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <div className="p-4 rounded-2xl bg-navy-850 border border-navy-750 text-slate-300 text-xs space-y-2">
-                        <div className="flex items-center gap-2 font-bold text-amber-400">
-                          <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+                      <div className="p-4 rounded-2xl bg-amber-50 dark:bg-navy-850 border border-amber-200 dark:border-navy-750 text-slate-700 dark:text-slate-300 text-xs space-y-2">
+                        <div className="flex items-center gap-2 font-bold text-amber-700 dark:text-amber-400">
+                          <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
                           <span>Online Payments Temporarily Unavailable</span>
                         </div>
-                        <p className="text-[11px] text-slate-400 leading-relaxed">
-                          Online card and netbanking payments are currently undergoing maintenance. Please switch to the <strong className="text-electric-300">Direct UPI QR</strong> option above to pay via any UPI app.
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                          Online card and netbanking payments are currently undergoing maintenance. Please switch to the <strong className="text-electric-600 dark:text-electric-300">Direct UPI QR</strong> option above to pay via any UPI app.
                         </p>
                       </div>
 
@@ -539,22 +539,22 @@ export default function PaymentCheckoutModal({
                   {loadingQr ? (
                     <div className="py-12 text-center space-y-2">
                       <Loader2 className="w-8 h-8 animate-spin text-electric-400 mx-auto" />
-                      <p className="text-xs text-slate-400">Generating personal UPI QR...</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Generating personal UPI QR...</p>
                     </div>
                   ) : submittedUtrInfo ? (
                     /* Submitted confirmation screen */
-                    <div className="p-5 rounded-2xl bg-navy-850 border border-navy-750 text-center space-y-3 animate-fade-in">
-                      <div className="w-12 h-12 rounded-full bg-electric-500/20 text-electric-400 flex items-center justify-center mx-auto">
+                    <div className="p-5 rounded-2xl bg-slate-50 dark:bg-navy-850 border border-slate-200 dark:border-navy-750 text-center space-y-3 animate-fade-in">
+                      <div className="w-12 h-12 rounded-full bg-electric-500/20 text-electric-500 dark:text-electric-400 flex items-center justify-center mx-auto">
                         <Clock className="w-6 h-6 animate-pulse" />
                       </div>
-                      <h4 className="text-sm font-bold text-white">Payment Submitted for Review</h4>
-                      <p className="text-xs text-slate-300">
-                        Reference / UTR: <strong className="text-white font-mono">{submittedUtrInfo.utrNumber}</strong>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">Payment Submitted for Review</h4>
+                      <p className="text-xs text-slate-700 dark:text-slate-300">
+                        Reference / UTR: <strong className="text-slate-900 dark:text-white font-mono">{submittedUtrInfo.utrNumber}</strong>
                       </p>
-                      <p className="text-[11px] text-slate-400 max-w-xs mx-auto leading-relaxed">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs mx-auto leading-relaxed">
                         Your transaction is recorded and pending administrator verification. Credits will be automatically added to your balance upon approval.
                       </p>
-                      <div className="pt-2 flex items-center justify-center gap-2 text-[11px] text-electric-400 font-mono">
+                      <div className="pt-2 flex items-center justify-center gap-2 text-[11px] text-electric-600 dark:text-electric-400 font-mono">
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         <span>Awaiting administrator confirmation...</span>
                       </div>
@@ -563,8 +563,8 @@ export default function PaymentCheckoutModal({
                     /* QR Display and UTR Entry Form */
                     <div className="space-y-3">
                       {/* QR Display Card */}
-                      <div className="p-3.5 rounded-2xl bg-navy-850 border border-navy-750 flex flex-col sm:flex-row items-center gap-4">
-                        <div className="p-2 bg-white rounded-xl shadow-lg shrink-0">
+                      <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-navy-850 border border-slate-200 dark:border-navy-750 flex flex-col sm:flex-row items-center gap-4">
+                        <div className="p-2 bg-white rounded-xl shadow-md border border-slate-200 dark:border-transparent shrink-0">
                           {qrOrderData?.customQrImageUrl ? (
                             <img
                               src={qrOrderData.customQrImageUrl}
@@ -586,20 +586,20 @@ export default function PaymentCheckoutModal({
 
                         <div className="flex-1 space-y-2 text-xs min-w-0">
                           <div>
-                            <span className="text-[10px] text-slate-400 uppercase tracking-wide">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                               Receiver Name
                             </span>
-                            <p className="font-bold text-white truncate">
+                            <p className="font-bold text-slate-900 dark:text-white truncate">
                               {qrOrderData?.receiverName || 'KRISH SO ANIL KUMAR'}
                             </p>
                           </div>
 
                           <div>
-                            <span className="text-[10px] text-slate-400 uppercase tracking-wide">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                               UPI ID (VPA)
                             </span>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <code className="text-amber-300 font-mono text-[11px] bg-navy-900 px-2 py-0.5 rounded border border-navy-750 truncate">
+                              <code className="text-brand-purple dark:text-amber-300 font-mono text-[11px] bg-white dark:bg-navy-900 px-2 py-0.5 rounded border border-slate-200 dark:border-navy-750 truncate">
                                 {qrOrderData?.upiId || '9138060466@naviaxis'}
                               </code>
                               <button
@@ -610,11 +610,11 @@ export default function PaymentCheckoutModal({
                                     'upi'
                                   )
                                 }
-                                className="p-1 rounded bg-navy-800 hover:bg-navy-750 text-slate-300"
+                                className="p-1 rounded bg-slate-200 dark:bg-navy-800 hover:bg-slate-300 dark:hover:bg-navy-750 text-slate-700 dark:text-slate-300"
                                 title="Copy UPI ID"
                               >
                                 {copiedField === 'upi' ? (
-                                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                  <Check className="w-3.5 h-3.5 text-emerald-500" />
                                 ) : (
                                   <Copy className="w-3.5 h-3.5" />
                                 )}
@@ -623,10 +623,10 @@ export default function PaymentCheckoutModal({
                           </div>
 
                           <div>
-                            <span className="text-[10px] text-slate-400 uppercase tracking-wide">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                               Locked Amount
                             </span>
-                            <p className="font-black text-emerald-400 text-sm">₹{priceInInr}</p>
+                            <p className="font-black text-emerald-600 dark:text-emerald-400 text-sm">₹{priceInInr}</p>
                           </div>
                         </div>
                       </div>
@@ -634,7 +634,7 @@ export default function PaymentCheckoutModal({
                       {/* UTR & Screenshot Form */}
                       <form onSubmit={handleSubmitUtr} className="space-y-3">
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                          <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                             12-Digit UTR / Transaction Reference Number *
                           </label>
                           <input
@@ -643,16 +643,16 @@ export default function PaymentCheckoutModal({
                             placeholder="e.g. 428719283741 or UPI Ref ID"
                             value={utrNumber}
                             onChange={(e) => setUtrNumber(e.target.value)}
-                            className="w-full px-3.5 py-2.5 rounded-xl bg-navy-950 border border-navy-750 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-electric-500 font-mono"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-navy-950 border border-slate-300 dark:border-navy-750 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:outline-none focus:border-electric-500 font-mono"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                          <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
                             Upload Payment Screenshot (Optional)
                           </label>
                           <div className="flex items-center gap-2">
-                            <label className="flex-1 px-3 py-2 rounded-xl bg-navy-950 border border-dashed border-navy-750 hover:border-electric-500 text-slate-400 hover:text-white text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors">
+                            <label className="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-navy-950 border border-dashed border-slate-300 dark:border-navy-750 hover:border-electric-500 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors">
                               <Upload className="w-3.5 h-3.5" />
                               <span className="truncate">
                                 {receiptFile ? receiptFile.name : 'Choose screenshot image...'}
@@ -668,14 +668,14 @@ export default function PaymentCheckoutModal({
                               <img
                                 src={receiptPreview}
                                 alt="Preview"
-                                className="w-9 h-9 object-cover rounded-lg border border-navy-700 shrink-0"
+                                className="w-9 h-9 object-cover rounded-lg border border-slate-200 dark:border-navy-700 shrink-0"
                               />
                             )}
                           </div>
                         </div>
 
                         {errorMessage && (
-                          <p className="text-xs text-rose-400 flex items-center gap-1">
+                          <p className="text-xs text-rose-500 dark:text-rose-400 flex items-center gap-1">
                             <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                             <span>{errorMessage}</span>
                           </p>
@@ -705,13 +705,13 @@ export default function PaymentCheckoutModal({
               )}
 
               {/* Guarantees */}
-              <div className="pt-2 border-t border-navy-800 text-[11px] text-slate-400 space-y-1.5">
+              <div className="pt-2 border-t border-slate-200 dark:border-navy-800 text-[11px] text-slate-500 dark:text-slate-400 space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 shrink-0" />
                   <span>Credits never expire and are only deducted upon mutual connection.</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 shrink-0" />
                   <span>Verified student access with strict privacy protection.</span>
                 </div>
               </div>

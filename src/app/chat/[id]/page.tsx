@@ -89,6 +89,57 @@ function ChatRoomContent() {
   const [callDurationSeconds, setCallDurationSeconds] = useState(0);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [isCallMinimized, setIsCallMinimized] = useState(false);
+  const [minimizedPos, setMinimizedPos] = useState<{ x: number; y: number } | null>(null);
+  const dragRef = useRef<{ isDragging: boolean; startX: number; startY: number; origX: number; origY: number } | null>(null);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isCallMinimized) return;
+    if ((e.target as HTMLElement).closest('button')) return;
+
+    const el = videoContainerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    dragRef.current = {
+      isDragging: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      origX: rect.left,
+      origY: rect.top,
+    };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current?.isDragging || !isCallMinimized) return;
+    const el = videoContainerRef.current;
+    const cardWidth = el?.offsetWidth || 300;
+    const cardHeight = el?.offsetHeight || 180;
+
+    const deltaX = e.clientX - dragRef.current.startX;
+    const deltaY = e.clientY - dragRef.current.startY;
+
+    let newX = dragRef.current.origX + deltaX;
+    let newY = dragRef.current.origY + deltaY;
+
+    const minX = 12;
+    const maxX = Math.max(minX, window.innerWidth - cardWidth - 12);
+    const minY = 12;
+    const maxY = Math.max(minY, window.innerHeight - cardHeight - 80);
+
+    newX = Math.max(minX, Math.min(maxX, newX));
+    newY = Math.max(minY, Math.min(maxY, newY));
+
+    setMinimizedPos({ x: newX, y: newY });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragRef.current) {
+      dragRef.current.isDragging = false;
+      try {
+        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch {}
+    }
+  };
 
   // Friend State
   const [isFriend, setIsFriend] = useState(() => Boolean(conversation?.partner?.isFriend));
@@ -1151,9 +1202,25 @@ function ChatRoomContent() {
         {isVideoActive ? (
           <div
             ref={videoContainerRef}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            style={
+              isCallMinimized
+                ? {
+                    position: 'fixed',
+                    left: minimizedPos ? `${minimizedPos.x}px` : undefined,
+                    top: minimizedPos ? `${minimizedPos.y}px` : undefined,
+                    right: minimizedPos ? 'auto' : '1rem',
+                    bottom: minimizedPos ? 'auto' : '5rem',
+                    touchAction: 'none',
+                  }
+                : undefined
+            }
             className={
               isCallMinimized
-                ? "fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 w-72 sm:w-80 aspect-video rounded-2xl border-2 border-brand-purple shadow-2xl overflow-hidden bg-navy-950 flex flex-col justify-between"
+                ? "fixed z-50 w-72 sm:w-80 aspect-video rounded-2xl border-2 border-brand-purple shadow-2xl overflow-hidden bg-navy-950 flex flex-col justify-between cursor-grab active:cursor-grabbing select-none"
                 : "lg:col-span-7 xl:col-span-8 glass-card rounded-3xl border border-navy-750 flex flex-col justify-between overflow-hidden relative shadow-2xl bg-navy-950 min-h-[320px] lg:min-h-0"
             }
           >

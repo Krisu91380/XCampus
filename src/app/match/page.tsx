@@ -229,19 +229,19 @@ function MatchmakingContent() {
 
       {/* Credit Lock Gate: If 0 Credits */}
       {user && user.credits < 1 && (
-        <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs text-amber-300">
+        <div className="p-5 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs text-amber-900 dark:text-amber-300">
           <div className="flex items-start gap-3">
-            <Coins className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <Coins className="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-white text-sm">You need chat credits to start a conversation.</p>
-              <p className="text-slate-300 text-xs mt-1">
+              <p className="font-bold text-slate-900 dark:text-white text-sm">You need chat credits to start a conversation.</p>
+              <p className="text-slate-600 dark:text-slate-300 text-xs mt-1">
                 Choose a package and complete payment to continue. Introductory chat passes start at ₹9.
               </p>
             </div>
           </div>
           <Link
             href="/pricing?required=true"
-            className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-navy-950 font-bold transition-all shadow-lg shadow-amber-500/20 text-center whitespace-nowrap"
+            className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition-all shadow-lg shadow-amber-500/20 text-center whitespace-nowrap"
           >
             Buy Chat Credits
           </Link>
@@ -249,21 +249,21 @@ function MatchmakingContent() {
       )}
 
       {errorMessage && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2.5">
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-300 text-xs flex items-center gap-2.5">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           <span>{errorMessage}</span>
         </div>
       )}
 
       {statusMessage && !isSearching && !matchResult && (
-        <div className="p-4 rounded-xl bg-electric-500/10 border border-electric-500/30 text-slate-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="p-4 rounded-xl bg-purple-50 dark:bg-electric-500/10 border border-purple-200 dark:border-electric-500/30 text-slate-800 dark:text-slate-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <Sparkles className="w-4 h-4 text-electric-400 flex-shrink-0" />
+            <Sparkles className="w-4 h-4 text-purple-600 dark:text-electric-400 flex-shrink-0" />
             <span>{statusMessage}</span>
           </div>
           <button
             onClick={handleStartMatch}
-            className="px-4 py-1.5 rounded-lg bg-electric-500 hover:bg-electric-400 text-white font-semibold text-xs transition-colors self-start sm:self-auto shrink-0"
+            className="px-4 py-1.5 rounded-lg bg-brand-purple hover:opacity-90 text-white font-semibold text-xs transition-colors self-start sm:self-auto shrink-0"
           >
             Retry Search
           </button>
@@ -272,10 +272,10 @@ function MatchmakingContent() {
 
       {/* Search Radar Active State */}
       {isSearching ? (
-        <div className="glass-card rounded-3xl p-10 border border-brand-purple/40 text-center relative overflow-hidden space-y-6">
+        <div className="bg-white dark:bg-navy-900 rounded-3xl p-10 border border-slate-200 dark:border-brand-purple/40 text-center relative overflow-hidden space-y-6 shadow-sm dark:shadow-2xl">
           <div className="relative w-36 h-36 mx-auto flex items-center justify-center">
             {/* Radar wave rings */}
-            <div className="absolute inset-0 rounded-full border border-electric-400/20 animate-ping" />
+            <div className="absolute inset-0 rounded-full border border-purple-400/20 dark:border-electric-400/20 animate-ping" />
             <div className="absolute inset-4 rounded-full border border-brand-purple/30 animate-pulse" />
             <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center shadow-xl shadow-brand-purple/30">
               <Search className="w-8 h-8 text-white animate-bounce" />
@@ -283,14 +283,14 @@ function MatchmakingContent() {
           </div>
 
           <div>
-            <h3 className="text-xl font-bold text-white mb-1">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">
               Scanning for Compatible Students...
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               Filters applied: {genderPref} • {targetUni ? 'Specific University' : 'Any University'} •{' '}
               {languagePref}
             </p>
-            <p className="font-mono text-xs text-electric-400 mt-2">
+            <p className="font-mono text-xs text-brand-purple dark:text-electric-400 mt-2">
               Time elapsed: {secondsElapsed}s
             </p>
           </div>
@@ -298,7 +298,7 @@ function MatchmakingContent() {
           <div className="pt-2">
             <button
               onClick={handleCancelSearch}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-rose-500/40 text-rose-300 hover:bg-rose-500/10 text-xs font-semibold transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-rose-300 dark:border-rose-500/40 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 text-xs font-semibold transition-colors"
             >
               <XCircle className="w-4 h-4" />
               <span>Cancel Search (Zero credits deducted)</span>
@@ -306,14 +306,14 @@ function MatchmakingContent() {
           </div>
         </div>
       ) : matchResult ? (
-        <div className="glass-card rounded-3xl p-8 border border-emerald-500/40 text-center space-y-4 animate-fade-in">
-          <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+        <div className="bg-white dark:bg-navy-900 rounded-3xl p-8 border border-emerald-300 dark:border-emerald-500/40 text-center space-y-4 animate-fade-in shadow-sm dark:shadow-2xl">
+          <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:emerald-400 flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-8 h-8" />
           </div>
-          <h3 className="text-2xl font-bold text-white">Student Match Established!</h3>
-          <p className="text-xs text-slate-300">
-            Connected with <strong className="text-white">{matchResult.partner?.displayName}</strong>{' '}
-            from <strong className="text-electric-400">{matchResult.partner?.universityName}</strong>.
+          <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Student Match Established!</h3>
+          <p className="text-xs text-slate-600 dark:text-slate-300">
+            Connected with <strong className="text-slate-900 dark:text-white">{matchResult.partner?.displayName}</strong>{' '}
+            from <strong className="text-brand-purple dark:text-electric-400">{matchResult.partner?.universityName}</strong>.
           </p>
           <div className="pt-2">
             <Link
@@ -327,8 +327,8 @@ function MatchmakingContent() {
         </div>
       ) : (
         /* Matchmaking Preferences Form */
-        <div className="glass-card rounded-3xl p-6 sm:p-8 border border-navy-750">
-          <div className="flex items-center gap-2 text-white font-bold text-sm mb-6 pb-4 border-b border-navy-800">
+        <div className="bg-white dark:bg-navy-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-navy-750 shadow-sm dark:shadow-xl">
+          <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-sm mb-6 pb-4 border-b border-slate-200 dark:border-navy-800">
             <SlidersHorizontal className="w-4 h-4 text-brand-purple" />
             <span>Customize Match Criteria</span>
           </div>
@@ -336,7 +336,7 @@ function MatchmakingContent() {
           <form onSubmit={handleStartMatch} className="space-y-6 text-xs">
             {/* 1. Target University */}
             <div>
-              <label className="block text-slate-300 font-semibold mb-2">
+              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-2">
                 1. Target University
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -345,12 +345,12 @@ function MatchmakingContent() {
                   onClick={() => setTargetUni('')}
                   className={`p-3.5 rounded-xl border text-left transition-all ${
                     targetUni === ''
-                      ? 'bg-brand-purple/15 border-brand-purple text-white shadow-md'
-                      : 'bg-navy-900 border-navy-750 text-slate-400 hover:border-navy-700'
+                      ? 'bg-purple-50 dark:bg-brand-purple/15 border-brand-purple text-purple-900 dark:text-white shadow-sm'
+                      : 'bg-slate-50 dark:bg-navy-900 border-slate-200 dark:border-navy-750 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-navy-700'
                   }`}
                 >
-                  <p className="font-bold text-white text-xs">Any University</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
+                  <p className={`font-bold text-xs ${targetUni === '' ? 'text-purple-900 dark:text-white' : 'text-slate-800 dark:text-white'}`}>Any University</p>
+                  <p className={`text-[11px] mt-0.5 ${targetUni === '' ? 'text-purple-700 dark:text-slate-300' : 'text-slate-500 dark:text-slate-400'}`}>
                     Match with students from LPU or any verified partner college
                   </p>
                 </button>
@@ -362,14 +362,14 @@ function MatchmakingContent() {
                     onClick={() => setTargetUni(u.id)}
                     className={`p-3.5 rounded-xl border text-left transition-all ${
                       targetUni === u.id
-                        ? 'bg-brand-purple/15 border-brand-purple text-white shadow-md'
-                        : 'bg-navy-900 border-navy-750 text-slate-400 hover:border-navy-700'
+                        ? 'bg-purple-50 dark:bg-brand-purple/15 border-brand-purple text-purple-900 dark:text-white shadow-sm'
+                        : 'bg-slate-50 dark:bg-navy-900 border-slate-200 dark:border-navy-750 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-navy-700'
                     }`}
                   >
-                    <p className="font-bold text-white text-xs">
+                    <p className={`font-bold text-xs ${targetUni === u.id ? 'text-purple-900 dark:text-white' : 'text-slate-800 dark:text-white'}`}>
                       {u.name} ({u.code})
                     </p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
+                    <p className={`text-[11px] mt-0.5 ${targetUni === u.id ? 'text-purple-700 dark:text-slate-300' : 'text-slate-500 dark:text-slate-400'}`}>
                       {u.city}, {u.state}
                     </p>
                   </button>
@@ -379,7 +379,7 @@ function MatchmakingContent() {
 
             {/* 2. Your Gender (For Accurate Mutual Compatibility) */}
             <div>
-              <label className="block text-slate-300 font-semibold mb-2">
+              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-2">
                 2. Your Gender (for mutual compatibility)
               </label>
               <div className="grid grid-cols-3 gap-3">
@@ -388,8 +388,8 @@ function MatchmakingContent() {
                   onClick={() => setUserGender('MALE')}
                   className={`py-3 px-2 rounded-xl border font-bold text-center transition-all ${
                     userGender === 'MALE'
-                      ? 'bg-blue-500/20 border-blue-500 text-blue-300'
-                      : 'bg-navy-900 border-navy-750 text-slate-400 hover:text-white'
+                      ? 'bg-blue-50 dark:bg-blue-500/20 border-blue-500 text-blue-700 dark:text-blue-300'
+                      : 'bg-slate-50 dark:bg-navy-900 border-slate-200 dark:border-navy-750 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   Male
@@ -400,8 +400,8 @@ function MatchmakingContent() {
                   onClick={() => setUserGender('FEMALE')}
                   className={`py-3 px-2 rounded-xl border font-bold text-center transition-all ${
                     userGender === 'FEMALE'
-                      ? 'bg-pink-500/20 border-pink-500 text-pink-300'
-                      : 'bg-navy-900 border-navy-750 text-slate-400 hover:text-white'
+                      ? 'bg-pink-50 dark:bg-pink-500/20 border-pink-500 text-pink-700 dark:text-pink-300'
+                      : 'bg-slate-50 dark:bg-navy-900 border-slate-200 dark:border-navy-750 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   Female
@@ -412,8 +412,8 @@ function MatchmakingContent() {
                   onClick={() => setUserGender('NON_BINARY')}
                   className={`py-3 px-2 rounded-xl border font-bold text-center transition-all ${
                     userGender === 'NON_BINARY'
-                      ? 'bg-purple-500/20 border-purple-500 text-purple-300'
-                      : 'bg-navy-900 border-navy-750 text-slate-400 hover:text-white'
+                      ? 'bg-purple-50 dark:bg-purple-500/20 border-purple-500 text-purple-700 dark:text-purple-300'
+                      : 'bg-slate-50 dark:bg-navy-900 border-slate-200 dark:border-navy-750 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   Non-Binary
@@ -423,7 +423,7 @@ function MatchmakingContent() {
 
             {/* 3. Partner Gender Preference */}
             <div>
-              <label className="block text-slate-300 font-semibold mb-2">
+              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-2">
                 3. Preferred Conversation Partner
               </label>
               <div className="grid grid-cols-3 gap-3">
@@ -432,8 +432,8 @@ function MatchmakingContent() {
                   onClick={() => setGenderPref('EVERYONE')}
                   className={`py-3 px-2 rounded-xl border font-bold text-center transition-all ${
                     genderPref === 'EVERYONE'
-                      ? 'bg-electric-500/20 border-electric-500 text-electric-300'
-                      : 'bg-navy-900 border-navy-750 text-slate-400 hover:text-white'
+                      ? 'bg-purple-50 dark:bg-electric-500/20 border-brand-purple dark:border-electric-500 text-purple-700 dark:text-electric-300'
+                      : 'bg-slate-50 dark:bg-navy-900 border-slate-200 dark:border-navy-750 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   Everyone
@@ -444,8 +444,8 @@ function MatchmakingContent() {
                   onClick={() => setGenderPref('GIRLS')}
                   className={`py-3 px-2 rounded-xl border font-bold text-center transition-all ${
                     genderPref === 'GIRLS'
-                      ? 'bg-pink-500/20 border-pink-500 text-pink-300'
-                      : 'bg-navy-900 border-navy-750 text-slate-400 hover:text-white'
+                      ? 'bg-pink-50 dark:bg-pink-500/20 border-pink-500 text-pink-700 dark:text-pink-300'
+                      : 'bg-slate-50 dark:bg-navy-900 border-slate-200 dark:border-navy-750 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   Girls
@@ -456,8 +456,8 @@ function MatchmakingContent() {
                   onClick={() => setGenderPref('BOYS')}
                   className={`py-3 px-2 rounded-xl border font-bold text-center transition-all ${
                     genderPref === 'BOYS'
-                      ? 'bg-blue-500/20 border-blue-500 text-blue-300'
-                      : 'bg-navy-900 border-navy-750 text-slate-400 hover:text-white'
+                      ? 'bg-blue-50 dark:bg-blue-500/20 border-blue-500 text-blue-700 dark:text-blue-300'
+                      : 'bg-slate-50 dark:bg-navy-900 border-slate-200 dark:border-navy-750 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   Boys
@@ -468,13 +468,13 @@ function MatchmakingContent() {
             {/* 4. Language & Course */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-slate-300 font-semibold mb-1.5">
+                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1.5">
                   Chat Language
                 </label>
                 <select
                   value={languagePref}
                   onChange={(e) => setLanguagePref(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-navy-900 border border-navy-750 text-white focus:outline-none focus:border-brand-purple"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-750 text-slate-900 dark:text-white focus:outline-none focus:border-brand-purple"
                 >
                   <option value="English">English</option>
                   <option value="Hindi">Hindi / Hinglish</option>
@@ -485,7 +485,7 @@ function MatchmakingContent() {
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1.5">
+                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1.5">
                   Topic / Course Filter (Optional)
                 </label>
                 <input
@@ -493,18 +493,18 @@ function MatchmakingContent() {
                   value={courseFilter}
                   onChange={(e) => setCourseFilter(e.target.value)}
                   placeholder="e.g. Computer Science, MBA, Gaming"
-                  className="w-full px-4 py-2.5 rounded-xl bg-navy-900 border border-navy-750 text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-750 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-purple"
                 />
               </div>
             </div>
 
             {/* Start Match CTA */}
-            <div className="pt-4 border-t border-navy-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-[11px] text-slate-400 flex items-center gap-2">
-                <Coins className="w-4 h-4 text-amber-400" />
+            <div className="pt-4 border-t border-slate-200 dark:border-navy-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                <Coins className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                 <span>
                   Uses 1 chat credit upon successful match. Your balance:{' '}
-                  <strong className="text-white">{user?.credits ?? 0} credits</strong>.
+                  <strong className="text-slate-900 dark:text-white">{user?.credits ?? 0} credits</strong>.
                 </span>
               </div>
 
@@ -512,7 +512,7 @@ function MatchmakingContent() {
                 id="start-match-submit-btn"
                 type="submit"
                 disabled={user?.credits < 1}
-                className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white font-bold text-sm shadow-xl shadow-brand-purple/25 hover:opacity-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white font-bold text-sm shadow-xl shadow-brand-purple/25 hover:opacity-95 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Sparkles className="w-4 h-4" />
                 <span>Start Match Search</span>
@@ -521,7 +521,7 @@ function MatchmakingContent() {
           </form>
 
           {statusMessage && (
-            <p className="text-xs text-center text-slate-400 mt-4">{statusMessage}</p>
+            <p className="text-xs text-center text-slate-500 dark:text-slate-400 mt-4">{statusMessage}</p>
           )}
         </div>
       )}

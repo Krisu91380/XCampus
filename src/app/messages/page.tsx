@@ -840,7 +840,7 @@ export default function MessagesPage() {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-0 sm:p-2 md:p-3 flex-1 flex flex-col h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] overflow-hidden min-h-0">
+    <div className="w-full max-w-7xl mx-auto p-0 sm:p-2 md:p-3 flex-1 flex flex-col h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] md:h-[calc(100dvh-8rem)] md:max-h-[calc(100dvh-8rem)] overflow-hidden min-h-0">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-16 md:top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-slate-900/90 dark:bg-brand-purple/90 backdrop-blur border border-white/20 text-white text-xs font-semibold shadow-2xl animate-fade-in flex items-center gap-2">
@@ -854,7 +854,7 @@ export default function MessagesPage() {
         {/* Left Column: Conversation Sidebar List */}
         <aside
           aria-label="Conversations"
-          className={`w-full md:w-80 lg:w-96 border-r border-slate-200 dark:border-navy-800 flex flex-col bg-slate-50/70 dark:bg-navy-900/60 min-h-0 shrink-0 ${
+          className={`w-full md:w-80 lg:w-96 border-r border-slate-200 dark:border-navy-800 flex flex-col bg-slate-50/70 dark:bg-navy-900/60 min-h-0 shrink-0 pb-14 md:pb-0 ${
             selectedConvId ? 'hidden md:flex' : 'flex'
           }`}
         >

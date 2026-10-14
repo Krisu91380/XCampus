@@ -15,7 +15,7 @@ export default function Footer() {
   }
 
   return (
-    <footer className="border-t border-slate-200 dark:border-navy-850 bg-slate-100/90 dark:bg-navy-950 text-slate-600 dark:text-slate-400 text-sm transition-colors duration-150">
+    <footer className="border-t border-slate-200 dark:border-navy-850 bg-slate-100/90 dark:bg-navy-950 text-slate-600 dark:text-slate-400 text-sm transition-colors duration-150 pb-20 md:pb-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand Info */}

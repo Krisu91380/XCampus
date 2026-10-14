@@ -7,7 +7,7 @@ import GlobalIncomingCallBanner from '@/components/GlobalIncomingCallBanner';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { ChatProvider } from '@/context/ChatContext';
 import GlobalFloatingChat from '@/components/GlobalFloatingChat';
-import MobileBottomNav from '@/components/MobileBottomNav';
+import BottomNav from '@/components/BottomNav';
 
 export const metadata: Metadata = {
   title: `${APP_CONFIG.name} — ${APP_CONFIG.tagline}`,
@@ -42,10 +42,10 @@ export default function RootLayout({
           <ChatProvider>
             <GlobalIncomingCallBanner />
             <Navbar />
-            <main className="flex-1 flex flex-col min-h-0 pb-16 md:pb-0">{children}</main>
+            <main className="flex-1 flex flex-col min-h-0 pb-20 md:pb-24">{children}</main>
             <Footer />
             <GlobalFloatingChat />
-            <MobileBottomNav />
+            <BottomNav />
           </ChatProvider>
         </ThemeProvider>
       </body>
