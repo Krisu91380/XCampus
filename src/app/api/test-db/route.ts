@@ -59,3 +59,49 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(results);
 }
+
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+  const testAvatarUrl = body.avatarUrl || 'https://test-avatar.png';
+  const out: any = {};
+
+  const sb = getSupabaseClient();
+  if (sb) {
+    try {
+      const updateRes = await sb
+        .from('Profile')
+        .update({ avatarUrl: testAvatarUrl, updatedAt: new Date().toISOString() })
+        .eq('userId', 'user-student-krish')
+        .select();
+      out.directSupabaseUpdate = updateRes;
+    } catch (e: any) {
+      out.directSupabaseUpdateError = e.message;
+    }
+  }
+
+  try {
+    const upsertRes = await db.profile.upsert({
+      where: { userId: 'user-student-krish' },
+      create: {
+        userId: 'user-student-krish',
+        displayName: 'Krish Barak',
+        avatarUrl: testAvatarUrl,
+      },
+      update: {
+        avatarUrl: testAvatarUrl,
+      },
+    });
+    out.dbUpsertResult = upsertRes;
+  } catch (e: any) {
+    out.dbUpsertError = e.message;
+  }
+
+  try {
+    const after = await db.profile.findUnique({ where: { userId: 'user-student-krish' } });
+    out.profileAfter = after;
+  } catch (e: any) {
+    out.profileAfterError = e.message;
+  }
+
+  return NextResponse.json(out);
+}
