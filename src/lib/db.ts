@@ -645,15 +645,27 @@ const store: InMemoryStore = (globalThis as any).__campusConnectDb || new InMemo
 (globalThis as any).__campusConnectDb = store;
 
 const isPostgresUrl = Boolean(
-  process.env.DATABASE_URL &&
+  (process.env.DATABASE_URL &&
     (process.env.DATABASE_URL.startsWith('postgres://') ||
-      process.env.DATABASE_URL.startsWith('postgresql://'))
+      process.env.DATABASE_URL.startsWith('postgresql://'))) ||
+  (process.env.DIRECT_URL &&
+    (process.env.DIRECT_URL.startsWith('postgres://') ||
+      process.env.DIRECT_URL.startsWith('postgresql://')))
 );
 
 let prismaInstance: PrismaClient | null = null;
 if (isPostgresUrl) {
   try {
-    prismaInstance = (globalThis as any).__campusConnectPrisma || new PrismaClient();
+    const connectionUrl = process.env.DATABASE_URL || process.env.DIRECT_URL;
+    prismaInstance =
+      (globalThis as any).__campusConnectPrisma ||
+      new PrismaClient({
+        datasources: {
+          db: {
+            url: connectionUrl,
+          },
+        },
+      });
     (globalThis as any).__campusConnectPrisma = prismaInstance;
 
     // Trigger one-time async background migration from data_store.json to PostgreSQL

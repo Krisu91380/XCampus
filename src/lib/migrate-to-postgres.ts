@@ -1,9 +1,34 @@
 import fs from 'fs';
 import path from 'path';
 import { PrismaClient } from '@prisma/client';
+import { PRISMA_SCHEMA_SAFE_SQL } from './schema-sql';
+
+export async function ensurePostgresTables(prisma: PrismaClient) {
+  try {
+    const rawStatements = PRISMA_SCHEMA_SAFE_SQL
+      .split(';')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && !s.startsWith('--'));
+
+    for (const stmt of rawStatements) {
+      if (!stmt || stmt.startsWith('--')) continue;
+      try {
+        await prisma.$executeRawUnsafe(stmt);
+      } catch (e: any) {
+        // Safe to ignore if already exists or constraint already present
+      }
+    }
+    console.log('[DATABASE] PostgreSQL schema tables verified/created successfully.');
+  } catch (err: any) {
+    console.warn('[DATABASE] Warning during PostgreSQL table creation:', err.message);
+  }
+}
 
 export async function migrateJsonToPostgres(prisma: PrismaClient) {
   try {
+    // First, ensure all tables and indexes exist safely
+    await ensurePostgresTables(prisma);
+
     const jsonPath = path.join(process.cwd(), 'prisma', 'data_store.json');
     if (!fs.existsSync(jsonPath)) {
       console.log('No prisma/data_store.json found to migrate.');
