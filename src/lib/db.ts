@@ -920,7 +920,6 @@ export const db = {
 
   profile: {
     findUnique: async ({ where }: { where: { userId: string } }): Promise<Profile | null> => {
-      let sbErr: string | null = null;
       if (prismaInstance && (await canUsePrisma())) {
         try {
           const row = await prismaInstance.profile.findUnique({ where: { userId: where.userId } });
@@ -940,25 +939,22 @@ export const db = {
         try {
           const { data: row, error } = await sb.from('Profile').select('*').eq('userId', where.userId).maybeSingle();
           if (error) {
-            sbErr = error.message;
             console.error('[DATABASE] Supabase profile.findUnique error:', error.message);
           } else if (row) {
             let interests = row.interests;
             try {
               if (typeof interests === 'string') interests = JSON.parse(interests);
             } catch {}
-            const prof = { ...row, interests: Array.isArray(interests) ? interests : [], _source: 'supabase' } as unknown as Profile;
+            const prof = { ...row, interests: Array.isArray(interests) ? interests : [] } as unknown as Profile;
             store.profiles.set(where.userId, prof);
             return prof;
           }
         } catch (e: any) {
-          sbErr = e.message;
           console.error('[DATABASE] Supabase profile.findUnique exception:', e.message);
         }
       }
       store.syncFromDiskIfNeeded();
-      const stProf = store.profiles.get(where.userId);
-      return stProf ? ({ ...stProf, _source: 'store', _sbErr: sbErr } as unknown as Profile) : null;
+      return store.profiles.get(where.userId) || null;
     },
     findMany: async (args?: { where?: { isDiscoverable?: boolean; isOnline?: boolean } }): Promise<Profile[]> => {
       if (prismaInstance && (await canUsePrisma())) {

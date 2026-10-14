@@ -3,6 +3,8 @@ import { requireAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 export async function GET(req: NextRequest) {
   try {
@@ -18,18 +20,10 @@ export async function GET(req: NextRequest) {
       ? await db.university.findUnique({ where: { id: user.universityId } })
       : null;
 
-    return NextResponse.json({
-      success: true,
-      _debug: {
-        sessionUserId: session.userId,
-        userId: user.id,
-        profileFound: Boolean(profile),
-        profileId: profile?.id,
-        profileRawAvatar: profile?.avatarUrl,
-        profileSource: (profile as any)?._source,
-        profileSbErr: (profile as any)?._sbErr,
-      },
-      profile: {
+    return NextResponse.json(
+      {
+        success: true,
+        profile: {
         userId: user.id,
         email: user.email,
         displayName: profile?.displayName || 'Student',
@@ -51,7 +45,13 @@ export async function GET(req: NextRequest) {
         isDiscoverable: profile?.isDiscoverable ?? true,
         createdAt: profile?.createdAt || user.createdAt,
       },
-    });
+    },
+    {
+      headers: {
+        'Cache-Control': 'private, no-cache, no-store, max-age=0, must-revalidate',
+      },
+    }
+  );
   } catch (error: any) {
     if (error.message === 'UNAUTHORIZED') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
