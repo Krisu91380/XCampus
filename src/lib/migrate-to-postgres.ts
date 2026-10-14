@@ -100,33 +100,28 @@ export async function migrateJsonToPostgres(prisma: PrismaClient) {
     // 3. Profiles
     if (Array.isArray(data.profiles)) {
       for (const [userId, p] of data.profiles) {
-        await prisma.profile.upsert({
-          where: { userId },
-          create: {
-            id: p.id || `profile-${userId}`,
-            userId,
-            displayName: p.displayName || 'Student',
-            gender: p.gender || 'PREFER_NOT_TO_SAY',
-            avatarUrl: p.avatarUrl || null,
-            bio: p.bio || null,
-            course: p.course || null,
-            academicYear: p.academicYear || null,
-            language: p.language || 'English',
-            interests: JSON.stringify(p.interests || []),
-            isOnline: Boolean(p.isOnline),
-            isDiscoverable: p.isDiscoverable !== false,
-            lastSeenAt: new Date(p.lastSeenAt || Date.now()),
-            createdAt: new Date(p.createdAt || Date.now()),
-            updatedAt: new Date(p.updatedAt || Date.now()),
-          },
-          update: {
-            displayName: p.displayName,
-            avatarUrl: p.avatarUrl || undefined,
-            course: p.course || undefined,
-            academicYear: p.academicYear || undefined,
-            bio: p.bio || undefined,
-          },
-        });
+        const existing = await prisma.profile.findUnique({ where: { userId } });
+        if (!existing) {
+          await prisma.profile.create({
+            data: {
+              id: p.id || `profile-${userId}`,
+              userId,
+              displayName: p.displayName || 'Student',
+              gender: p.gender || 'PREFER_NOT_TO_SAY',
+              avatarUrl: p.avatarUrl || null,
+              bio: p.bio || null,
+              course: p.course || null,
+              academicYear: p.academicYear || null,
+              language: p.language || 'English',
+              interests: JSON.stringify(p.interests || []),
+              isOnline: Boolean(p.isOnline),
+              isDiscoverable: p.isDiscoverable !== false,
+              lastSeenAt: new Date(p.lastSeenAt || Date.now()),
+              createdAt: new Date(p.createdAt || Date.now()),
+              updatedAt: new Date(p.updatedAt || Date.now()),
+            },
+          });
+        }
       }
       console.log(`Migrated ${data.profiles.length} profiles.`);
     }
@@ -159,18 +154,17 @@ export async function migrateJsonToPostgres(prisma: PrismaClient) {
     // 5. User Credit Balances
     if (Array.isArray(data.creditBalances)) {
       for (const [userId, b] of data.creditBalances) {
-        await prisma.userCreditBalance.upsert({
-          where: { userId },
-          create: {
-            id: b.id || `bal-${userId}`,
-            userId,
-            credits: b.credits || 0,
-            updatedAt: new Date(b.updatedAt || Date.now()),
-          },
-          update: {
-            credits: b.credits || 0,
-          },
-        });
+        const existingBal = await prisma.userCreditBalance.findUnique({ where: { userId } });
+        if (!existingBal) {
+          await prisma.userCreditBalance.create({
+            data: {
+              id: b.id || `bal-${userId}`,
+              userId,
+              credits: b.credits || 0,
+              updatedAt: new Date(b.updatedAt || Date.now()),
+            },
+          });
+        }
       }
       console.log(`Migrated ${data.creditBalances.length} user credit balances.`);
     }
@@ -401,25 +395,28 @@ export async function migrateJsonToSupabase(supabase: SupabaseClient) {
     const profileList = profiles.length > 0 ? profiles : defaultProfiles;
     for (const p of profileList) {
       try {
-        const { error } = await supabase.from('Profile').upsert({
-          id: p.id || `profile-${p.userId}`,
-          userId: p.userId,
-          displayName: p.displayName || 'Student',
-          gender: p.gender || 'PREFER_NOT_TO_SAY',
-          avatarUrl: p.avatarUrl || null,
-          bio: p.bio || null,
-          course: p.course || null,
-          academicYear: p.academicYear || null,
-          language: p.language || 'English',
-          interests: typeof p.interests === 'string' ? p.interests : JSON.stringify(p.interests || []),
-          isOnline: Boolean(p.isOnline),
-          isDiscoverable: p.isDiscoverable !== false,
-          lastSeenAt: new Date(p.lastSeenAt || Date.now()).toISOString(),
-          createdAt: new Date(p.createdAt || Date.now()).toISOString(),
-          updatedAt: new Date(p.updatedAt || Date.now()).toISOString(),
-        }, { onConflict: 'userId' });
-        if (error) summary.errors.push(`Profile ${p.userId}: ${error.message}`);
-        else summary.profiles++;
+        const { data: existing } = await supabase.from('Profile').select('userId').eq('userId', p.userId).maybeSingle();
+        if (!existing) {
+          const { error } = await supabase.from('Profile').insert({
+            id: p.id || `profile-${p.userId}`,
+            userId: p.userId,
+            displayName: p.displayName || 'Student',
+            gender: p.gender || 'PREFER_NOT_TO_SAY',
+            avatarUrl: p.avatarUrl || null,
+            bio: p.bio || null,
+            course: p.course || null,
+            academicYear: p.academicYear || null,
+            language: p.language || 'English',
+            interests: typeof p.interests === 'string' ? p.interests : JSON.stringify(p.interests || []),
+            isOnline: Boolean(p.isOnline),
+            isDiscoverable: p.isDiscoverable !== false,
+            lastSeenAt: new Date(p.lastSeenAt || Date.now()).toISOString(),
+            createdAt: new Date(p.createdAt || Date.now()).toISOString(),
+            updatedAt: new Date(p.updatedAt || Date.now()).toISOString(),
+          });
+          if (error) summary.errors.push(`Profile ${p.userId}: ${error.message}`);
+          else summary.profiles++;
+        }
       } catch (e: any) {
         summary.errors.push(`Profile ${p.userId}: ${e.message}`);
       }
@@ -466,14 +463,17 @@ export async function migrateJsonToSupabase(supabase: SupabaseClient) {
     const balList = creditBalances.length > 0 ? creditBalances : defaultBalances;
     for (const b of balList) {
       try {
-        const { error } = await supabase.from('UserCreditBalance').upsert({
-          id: b.id || `bal-${b.userId}`,
-          userId: b.userId,
-          credits: b.credits || 0,
-          updatedAt: new Date(b.updatedAt || Date.now()).toISOString(),
-        }, { onConflict: 'userId' });
-        if (error) summary.errors.push(`CreditBalance ${b.userId}: ${error.message}`);
-        else summary.creditBalances++;
+        const { data: existing } = await supabase.from('UserCreditBalance').select('userId').eq('userId', b.userId).maybeSingle();
+        if (!existing) {
+          const { error } = await supabase.from('UserCreditBalance').insert({
+            id: b.id || `bal-${b.userId}`,
+            userId: b.userId,
+            credits: b.credits || 0,
+            updatedAt: new Date(b.updatedAt || Date.now()).toISOString(),
+          });
+          if (error) summary.errors.push(`CreditBalance ${b.userId}: ${error.message}`);
+          else summary.creditBalances++;
+        }
       } catch (e: any) {
         summary.errors.push(`CreditBalance ${b.userId}: ${e.message}`);
       }
