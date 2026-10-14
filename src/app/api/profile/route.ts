@@ -20,6 +20,13 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      _debug: {
+        sessionUserId: session.userId,
+        userId: user.id,
+        profileFound: Boolean(profile),
+        profileId: profile?.id,
+        profileRawAvatar: profile?.avatarUrl,
+      },
       profile: {
         userId: user.id,
         email: user.email,
