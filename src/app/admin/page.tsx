@@ -27,6 +27,7 @@ import {
   AlertCircle,
   FileCheck,
   Info,
+  LogOut,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -457,6 +458,20 @@ export default function AdminDashboardPage() {
             }`}
           >
             Audit Logs
+          </button>
+          <button
+            onClick={async () => {
+              if (confirm('Are you sure you want to log out of the Administrator console?')) {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                router.push('/login');
+                router.refresh();
+              }
+            }}
+            className="px-3.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+            title="Log out of Super Administrator session"
+          >
+            <LogOut className="w-3.5 h-3.5 text-rose-400" />
+            <span>Admin Logout</span>
           </button>
         </div>
       </div>

@@ -1169,12 +1169,12 @@ export default function MessagesPage() {
 
                   {chatPartner.isFriend ? (
                     <Link
-                      href={`/chat/${selectedConvId}?room=money&autoCall=true`}
+                      href={`/chat/${selectedConvId}?room=personal&autoCall=true`}
                       className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all"
-                      title="Enter private Money Room for live video call with friend"
+                      title="Enter private Personal Room for live video call with friend"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Money Room</span>
+                      <span>Personal Room</span>
                     </Link>
                   ) : (
                     <Link
@@ -1360,7 +1360,7 @@ export default function MessagesPage() {
               <div className="w-16 h-16 rounded-full bg-navy-900 border border-navy-800 flex items-center justify-center text-electric-400 shadow-inner">
                 <MessageSquare className="w-8 h-8" />
               </div>
-              <h2 className="text-base font-bold text-white">Your CampusConnect Inbox</h2>
+              <h2 className="text-base font-bold text-white">Your CC Inbox</h2>
               <p className="text-xs max-w-sm">
                 Select a conversation from the left to start messaging, or find a new verified university student partner.
               </p>

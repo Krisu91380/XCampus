@@ -5,16 +5,14 @@ import Link from 'next/link';
 import {
   Sparkles,
   ShieldCheck,
-  Coins,
   ArrowRight,
   GraduationCap,
-  MessageSquare,
   Lock,
   ChevronDown,
   CheckCircle,
   Users,
   Compass,
-  Star,
+  Video,
 } from 'lucide-react';
 import { APP_CONFIG } from '@/lib/config';
 import RazorpayButton from '@/components/RazorpayButton';
@@ -28,126 +26,127 @@ export default function LandingPage() {
 
   const faqs = [
     {
-      q: 'How does university matching work on CampusConnect?',
-      a: 'You can choose to match with students from your own university (like Lovely Professional University) or explore specific partner universities across India. You set your partner preferences (boys, girls, or everyone) and conversation topics. Our atomic matchmaking engine pairs you with an active, consenting peer.',
+      q: 'How does CC student networking work?',
+      a: 'CC allows you to discover, connect, and chat 1-on-1 with verified students from Lovely Professional University and partner campuses across India. You can browse detailed student profiles, send friend requests, exchange messages, and start video calls in your private Personal Room.',
     },
     {
-      q: 'How does the paid chat credits system work?',
-      a: 'To maintain high quality, respect, and eliminate spam bots, conversations require chat credits (e.g. ₹9 for 1 credit or ₹29 for 5 credits). A credit is only deducted once a mutual, eligible conversation is successfully created. If no partner is found or you cancel, zero credits are consumed.',
+      q: 'What is a Personal Room on CC?',
+      a: 'A Personal Room is your private, end-to-end WebRTC video and messaging space where established friends and mutual connections can interact directly, free from random intrusions.',
+    },
+    {
+      q: 'How does the chat passes system work?',
+      a: 'To maintain high quality, respect, and eliminate spam bots, starting new connection sessions uses credits (e.g. ₹29 for 5 credits). Once friends are connected, regular messaging remains free and persistent.',
     },
     {
       q: 'Is this platform strictly for students aged 18 and older?',
-      a: 'Yes. CampusConnect is strictly restricted to adults aged 18 and above. Age confirmation is required during registration, and student ID or university email verification is enforced before full verified access is granted.',
-    },
-    {
-      q: 'What universities are currently supported?',
-      a: 'We initially target Lovely Professional University (LPU), alongside Delhi University (DU), VIT, and BITS Pilani. Our extensible architecture allows additional Indian and global universities to be added continuously by administrators.',
+      a: 'Yes. CC is strictly restricted to verified adults aged 18 and above. Age confirmation is required during registration, and student institutional credentials are verified before full access is granted.',
     },
     {
       q: 'Is my personal contact information or phone number exposed?',
-      a: 'Never. Only your chosen display name, university badge, course, and public interests are visible. Your phone number, email address, physical location, and sensitive verification documents are never displayed to conversation partners.',
+      a: 'Never. Only your chosen display name, username, university badge, course, and public profile details are visible. Your phone number, institutional email, and sensitive verification documents are never exposed.',
     },
   ];
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-hidden transition-colors duration-150">
       {/* Ambient Radial Background Glows */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[600px] radial-glow pointer-events-none" />
 
       {/* 1. HERO SECTION */}
-      <section className="relative pt-20 pb-24 md:pt-32 md:pb-36 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-purple/10 border border-brand-purple/30 text-brand-purple text-xs font-semibold mb-8 animate-fade-in">
+      <section className="relative pt-16 pb-20 md:pt-28 md:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-purple/10 border border-brand-purple/30 text-brand-purple text-xs font-semibold mb-6 animate-fade-in">
           <Sparkles className="w-4 h-4 text-brand-purple" />
-          <span>The Premier Student Chat Network • Initially Launching for LPU</span>
+          <span>The Verified Student Social Network • Launching for LPU & Top Campuses</span>
         </div>
 
-        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-6 leading-[1.1]">
-          Meet Students Beyond{' '}
-          <span className="bg-gradient-to-r from-brand-purple via-electric-400 to-brand-cyan bg-clip-text text-transparent">
-            Your Campus.
+        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-6 leading-[1.1]">
+          Connect Across Campuses on{' '}
+          <span className="bg-gradient-to-r from-brand-purple via-electric-500 to-brand-cyan bg-clip-text text-transparent">
+            CC.
           </span>
         </h1>
 
-        <p className="max-w-2xl mx-auto text-base sm:text-lg text-slate-300 mb-10 leading-relaxed">
-          Discover, match, and chat 1-on-1 with verified university students from Lovely
-          Professional University and top campuses across India. Filter by university, gender
-          preference, course, and interests.
+        <p className="max-w-2xl mx-auto text-base sm:text-lg text-slate-600 dark:text-slate-300 mb-10 leading-relaxed">
+          The verified social platform built for university students. Discover peers, chat in real-time,
+          share projects, and hop into 1-on-1 Personal Rooms with students from Lovely Professional University and beyond.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto">
           <Link
-            href="/match"
-            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-brand-purple to-electric-500 text-white font-semibold flex items-center justify-center gap-2.5 shadow-xl shadow-brand-purple/25 hover:scale-[1.02] transition-transform"
+            href="/browse"
+            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-brand-purple to-electric-500 text-white font-semibold flex items-center justify-center gap-2.5 shadow-xl shadow-brand-purple/20 hover:scale-[1.02] transition-transform"
           >
-            <span>Find Your Campus</span>
-            <ArrowRight className="w-5 h-5" />
+            <Compass className="w-5 h-5" />
+            <span>Discover Students</span>
+            <ArrowRight className="w-4 h-4" />
           </Link>
-          <a
-            href="#how-it-works"
-            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-navy-850 hover:bg-navy-800 text-slate-200 font-semibold border border-navy-700 transition-colors flex items-center justify-center"
+          <Link
+            href="/match"
+            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white dark:bg-navy-850 hover:bg-slate-50 dark:hover:bg-navy-800 text-slate-800 dark:text-slate-200 font-semibold border border-slate-200 dark:border-navy-700 transition-colors flex items-center justify-center gap-2"
           >
-            How It Works
-          </a>
+            <Video className="w-4 h-4 text-electric-500" />
+            <span>Personal Room</span>
+          </Link>
         </div>
 
         {/* Hero Preview Card Visual */}
-        <div className="mt-16 relative max-w-4xl mx-auto">
+        <div className="mt-14 relative max-w-4xl mx-auto">
           <div className="absolute -inset-1 bg-gradient-to-r from-brand-purple to-electric-500 rounded-3xl blur-xl opacity-20" />
-          <div className="relative rounded-2xl border border-navy-750 bg-navy-900/90 backdrop-blur-xl p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 mb-6 border-b border-navy-800 text-left">
+          <div className="relative rounded-2xl border border-slate-200 dark:border-navy-750 bg-white/95 dark:bg-navy-900/90 backdrop-blur-xl p-6 shadow-2xl">
+            <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-100 dark:border-navy-800 text-left">
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 rounded-full bg-rose-500/80" />
                 <div className="w-3 h-3 rounded-full bg-amber-500/80" />
                 <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                <span className="text-xs text-slate-400 font-mono ml-2">
-                  Live Matchmaking Room • CampusConnect v1.0
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-mono ml-2">
+                  Social Discovery & Messaging • CC v2.0
                 </span>
               </div>
-              <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Live Students Online
+              <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Live Verified Students
               </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
-              <div className="p-4 rounded-xl bg-navy-850 border border-navy-750">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-navy-850 border border-slate-200 dark:border-navy-750">
                 <div className="flex items-center gap-2 text-xs font-semibold text-brand-purple mb-2">
                   <GraduationCap className="w-4 h-4" /> Lovely Professional University
                 </div>
-                <h4 className="text-sm font-bold text-white mb-1">Aarav S. • B.Tech CSE</h4>
-                <p className="text-xs text-slate-400">
-                  "Hackathons, distributed systems, tech debates"
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Aarav S. • B.Tech CSE</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  &ldquo;Hackathons, distributed systems, tech debates&rdquo;
                 </p>
-                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-emerald-400">
+                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400">
                   <ShieldCheck className="w-3.5 h-3.5" /> ID Verified Student
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-navy-850 border border-electric-500/40 relative">
-                <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[10px] bg-electric-500/20 text-electric-300 font-bold">
-                  MATCHING
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-navy-850 border border-electric-500/40 relative">
+                <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[10px] bg-electric-500/20 text-electric-600 dark:text-electric-300 font-bold">
+                  ACTIVE
                 </div>
-                <div className="flex items-center gap-2 text-xs font-semibold text-electric-400 mb-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-electric-600 dark:text-electric-400 mb-2">
                   <GraduationCap className="w-4 h-4" /> Delhi University
                 </div>
-                <h4 className="text-sm font-bold text-white mb-1">Rohan V. • Economics</h4>
-                <p className="text-xs text-slate-400">
-                  "Geopolitics, photography, fintech trends"
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Rohan V. • Economics</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  &ldquo;Geopolitics, photography, fintech trends&rdquo;
                 </p>
-                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-emerald-400">
+                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400">
                   <ShieldCheck className="w-3.5 h-3.5" /> ID Verified Student
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-navy-850 border border-navy-750">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-navy-850 border border-slate-200 dark:border-navy-750">
                 <div className="flex items-center gap-2 text-xs font-semibold text-brand-purple mb-2">
                   <GraduationCap className="w-4 h-4" /> LPU (Lovely Professional)
                 </div>
-                <h4 className="text-sm font-bold text-white mb-1">Priya P. • MBA</h4>
-                <p className="text-xs text-slate-400">
-                  "Product design, marketing, indie music"
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Priya P. • MBA</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  &ldquo;Product design, marketing, indie music&rdquo;
                 </p>
-                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-emerald-400">
+                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400">
                   <ShieldCheck className="w-3.5 h-3.5" /> ID Verified Student
                 </div>
               </div>
@@ -157,51 +156,51 @@ export default function LandingPage() {
       </section>
 
       {/* 2. HOW IT WORKS (3-STEP EXPLANATION) */}
-      <section id="how-it-works" className="py-20 bg-navy-900/60 border-y border-navy-800">
+      <section id="how-it-works" className="py-20 bg-slate-100/70 dark:bg-navy-900/60 border-y border-slate-200 dark:border-navy-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-electric-400 mb-2">
-              Simple & Transparent
+            <h2 className="text-xs font-bold uppercase tracking-wider text-electric-600 dark:text-electric-400 mb-2">
+              Simple & Authentic
             </h2>
-            <h3 className="text-3xl sm:text-4xl font-extrabold text-white">
+            <h3 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
               Connect In Three Simple Steps
             </h3>
-            <p className="text-sm text-slate-400 mt-3">
-              Designed specifically for verified university students seeking genuine connections.
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-3">
+              Engineered for verified university students seeking meaningful peer networking.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="glass-card p-8 rounded-2xl relative">
-              <div className="w-12 h-12 rounded-xl bg-brand-purple/20 border border-brand-purple/40 text-brand-purple flex items-center justify-center font-bold text-xl mb-6">
+              <div className="w-12 h-12 rounded-xl bg-brand-purple/10 border border-brand-purple/30 text-brand-purple flex items-center justify-center font-bold text-xl mb-6">
                 1
               </div>
-              <h4 className="text-lg font-bold text-white mb-2">Verify Your University</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Sign up with your university email or submit student ID verification. We verify that
-                every member is an adult student aged 18+.
+              <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Verify Your Student Status</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Sign up with your university email or submit student credentials. Every member is verified
+                to ensure a safe community of peers aged 18+.
               </p>
             </div>
 
             <div className="glass-card p-8 rounded-2xl relative">
-              <div className="w-12 h-12 rounded-xl bg-electric-500/20 border border-electric-500/40 text-electric-400 flex items-center justify-center font-bold text-xl mb-6">
+              <div className="w-12 h-12 rounded-xl bg-electric-500/10 border border-electric-500/30 text-electric-600 dark:text-electric-400 flex items-center justify-center font-bold text-xl mb-6">
                 2
               </div>
-              <h4 className="text-lg font-bold text-white mb-2">Select Your Partner Filters</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Choose whether you want to chat with students from LPU or another university. Select
-                preferred partner gender (boys, girls, or everyone) and interests.
+              <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Discover & Add Friends</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Explore student profiles filtered by course, interests, and campus. Send friend requests
+                and grow your academic and social network.
               </p>
             </div>
 
             <div className="glass-card p-8 rounded-2xl relative">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center font-bold text-xl mb-6">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xl mb-6">
                 3
               </div>
-              <h4 className="text-lg font-bold text-white mb-2">Real-Time Private Chat</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Use an affordable chat credit (from ₹4.9) to establish a private real-time session.
-                No spam bots, full safety moderation, and instant blocking controls.
+              <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Chat & Personal Rooms</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Enjoy fast, persistent messaging with read receipts and jump into your 1-on-1 Personal Room
+                for seamless WebRTC audio and video calling.
               </p>
             </div>
           </div>
@@ -215,18 +214,18 @@ export default function LandingPage() {
             <h2 className="text-xs font-bold uppercase tracking-wider text-brand-purple mb-2">
               Campus Directory
             </h2>
-            <h3 className="text-3xl font-extrabold text-white">
+            <h3 className="text-3xl font-extrabold text-slate-900 dark:text-white">
               Supported Universities
             </h3>
-            <p className="text-xs text-slate-400 mt-2">
-              Initially targeted at Lovely Professional University, with more campuses onboarded weekly.
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+              Initially targeted at Lovely Professional University, with more campuses onboarded continuously.
             </p>
           </div>
           <Link
             href="/browse"
-            className="mt-4 md:mt-0 text-sm font-semibold text-electric-400 hover:text-electric-300 flex items-center gap-1.5"
+            className="mt-4 md:mt-0 text-sm font-semibold text-electric-600 dark:text-electric-400 hover:underline flex items-center gap-1.5"
           >
-            Browse all student profiles <ArrowRight className="w-4 h-4" />
+            Explore all student profiles <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
@@ -236,25 +235,25 @@ export default function LandingPage() {
               key={uni.code}
               className={`p-6 rounded-2xl border transition-all ${
                 uni.code === 'LPU'
-                  ? 'bg-gradient-to-b from-navy-850 to-navy-900 border-brand-purple/50 shadow-lg shadow-brand-purple/10'
-                  : 'bg-navy-900/80 border-navy-800 hover:border-navy-700'
+                  ? 'bg-gradient-to-b from-brand-purple/5 to-white dark:from-navy-850 dark:to-navy-900 border-brand-purple/40 shadow-sm'
+                  : 'bg-white dark:bg-navy-900/80 border-slate-200 dark:border-navy-800 hover:border-slate-300 dark:hover:border-navy-700'
               }`}
             >
               <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-bold px-2 py-1 rounded bg-navy-800 text-slate-200">
+                <span className="text-xs font-bold px-2 py-1 rounded bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-200">
                   {uni.code}
                 </span>
                 {uni.code === 'LPU' && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-purple/20 text-brand-purple border border-brand-purple/40">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-purple/10 text-brand-purple border border-brand-purple/30">
                     Primary Campus
                   </span>
                 )}
               </div>
-              <h4 className="text-base font-bold text-white mb-1">{uni.name}</h4>
-              <p className="text-xs text-slate-400 mb-4">{uni.city}, {uni.state}</p>
-              <div className="text-[11px] text-slate-500 pt-3 border-t border-navy-800 flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                Verified Student Email
+              <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">{uni.name}</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">{uni.city}, {uni.state}</p>
+              <div className="text-[11px] text-slate-500 pt-3 border-t border-slate-100 dark:border-navy-800 flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                Verified Student Access
               </div>
             </div>
           ))}
@@ -262,18 +261,18 @@ export default function LandingPage() {
       </section>
 
       {/* 4. PRICING & CHAT PASSES */}
-      <section id="pricing" className="py-20 bg-navy-900/50 border-y border-navy-800">
+      <section id="pricing" className="py-20 bg-slate-100/70 dark:bg-navy-900/50 border-y border-slate-200 dark:border-navy-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-amber-400 mb-2">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-amber-500 mb-2">
               Transparent Pricing
             </h2>
-            <h3 className="text-3xl sm:text-4xl font-extrabold text-white">
-              Affordable Student Chat Passes
+            <h3 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">
+              Affordable Student Passes
             </h3>
-            <p className="text-xs text-slate-400 mt-2">
-              Introductory pricing in Indian Rupees (₹). Credits are deducted atomically only when an
-              active match is created. Unused credits never expire.
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+              Introductory pricing in Indian Rupees (₹). Credits are consumed only when an eligible session
+              is established. Unused credits never expire.
             </p>
           </div>
 
@@ -283,8 +282,8 @@ export default function LandingPage() {
                 key={idx}
                 className={`rounded-2xl p-8 border flex flex-col justify-between relative transition-all ${
                   pkg.isPopular
-                    ? 'bg-navy-850 border-brand-purple shadow-xl shadow-brand-purple/20 md:-translate-y-2'
-                    : 'bg-navy-900 border-navy-800'
+                    ? 'bg-white dark:bg-navy-850 border-brand-purple shadow-xl shadow-brand-purple/10 md:-translate-y-2'
+                    : 'bg-white dark:bg-navy-900 border-slate-200 dark:border-navy-800'
                 }`}
               >
                 {pkg.isPopular && (
@@ -293,24 +292,24 @@ export default function LandingPage() {
                   </div>
                 )}
                 <div>
-                  <h4 className="text-lg font-bold text-white mb-2">{pkg.name}</h4>
+                  <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{pkg.name}</h4>
                   <div className="flex items-baseline gap-1 my-4">
-                    <span className="text-4xl font-extrabold text-white">₹{pkg.priceInInr}</span>
-                    <span className="text-xs text-slate-400">one-time pass</span>
+                    <span className="text-4xl font-extrabold text-slate-900 dark:text-white">₹{pkg.priceInInr}</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">one-time pass</span>
                   </div>
-                  <p className="text-xs text-slate-400 mb-6">{pkg.description}</p>
-                  <div className="space-y-2.5 text-xs text-slate-300 mb-8">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">{pkg.description}</p>
+                  <div className="space-y-2.5 text-xs text-slate-600 dark:text-slate-300 mb-8">
                     <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                       <span>{pkg.credits} Eligible Conversation Credits</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                      <span>Full Gender & University Filtering</span>
+                      <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                      <span>Full Campus & Academic Filtering</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                      <span>No deductions if no match found</span>
+                      <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                      <span>No deductions if session unfulfilled</span>
                     </div>
                   </div>
                 </div>
@@ -330,52 +329,50 @@ export default function LandingPage() {
       {/* 5. SAFETY & PRIVACY SECTION */}
       <section id="safety" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto text-center mb-16">
-          <div className="inline-flex p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mb-4">
+          <div className="inline-flex p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 mb-4">
             <ShieldCheck className="w-8 h-8" />
           </div>
-          <h2 className="text-3xl font-extrabold text-white mb-4">
-            Safety Built Into the Core Architecture
+          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white mb-4">
+            Safety Built Into CC Core
           </h2>
-          <p className="text-sm text-slate-400 leading-relaxed">
-            CampusConnect is engineered from day one to protect student identity and prevent
-            harassment, impersonation, and underage access.
+          <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+            CC is engineered to protect student identity and prevent harassment, impersonation,
+            and unauthorized access.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-6 rounded-2xl bg-navy-900 border border-navy-800">
+          <div className="p-6 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800">
             <Lock className="w-6 h-6 text-brand-purple mb-4" />
-            <h4 className="text-base font-bold text-white mb-2">18+ Adults Only</h4>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Strict server-side validation rejects any underage sign-ups. High school and minors
-              are not permitted on CampusConnect.
+            <h4 className="text-base font-bold text-slate-900 dark:text-white mb-2">18+ Adults Only</h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Strict server-side validation enforces adult access. Minors are not permitted on CC.
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl bg-navy-900 border border-navy-800">
-            <Users className="w-6 h-6 text-electric-400 mb-4" />
-            <h4 className="text-base font-bold text-white mb-2">Consent-Driven Discovery</h4>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Students control their visibility settings. You can hide your profile from the browse
-              page anytime or only engage in matching when ready.
+          <div className="p-6 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800">
+            <Users className="w-6 h-6 text-electric-500 mb-4" />
+            <h4 className="text-base font-bold text-slate-900 dark:text-white mb-2">Consent-Driven Discovery</h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Students control their visibility settings. You can hide your profile from public discovery
+              at any time.
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl bg-navy-900 border border-navy-800">
-            <ShieldCheck className="w-6 h-6 text-emerald-400 mb-4" />
-            <h4 className="text-base font-bold text-white mb-2">Instant Block & Report</h4>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Every chat window includes immediate one-click block and report tools. Reported chats
-              are reviewed under strict administrative moderation.
+          <div className="p-6 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800">
+            <ShieldCheck className="w-6 h-6 text-emerald-500 mb-4" />
+            <h4 className="text-base font-bold text-slate-900 dark:text-white mb-2">Instant Block & Report</h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Every chat window includes immediate one-click block and report tools under active moderation.
             </p>
           </div>
         </div>
       </section>
 
       {/* 6. FAQ ACCORDION */}
-      <section id="faq" className="py-20 bg-navy-900/60 border-t border-navy-800">
+      <section id="faq" className="py-20 bg-slate-100/70 dark:bg-navy-900/60 border-t border-slate-200 dark:border-navy-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-extrabold text-white text-center mb-12">
+          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white text-center mb-12">
             Frequently Asked Questions
           </h2>
 
@@ -383,21 +380,21 @@ export default function LandingPage() {
             {faqs.map((faq, idx) => (
               <div
                 key={idx}
-                className="rounded-2xl border border-navy-800 bg-navy-900 overflow-hidden"
+                className="rounded-2xl border border-slate-200 dark:border-navy-800 bg-white dark:bg-navy-900 overflow-hidden"
               >
                 <button
                   onClick={() => toggleFaq(idx)}
-                  className="w-full p-5 text-left flex items-center justify-between text-sm font-semibold text-white hover:text-electric-400 transition-colors"
+                  className="w-full p-5 text-left flex items-center justify-between text-sm font-semibold text-slate-900 dark:text-white hover:text-electric-500 dark:hover:text-electric-400 transition-colors"
                 >
                   <span>{faq.q}</span>
                   <ChevronDown
                     className={`w-4 h-4 transition-transform ${
-                      openFaq === idx ? 'rotate-180 text-electric-400' : 'text-slate-400'
+                      openFaq === idx ? 'rotate-180 text-electric-500' : 'text-slate-400'
                     }`}
                   />
                 </button>
                 {openFaq === idx && (
-                  <div className="p-5 pt-0 text-xs text-slate-400 leading-relaxed border-t border-navy-800/60">
+                  <div className="p-5 pt-0 text-xs text-slate-500 dark:text-slate-400 leading-relaxed border-t border-slate-100 dark:border-navy-800/60">
                     {faq.a}
                   </div>
                 )}
@@ -409,13 +406,13 @@ export default function LandingPage() {
 
       {/* 7. BOTTOM CTA */}
       <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <div className="rounded-3xl bg-gradient-to-tr from-brand-purple/20 via-navy-850 to-electric-500/20 border border-brand-purple/30 p-12 relative overflow-hidden">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-4">
-            Ready to Connect Across Campus?
+        <div className="rounded-3xl bg-gradient-to-tr from-brand-purple/10 via-white to-electric-500/10 dark:from-brand-purple/20 dark:via-navy-850 dark:to-electric-500/20 border border-brand-purple/30 p-12 relative overflow-hidden shadow-lg">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mb-4">
+            Ready to Connect on CC?
           </h2>
-          <p className="text-sm text-slate-300 max-w-xl mx-auto mb-8">
-            Join Lovely Professional University and partner students today. Initial registration
-            includes 2 complimentary introductory chat credits.
+          <p className="text-sm text-slate-600 dark:text-slate-300 max-w-xl mx-auto mb-8">
+            Join Lovely Professional University and partner students today. Free sign-up includes
+            complimentary introductory credits.
           </p>
           <Link
             href="/register"

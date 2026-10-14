@@ -38,7 +38,7 @@ export async function POST(
     }
 
     if (type === 'call-end' || type === 'call-reject') {
-      const signal = pushSignal({
+      const signal = await pushSignal({
         conversationId,
         fromUserId: session.userId,
         toUserId: partnerId,
@@ -48,7 +48,7 @@ export async function POST(
       return NextResponse.json({ success: true, signalId: signal.id });
     }
 
-    const signal = pushSignal({
+    const signal = await pushSignal({
       conversationId,
       fromUserId: session.userId,
       toUserId: partnerId,
@@ -90,7 +90,7 @@ export async function GET(
     const sinceParam = searchParams.get('since');
     const sinceTimestamp = sinceParam ? parseInt(sinceParam, 10) : 0;
 
-    const signals = getSignalsForUser(conversationId, session.userId, sinceTimestamp);
+    const signals = await getSignalsForUser(conversationId, session.userId, sinceTimestamp);
 
     return NextResponse.json({
       success: true,

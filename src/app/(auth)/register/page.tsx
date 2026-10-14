@@ -113,9 +113,9 @@ export default function RegisterPage() {
         <div className="inline-flex items-center gap-2 p-2.5 rounded-2xl bg-brand-purple/15 text-brand-purple mb-4">
           <Sparkles className="w-5 h-5" />
         </div>
-        <h1 className="text-3xl font-extrabold text-white">Join {APP_CONFIG.name}</h1>
-        <p className="text-xs text-slate-400 mt-2">
-          Strictly for university students aged 18 and older. Get 5 free chat credits upon sign-up.
+        <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">Join CC</h1>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+          Strictly for university students aged 18 and older. Get 5 free credits upon sign-up.
         </p>
       </div>
 

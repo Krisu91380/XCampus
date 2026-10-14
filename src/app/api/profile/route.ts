@@ -27,6 +27,9 @@ export async function GET(req: NextRequest) {
         userId: user.id,
         email: user.email,
         displayName: profile?.displayName || 'Student',
+        username: (profile?.socialLinks as any)?.username || user.email.split('@')[0],
+        relationshipStatus: (profile?.socialLinks as any)?.relationshipStatus || 'Single',
+        relationshipVisible: Boolean((profile?.socialLinks as any)?.relationshipVisible),
         gender: profile?.gender || 'PREFER_NOT_TO_SAY',
         avatarUrl: profile?.avatarUrl || null,
         bio: profile?.bio || '',
@@ -96,8 +99,15 @@ export async function PUT(req: NextRequest) {
           instagram: body.socialLinks.instagram ? String(body.socialLinks.instagram).trim() : '',
           twitter: body.socialLinks.twitter ? String(body.socialLinks.twitter).trim() : '',
           website: body.socialLinks.website ? String(body.socialLinks.website).trim() : '',
+          relationshipStatus: body.relationshipStatus || (body.socialLinks as any)?.relationshipStatus || 'Single',
+          relationshipVisible: body.relationshipVisible !== undefined ? Boolean(body.relationshipVisible) : Boolean((body.socialLinks as any)?.relationshipVisible),
+          username: body.username ? String(body.username).replace(/^@/, '').trim() : (body.socialLinks as any)?.username || '',
         }
-      : {};
+      : {
+          relationshipStatus: body.relationshipStatus || 'Single',
+          relationshipVisible: Boolean(body.relationshipVisible),
+          username: body.username ? String(body.username).replace(/^@/, '').trim() : '',
+        };
 
     const updated = await db.profile.upsert({
       where: { userId: session.userId },

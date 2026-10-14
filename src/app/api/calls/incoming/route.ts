@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     });
 
     for (const p of participations) {
-      const activeSignal = getActiveCallSignal(p.conversationId, session.userId);
+      const activeSignal = await getActiveCallSignal(p.conversationId, session.userId);
       if (activeSignal) {
         // Fetch caller info
         const callerId = activeSignal.fromUserId;

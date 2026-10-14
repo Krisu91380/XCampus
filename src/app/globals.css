@@ -2,7 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Light mode default */
 :root {
+  --bg-primary: #F8FAFC;
+  --bg-secondary: #FFFFFF;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F1F5F9;
+  --border-color: #E2E8F0;
+  --accent-purple: #8B5CF6;
+  --accent-blue: #0EA5E9;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+}
+
+/* Dark mode navy/purple palette */
+.dark {
   --bg-primary: #070A13;
   --bg-secondary: #0B0F1C;
   --bg-card: #0F1527;
@@ -30,31 +45,48 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #070A13;
+  background: var(--bg-primary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1F294C;
+  background: var(--border-color);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
   background: #2C3A6B;
 }
 
 /* Ambient backdrop glow effects */
 .radial-glow {
+  background: radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.12) 0%, rgba(14, 165, 233, 0.06) 35%, transparent 70%);
+}
+
+.dark .radial-glow {
   background: radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.15) 0%, rgba(14, 165, 233, 0.08) 35%, transparent 70%);
 }
 
 .radial-glow-bottom {
+  background: radial-gradient(circle at 50% 100%, rgba(14, 165, 233, 0.08) 0%, rgba(139, 92, 246, 0.05) 40%, transparent 70%);
+}
+
+.dark .radial-glow-bottom {
   background: radial-gradient(circle at 50% 100%, rgba(14, 165, 233, 0.12) 0%, rgba(139, 92, 246, 0.08) 40%, transparent 70%);
 }
 
 .glass-card {
-  background: rgba(15, 21, 39, 0.7);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.dark .glass-card {
+  background: rgba(15, 21, 39, 0.7);
   border: 1px solid rgba(31, 41, 76, 0.8);
 }
 

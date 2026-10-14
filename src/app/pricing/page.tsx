@@ -111,7 +111,7 @@ function PricingContent() {
               You need chat credits to start a conversation. Choose a package and complete payment to continue.
             </h3>
             <p className="text-slate-300">
-              CampusConnect is a premium, verified platform. Select any chat pass below to scan via UPI and begin connecting instantly.
+              CC is a premium, verified platform. Select any chat pass below to scan via UPI and begin connecting instantly.
             </p>
           </div>
         </div>

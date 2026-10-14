@@ -978,7 +978,7 @@ function ChatRoomContent() {
               {isMoneyRoom ? (
                 <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-bold items-center gap-1 shadow-sm shrink-0">
                   <Sparkles className="w-3 h-3 text-amber-400" />
-                  <span>Money Room</span>
+                  <span>Personal Room</span>
                 </span>
               ) : (
                 <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-electric-500/20 border border-electric-500/40 text-electric-300 text-[10px] font-bold items-center gap-1 shadow-sm shrink-0">
@@ -1216,7 +1216,7 @@ function ChatRoomContent() {
                           <Loader2 className="w-3.5 h-3.5 animate-spin text-electric-400" />
                           <span>
                             {isMoneyRoom
-                              ? 'Establishing secure Money Room video feed...'
+                              ? 'Establishing secure Personal Room video feed...'
                               : 'Establishing live Match Room video connection...'}
                           </span>
                         </p>

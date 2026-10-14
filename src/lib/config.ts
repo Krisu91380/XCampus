@@ -1,7 +1,7 @@
 export const APP_CONFIG = {
-  name: process.env.NEXT_PUBLIC_APP_NAME || 'CampusConnect',
+  name: process.env.NEXT_PUBLIC_APP_NAME || 'CC',
   tagline: process.env.NEXT_PUBLIC_APP_TAGLINE || 'Your Campus. Your People.',
-  description: 'The verified student-to-student chat platform connecting university minds across India.',
+  description: 'The verified student-to-student social platform connecting university minds.',
   url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   minAge: 18,
   queueTimeoutSeconds: 180,

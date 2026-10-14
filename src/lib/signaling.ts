@@ -96,7 +96,9 @@ function getMergedSignals(conversationId: string): SignalMessage[] {
   return merged;
 }
 
-export function pushSignal(signal: Omit<SignalMessage, 'id' | 'createdAt'>): SignalMessage {
+import { getSupabaseClient } from './supabase';
+
+export async function pushSignal(signal: Omit<SignalMessage, 'id' | 'createdAt'>): Promise<SignalMessage> {
   const fullSignal: SignalMessage = {
     ...signal,
     id: `sig_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
@@ -111,14 +113,75 @@ export function pushSignal(signal: Omit<SignalMessage, 'id' | 'createdAt'>): Sig
   saveSignalsToDisk(signal.conversationId, updated);
 
   signalEmitter.emit(`signal:${signal.conversationId}`, fullSignal);
+
+  // Persist to PostgreSQL WebRTCSignal table for multi-lambda serverless support
+  const sb = getSupabaseClient();
+  if (sb) {
+    try {
+      await sb.from('WebRTCSignal').insert({
+        id: fullSignal.id,
+        conversationId: fullSignal.conversationId,
+        senderId: fullSignal.fromUserId,
+        recipientId: fullSignal.toUserId || null,
+        signalType: fullSignal.type,
+        data: JSON.stringify(fullSignal.payload || {}),
+        createdAt: new Date(fullSignal.createdAt).toISOString(),
+      });
+
+      // Periodically prune stale signals (>5 minutes old)
+      if (Math.random() < 0.1) {
+        const pruneThreshold = new Date(Date.now() - 300000).toISOString();
+        await sb.from('WebRTCSignal').delete().lt('createdAt', pruneThreshold);
+      }
+    } catch (err: any) {
+      console.warn('[Signaling] WebRTCSignal write warning:', err.message);
+    }
+  }
+
   return fullSignal;
 }
 
-export function getSignalsForUser(
+export async function getSignalsForUser(
   conversationId: string,
   userId: string,
   sinceTimestamp = 0
-): SignalMessage[] {
+): Promise<SignalMessage[]> {
+  const sb = getSupabaseClient();
+  if (sb) {
+    try {
+      const minDate = new Date(Date.now() - 60000).toISOString();
+      const { data: rows } = await sb
+        .from('WebRTCSignal')
+        .select('*')
+        .eq('conversationId', conversationId)
+        .gte('createdAt', minDate)
+        .order('createdAt', { ascending: true });
+
+      if (rows && rows.length > 0) {
+        const mem = signalsMap.get(conversationId) || [];
+        const byId = new Map<string, SignalMessage>();
+        for (const m of mem) byId.set(m.id, m);
+        for (const row of rows) {
+          let payload = undefined;
+          try { payload = JSON.parse(row.data); } catch {}
+          byId.set(row.id, {
+            id: row.id,
+            conversationId: row.conversationId,
+            fromUserId: row.senderId,
+            toUserId: row.recipientId || '',
+            type: row.signalType as any,
+            payload,
+            createdAt: new Date(row.createdAt).getTime(),
+          });
+        }
+        const merged = Array.from(byId.values())
+          .sort((a, b) => a.createdAt - b.createdAt)
+          .slice(-60);
+        signalsMap.set(conversationId, merged);
+      }
+    } catch {}
+  }
+
   const all = getMergedSignals(conversationId);
   return all.filter((s) => {
     // Deliver if targeted to user or from partner student in this private conversation
@@ -143,7 +206,7 @@ export function subscribeToSignals(
   };
 }
 
-export function clearSignals(conversationId: string) {
+export async function clearSignals(conversationId: string): Promise<void> {
   signalsMap.delete(conversationId);
   db.store.signals.delete(conversationId);
   db.store.saveToDisk();
@@ -151,16 +214,58 @@ export function clearSignals(conversationId: string) {
     const file = getSignalFilePath(conversationId);
     if (fs.existsSync(file)) fs.unlinkSync(file);
   } catch {}
+  const sb = getSupabaseClient();
+  if (sb) {
+    try {
+      await sb.from('WebRTCSignal').delete().eq('conversationId', conversationId);
+    } catch {}
+  }
 }
 
 /**
  * Checks if there is an active incoming call for currentUserId in the specified conversation.
  * Active means a call-request occurred within the last 45 seconds and has not been terminated/answered.
  */
-export function getActiveCallSignal(
+export async function getActiveCallSignal(
   conversationId: string,
   currentUserId: string
-): SignalMessage | null {
+): Promise<SignalMessage | null> {
+  const sb = getSupabaseClient();
+  if (sb) {
+    try {
+      const minDate = new Date(Date.now() - 45000).toISOString();
+      const { data: rows } = await sb
+        .from('WebRTCSignal')
+        .select('*')
+        .eq('conversationId', conversationId)
+        .gte('createdAt', minDate)
+        .order('createdAt', { ascending: true });
+
+      if (rows && rows.length > 0) {
+        const mem = signalsMap.get(conversationId) || [];
+        const byId = new Map<string, SignalMessage>();
+        for (const m of mem) byId.set(m.id, m);
+        for (const row of rows) {
+          let payload = undefined;
+          try { payload = JSON.parse(row.data); } catch {}
+          byId.set(row.id, {
+            id: row.id,
+            conversationId: row.conversationId,
+            fromUserId: row.senderId,
+            toUserId: row.recipientId || '',
+            type: row.signalType as any,
+            payload,
+            createdAt: new Date(row.createdAt).getTime(),
+          });
+        }
+        const merged = Array.from(byId.values())
+          .sort((a, b) => a.createdAt - b.createdAt)
+          .slice(-60);
+        signalsMap.set(conversationId, merged);
+      }
+    } catch {}
+  }
+
   const signals = getMergedSignals(conversationId);
   const now = Date.now();
   let latestCallRequest: SignalMessage | null = null;

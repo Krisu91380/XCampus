@@ -47,18 +47,18 @@ export default function LoginPage() {
   return (
     <div className="py-16 px-4 sm:px-6 lg:px-8 max-w-md mx-auto">
       <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-2 p-2.5 rounded-2xl bg-electric-500/15 text-electric-400 mb-4">
+        <div className="inline-flex items-center gap-2 p-2.5 rounded-2xl bg-electric-500/10 dark:bg-electric-500/15 text-electric-600 dark:text-electric-400 mb-4">
           <KeyRound className="w-5 h-5" />
         </div>
-        <h1 className="text-3xl font-extrabold text-white">Sign In to {APP_CONFIG.name}</h1>
-        <p className="text-xs text-slate-400 mt-2">
-          Enter your university email or student ID to access your chat dashboard.
+        <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">Sign In to CC</h1>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+          Enter your university email or username to access your CC workspace.
         </p>
       </div>
 
-      <div className="glass-card rounded-2xl p-6 sm:p-8 border border-navy-750 shadow-2xl">
+      <div className="glass-card rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-navy-750 shadow-2xl">
         {errorMessage && (
-          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2.5 mb-6 animate-fade-in">
+          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-300 text-xs flex items-center gap-2.5 mb-6 animate-fade-in">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{errorMessage}</span>
           </div>
@@ -66,7 +66,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="block text-slate-300 font-semibold mb-1.5">
+            <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1.5">
               Email Address or Student ID
             </label>
             <input
@@ -74,13 +74,13 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. aarav.sharma@lpu.in or aarav.sharma"
-              className="w-full px-4 py-2.5 rounded-xl bg-navy-900 border border-navy-700 text-white placeholder-slate-500 focus:outline-none focus:border-electric-500 transition-colors"
+              placeholder="e.g. krishbarak@lpu.in or krishbarak"
+              className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-electric-500 transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-slate-300 font-semibold mb-1.5">Password</label>
+            <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1.5">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -88,12 +88,12 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full px-4 py-2.5 pr-11 rounded-xl bg-navy-900 border border-navy-700 text-white placeholder-slate-500 focus:outline-none focus:border-electric-500 transition-colors"
+                className="w-full px-4 py-2.5 pr-11 rounded-xl bg-slate-50 dark:bg-navy-900 border border-slate-200 dark:border-navy-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-electric-500 transition-colors"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 rounded-lg transition-colors focus:outline-none"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg transition-colors focus:outline-none"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -104,7 +104,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white font-bold text-sm shadow-xl shadow-brand-purple/25 hover:opacity-95 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 mt-2 cursor-pointer"
+            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white font-bold text-sm shadow-xl shadow-brand-purple/20 hover:opacity-95 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 mt-2 cursor-pointer"
           >
             {loading ? (
               <>
@@ -120,7 +120,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-xs text-slate-400">
+        <div className="mt-6 text-center text-xs text-slate-500 dark:text-slate-400">
           New student?{' '}
           <Link href="/register" className="text-brand-purple hover:underline font-semibold">
             Create an account (18+)

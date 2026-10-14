@@ -4,6 +4,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
+  Heart,
+  Lock,
+  AtSign,
+  UserCheck,
   User,
   Mail,
   GraduationCap,
@@ -37,6 +41,8 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<any>(null);
   const [credits, setCredits] = useState<number>(0);
   const [friendsCount, setFriendsCount] = useState<number>(0);
+  const [friendsList, setFriendsList] = useState<any[]>([]);
+  const [showFriendsModal, setShowFriendsModal] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Edit Modal State
@@ -47,6 +53,9 @@ export default function ProfilePage() {
   // Form Fields
   const [editForm, setEditForm] = useState({
     displayName: '',
+    username: '',
+    relationshipStatus: 'Single',
+    relationshipVisible: false,
     gender: 'PREFER_NOT_TO_SAY',
     bio: '',
     course: '',
@@ -127,12 +136,16 @@ export default function ProfilePage() {
       }
       if (friendsData.success && Array.isArray(friendsData.friends)) {
         setFriendsCount(friendsData.friends.length);
+        setFriendsList(friendsData.friends);
       }
 
       // Initialize edit form
       const p = profileData.profile;
       setEditForm({
         displayName: p.displayName || '',
+        username: p.username || (p.email ? p.email.split('@')[0] : ''),
+        relationshipStatus: p.relationshipStatus || 'Single',
+        relationshipVisible: Boolean(p.relationshipVisible),
         gender: p.gender || 'PREFER_NOT_TO_SAY',
         bio: p.bio || '',
         course: p.course || '',
@@ -246,6 +259,9 @@ export default function ProfilePage() {
     try {
       const payload = {
         displayName: editForm.displayName.trim(),
+        username: editForm.username.trim(),
+        relationshipStatus: editForm.relationshipStatus,
+        relationshipVisible: editForm.relationshipVisible,
         gender: editForm.gender,
         bio: editForm.bio.trim(),
         course: editForm.course.trim(),
@@ -267,6 +283,9 @@ export default function ProfilePage() {
           instagram: editForm.instagram.trim(),
           twitter: editForm.twitter.trim(),
           website: editForm.website.trim(),
+          relationshipStatus: editForm.relationshipStatus,
+          relationshipVisible: editForm.relationshipVisible,
+          username: editForm.username.trim(),
         },
       };
 
@@ -281,7 +300,13 @@ export default function ProfilePage() {
         throw new Error(data.message || 'Failed to update profile');
       }
 
-      setProfile(data.profile);
+      setProfile((prev: any) => ({
+        ...prev,
+        ...data.profile,
+        username: editForm.username.trim(),
+        relationshipStatus: editForm.relationshipStatus,
+        relationshipVisible: editForm.relationshipVisible,
+      }));
       setIsEditModalOpen(false);
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
     } catch (err: any) {
@@ -326,256 +351,278 @@ export default function ProfilePage() {
       )}
 
       {/* Main Profile Header Card */}
-      <div className="glass-card rounded-3xl p-6 sm:p-8 border border-navy-750 relative overflow-hidden shadow-2xl">
-        {/* Ambient Top Glow */}
-        <div className="absolute top-0 left-1/4 right-1/4 h-1 bg-gradient-to-r from-brand-purple via-electric-400 to-brand-purple opacity-80" />
-
-        <div className="flex flex-col md:flex-row items-center md:items-start gap-6 relative z-10">
-          {/* Avatar with Upload Control */}
-          <div className="relative group shrink-0">
-            <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl overflow-hidden border-2 border-brand-purple/40 bg-navy-900 shadow-xl relative flex items-center justify-center">
-              {profile?.avatarUrl ? (
-                <img
-                  src={profile.avatarUrl}
-                  alt={profile.displayName}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center text-white font-extrabold text-4xl shadow-inner">
-                  {profile?.displayName?.[0] || 'S'}
-                </div>
-              )}
-
-              {uploadingPhoto && (
-                <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-xs">
-                  <Loader2 className="w-6 h-6 animate-spin text-white" />
-                </div>
-              )}
-            </div>
-
-            {/* Photo Action Overlay / Pill */}
-            <div className="flex items-center justify-center gap-2 mt-2.5">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={handlePhotoUpload}
-                className="hidden"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingPhoto}
-                className="px-3 py-1.5 rounded-xl bg-navy-850 hover:bg-navy-800 border border-navy-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer active:scale-95"
-                title="Change Profile Photo"
-              >
-                <Camera className="w-3.5 h-3.5 text-electric-400" />
-                <span>{profile?.avatarUrl ? 'Change Photo' : 'Upload Photo'}</span>
-              </button>
-
-              {profile?.avatarUrl && (
-                <button
-                  onClick={handleRemovePhoto}
-                  disabled={uploadingPhoto}
-                  className="px-2.5 py-1.5 rounded-xl bg-navy-850 hover:bg-rose-950/50 hover:text-rose-400 border border-navy-700 text-slate-400 text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer active:scale-95"
-                  title="Remove Profile Photo"
-                >
-                  <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                  <span className="hidden sm:inline">Remove</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Student Overview Info */}
-          <div className="flex-1 text-center md:text-left space-y-2.5">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div>
-                <div className="flex items-center justify-center md:justify-start gap-2">
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-                    {profile?.displayName}
-                  </h1>
-                  {profile?.isVerified && (
-                    <span
-                      title="Verified University Student"
-                      className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center gap-1"
-                    >
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Verified Student</span>
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-slate-400 flex items-center justify-center md:justify-start gap-1.5 mt-1 font-mono">
-                  <Mail className="w-3.5 h-3.5 text-slate-500" />
-                  <span>{profile?.email}</span>
-                </p>
-              </div>
-
-              {/* Edit Profile Button */}
-              <button
-                onClick={() => setIsEditModalOpen(true)}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 hover:opacity-95 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-brand-purple/20 transition-all cursor-pointer self-center md:self-auto"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-                <span>Edit Profile</span>
-              </button>
-            </div>
-
-            {/* University & Degree Pill */}
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-1 text-xs text-slate-300">
-              <span className="px-3 py-1 rounded-xl bg-navy-900 border border-navy-750 flex items-center gap-1.5 text-electric-300">
-                <GraduationCap className="w-4 h-4 text-electric-400" />
-                <span>{profile?.universityName}</span>
-              </span>
-
-              {profile?.course && (
-                <span className="px-3 py-1 rounded-xl bg-navy-900 border border-navy-750 flex items-center gap-1.5">
-                  <BookOpen className="w-3.5 h-3.5 text-brand-purple" />
-                  <span>{profile?.course}</span>
-                </span>
-              )}
-
-              {profile?.branch && (
-                <span className="px-3 py-1 rounded-xl bg-navy-900 border border-navy-750 flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{profile?.branch}</span>
-                </span>
-              )}
-
-              {(profile?.academicYear || profile?.semester) && (
-                <span className="px-3 py-1 rounded-xl bg-navy-900 border border-navy-750 flex items-center gap-1.5 font-mono text-slate-400">
-                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                  <span>
-                    {[profile?.academicYear, profile?.semester].filter(Boolean).join(' • ')}
-                  </span>
-                </span>
-              )}
-            </div>
-
-            {/* Bio */}
-            {profile?.bio ? (
-              <p className="text-xs text-slate-300 pt-2 leading-relaxed max-w-2xl">
-                {profile.bio}
-              </p>
-            ) : (
-              <p className="text-xs text-slate-500 italic pt-1">
-                No bio added yet. Click &quot;Edit Profile&quot; to introduce yourself to campus peers!
-              </p>
-            )}
-
-            {/* Social Links Row */}
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-2">
-              {profile?.socialLinks?.github && (
-                <a
-                  href={
-                    profile.socialLinks.github.startsWith('http')
-                      ? profile.socialLinks.github
-                      : `https://github.com/${profile.socialLinks.github}`
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-xl bg-navy-900 hover:bg-navy-800 border border-navy-750 text-slate-300 hover:text-white transition-colors"
-                  title="GitHub Profile"
-                >
-                  <Github className="w-4 h-4" />
-                </a>
-              )}
-              {profile?.socialLinks?.linkedin && (
-                <a
-                  href={
-                    profile.socialLinks.linkedin.startsWith('http')
-                      ? profile.socialLinks.linkedin
-                      : `https://linkedin.com/in/${profile.socialLinks.linkedin}`
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-xl bg-navy-900 hover:bg-navy-800 border border-navy-750 text-slate-300 hover:text-white transition-colors"
-                  title="LinkedIn Profile"
-                >
-                  <Linkedin className="w-4 h-4" />
-                </a>
-              )}
-              {profile?.socialLinks?.instagram && (
-                <a
-                  href={
-                    profile.socialLinks.instagram.startsWith('http')
-                      ? profile.socialLinks.instagram
-                      : `https://instagram.com/${profile.socialLinks.instagram.replace('@', '')}`
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-xl bg-navy-900 hover:bg-navy-800 border border-navy-750 text-slate-300 hover:text-white transition-colors"
-                  title="Instagram Profile"
-                >
-                  <Instagram className="w-4 h-4" />
-                </a>
-              )}
-              {profile?.socialLinks?.twitter && (
-                <a
-                  href={
-                    profile.socialLinks.twitter.startsWith('http')
-                      ? profile.socialLinks.twitter
-                      : `https://x.com/${profile.socialLinks.twitter.replace('@', '')}`
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-xl bg-navy-900 hover:bg-navy-800 border border-navy-750 text-slate-300 hover:text-white transition-colors"
-                  title="Twitter / X Profile"
-                >
-                  <Twitter className="w-4 h-4" />
-                </a>
-              )}
-              {profile?.socialLinks?.website && (
-                <a
-                  href={
-                    profile.socialLinks.website.startsWith('http')
-                      ? profile.socialLinks.website
-                      : `https://${profile.socialLinks.website}`
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-xl bg-navy-900 hover:bg-navy-800 border border-navy-750 text-slate-300 hover:text-white transition-colors"
-                  title="Personal Portfolio / Website"
-                >
-                  <Globe className="w-4 h-4" />
-                </a>
-              )}
-            </div>
+      <div className="glass-card rounded-3xl border border-navy-750 relative overflow-hidden shadow-2xl">
+        {/* Cover Banner with sleek Instagram gradient & CC badge */}
+        <div className="h-28 sm:h-40 w-full bg-gradient-to-r from-brand-purple/80 via-electric-600/70 to-purple-900/80 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(#ffffff18_1px,transparent_1px)] [background-size:16px_16px] opacity-60" />
+          <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-md">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>CC Verified Campus</span>
           </div>
         </div>
 
-        {/* Quick Stats Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-6 mt-6 border-t border-navy-800/80">
-          <Link
-            href="/pricing"
-            className="p-4 rounded-2xl bg-navy-900/60 border border-navy-800 hover:border-amber-500/40 transition-colors flex items-center gap-3 group"
-          >
-            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 group-hover:scale-105 transition-transform">
-              <Coins className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-[11px] text-slate-400 font-medium">Chat Credits</p>
-              <p className="text-base font-extrabold text-white flex items-center gap-1">
-                <span>{credits}</span>
-                <span className="text-[10px] text-amber-400 font-normal">Add More →</span>
-              </p>
-            </div>
-          </Link>
+        <div className="px-6 sm:px-8 pb-6 sm:pb-8 pt-0 relative z-10">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-6 -mt-12 sm:-mt-16">
+            {/* Avatar with Upload Control */}
+            <div className="relative group shrink-0">
+              <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-3xl overflow-hidden border-4 border-navy-950 bg-navy-900 shadow-2xl relative flex items-center justify-center">
+                {profile?.avatarUrl ? (
+                  <img
+                    src={profile.avatarUrl}
+                    alt={profile.displayName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center text-white font-extrabold text-4xl shadow-inner">
+                    {profile?.displayName?.[0] || 'S'}
+                  </div>
+                )}
 
-          <Link
-            href="/messages"
-            className="p-4 rounded-2xl bg-navy-900/60 border border-navy-800 hover:border-electric-500/40 transition-colors flex items-center gap-3 group"
-          >
-            <div className="p-2.5 rounded-xl bg-electric-500/10 text-electric-400 group-hover:scale-105 transition-transform">
-              <Users className="w-5 h-5" />
+                {uploadingPhoto && (
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-xs">
+                    <Loader2 className="w-6 h-6 animate-spin text-white" />
+                  </div>
+                )}
+              </div>
+
+              {/* Photo Action Overlay / Pill */}
+              <div className="flex items-center justify-center gap-2 mt-2.5">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingPhoto}
+                  className="px-3 py-1.5 rounded-xl bg-navy-850 hover:bg-navy-800 border border-navy-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer active:scale-95"
+                  title="Change Profile Photo"
+                >
+                  <Camera className="w-3.5 h-3.5 text-electric-400" />
+                  <span>{profile?.avatarUrl ? 'Change Photo' : 'Upload Photo'}</span>
+                </button>
+
+                {profile?.avatarUrl && (
+                  <button
+                    onClick={handleRemovePhoto}
+                    disabled={uploadingPhoto}
+                    className="px-2.5 py-1.5 rounded-xl bg-navy-850 hover:bg-rose-950/50 hover:text-rose-400 border border-navy-700 text-slate-400 text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer active:scale-95"
+                    title="Remove Profile Photo"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                    <span className="hidden sm:inline">Remove</span>
+                  </button>
+                )}
+              </div>
             </div>
-            <div>
-              <p className="text-[11px] text-slate-400 font-medium">Campus Friends</p>
-              <p className="text-base font-extrabold text-white flex items-center gap-1">
-                <span>{friendsCount}</span>
-                <span className="text-[10px] text-electric-400 font-normal">View In Chat →</span>
-              </p>
+
+            {/* Student Overview Info */}
+            <div className="flex-1 text-center md:text-left space-y-2.5 pt-2">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div>
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+                      {profile?.displayName}
+                    </h1>
+                    {profile?.isVerified && (
+                      <span
+                        title="Verified University Student"
+                        className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center gap-1"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Verified</span>
+                      </span>
+                    )}
+                    {profile?.relationshipVisible && profile?.relationshipStatus && (
+                      <span
+                        className="px-2.5 py-0.5 rounded-full bg-pink-500/15 border border-pink-500/30 text-pink-300 text-xs font-semibold flex items-center gap-1"
+                        title="Relationship Status"
+                      >
+                        <Heart className="w-3.5 h-3.5 text-pink-400 fill-pink-400/40" />
+                        <span>{profile.relationshipStatus}</span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-center md:justify-start gap-2.5 mt-1">
+                    <span className="text-xs font-bold text-electric-400 font-mono">
+                      @{profile?.username || profile?.email?.split('@')[0]}
+                    </span>
+                    <span className="text-slate-600 text-xs">•</span>
+                    <p className="text-xs text-slate-400 flex items-center gap-1 font-mono">
+                      <Mail className="w-3 h-3 text-slate-500" />
+                      <span>{profile?.email}</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Edit Profile Button */}
+                <button
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 hover:opacity-95 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-brand-purple/20 transition-all cursor-pointer self-center md:self-auto"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Edit Profile</span>
+                </button>
+              </div>
+
+              {/* University & Degree Pill */}
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-1 text-xs text-slate-300">
+                <span className="px-3 py-1 rounded-xl bg-navy-900 border border-navy-750 flex items-center gap-1.5 text-electric-300">
+                  <GraduationCap className="w-4 h-4 text-electric-400" />
+                  <span>{profile?.universityName}</span>
+                </span>
+
+                {profile?.course && (
+                  <span className="px-3 py-1 rounded-xl bg-navy-900 border border-navy-750 flex items-center gap-1.5">
+                    <BookOpen className="w-3.5 h-3.5 text-brand-purple" />
+                    <span>{profile?.course}</span>
+                  </span>
+                )}
+
+                {profile?.branch && (
+                  <span className="px-3 py-1 rounded-xl bg-navy-900 border border-navy-750 flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{profile?.branch}</span>
+                  </span>
+                )}
+
+                {(profile?.academicYear || profile?.semester) && (
+                  <span className="px-3 py-1 rounded-xl bg-navy-900 border border-navy-750 flex items-center gap-1.5 font-mono text-slate-400">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                    <span>
+                      {[profile?.academicYear, profile?.semester].filter(Boolean).join(' • ')}
+                    </span>
+                  </span>
+                )}
+              </div>
+
+              {/* Bio */}
+              {profile?.bio ? (
+                <p className="text-xs text-slate-300 pt-2 leading-relaxed max-w-2xl">
+                  {profile.bio}
+                </p>
+              ) : (
+                <p className="text-xs text-slate-500 italic pt-1">
+                  No bio added yet. Click &quot;Edit Profile&quot; to introduce yourself to campus peers!
+                </p>
+              )}
+
+              {/* Social Links Row */}
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-2">
+                {profile?.socialLinks?.github && (
+                  <a
+                    href={
+                      profile.socialLinks.github.startsWith('http')
+                        ? profile.socialLinks.github
+                        : `https://github.com/${profile.socialLinks.github}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-xl bg-navy-900 hover:bg-navy-800 border border-navy-750 text-slate-300 hover:text-white transition-colors"
+                    title="GitHub Profile"
+                  >
+                    <Github className="w-4 h-4" />
+                  </a>
+                )}
+                {profile?.socialLinks?.linkedin && (
+                  <a
+                    href={
+                      profile.socialLinks.linkedin.startsWith('http')
+                        ? profile.socialLinks.linkedin
+                        : `https://linkedin.com/in/${profile.socialLinks.linkedin}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-xl bg-navy-900 hover:bg-navy-800 border border-navy-750 text-slate-300 hover:text-white transition-colors"
+                    title="LinkedIn Profile"
+                  >
+                    <Linkedin className="w-4 h-4" />
+                  </a>
+                )}
+                {profile?.socialLinks?.instagram && (
+                  <a
+                    href={
+                      profile.socialLinks.instagram.startsWith('http')
+                        ? profile.socialLinks.instagram
+                        : `https://instagram.com/${profile.socialLinks.instagram.replace('@', '')}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-xl bg-navy-900 hover:bg-navy-800 border border-navy-750 text-slate-300 hover:text-white transition-colors"
+                    title="Instagram Profile"
+                  >
+                    <Instagram className="w-4 h-4" />
+                  </a>
+                )}
+                {profile?.socialLinks?.twitter && (
+                  <a
+                    href={
+                      profile.socialLinks.twitter.startsWith('http')
+                        ? profile.socialLinks.twitter
+                        : `https://x.com/${profile.socialLinks.twitter.replace('@', '')}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-xl bg-navy-900 hover:bg-navy-800 border border-navy-750 text-slate-300 hover:text-white transition-colors"
+                    title="Twitter / X Profile"
+                  >
+                    <Twitter className="w-4 h-4" />
+                  </a>
+                )}
+                {profile?.socialLinks?.website && (
+                  <a
+                    href={
+                      profile.socialLinks.website.startsWith('http')
+                        ? profile.socialLinks.website
+                        : `https://${profile.socialLinks.website}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-xl bg-navy-900 hover:bg-navy-800 border border-navy-750 text-slate-300 hover:text-white transition-colors"
+                    title="Personal Portfolio / Website"
+                  >
+                    <Globe className="w-4 h-4" />
+                  </a>
+                )}
+              </div>
             </div>
-          </Link>
+          </div>
+
+          {/* Quick Stats Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-6 mt-6 border-t border-navy-800/80">
+            <Link
+              href="/pricing"
+              className="p-4 rounded-2xl bg-navy-900/60 border border-navy-800 hover:border-amber-500/40 transition-colors flex items-center gap-3 group"
+            >
+              <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 group-hover:scale-105 transition-transform">
+                <Coins className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[11px] text-slate-400 font-medium">Chat Credits</p>
+                <p className="text-base font-extrabold text-white flex items-center gap-1">
+                  <span>{credits}</span>
+                  <span className="text-[10px] text-amber-400 font-normal">Add More →</span>
+                </p>
+              </div>
+            </Link>
+
+            <button
+              onClick={() => setShowFriendsModal(true)}
+              className="p-4 rounded-2xl bg-navy-900/60 border border-navy-800 hover:border-electric-500/40 transition-colors flex items-center gap-3 group text-left cursor-pointer"
+            >
+              <div className="p-2.5 rounded-xl bg-electric-500/10 text-electric-400 group-hover:scale-105 transition-transform">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[11px] text-slate-400 font-medium">Campus Friends</p>
+                <p className="text-base font-extrabold text-white flex items-center gap-1">
+                  <span>{friendsCount}</span>
+                  <span className="text-[10px] text-electric-400 font-normal">View Connections ({friendsCount}) →</span>
+                </p>
+              </div>
+            </button>
 
           <div className="p-4 rounded-2xl bg-navy-900/60 border border-navy-800 flex items-center gap-3 col-span-2 sm:col-span-1">
             <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
@@ -590,6 +637,7 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+    </div>
 
       {/* Skills & Interests Showcase */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -672,7 +720,7 @@ export default function ProfilePage() {
             </div>
 
             <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
-              {/* Basic Fields */}
+              {/* Full Name & Username */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">Full Name *</label>
@@ -686,6 +734,23 @@ export default function ProfilePage() {
                 </div>
 
                 <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Username / Handle</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-mono">@</span>
+                    <input
+                      type="text"
+                      placeholder="username"
+                      value={editForm.username}
+                      onChange={(e) => setEditForm({ ...editForm, username: e.target.value.replace(/^@/, '') })}
+                      className="w-full pl-8 pr-3.5 py-2.5 rounded-xl bg-navy-950 border border-navy-750 text-white font-mono placeholder-slate-500 focus:outline-none focus:border-brand-purple"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Gender & Relationship Status */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
                   <label className="block text-slate-300 font-semibold mb-1">Gender</label>
                   <select
                     value={editForm.gender}
@@ -697,6 +762,28 @@ export default function ProfilePage() {
                     <option value="NON_BINARY">Non-Binary</option>
                     <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Relationship Status</label>
+                  <select
+                    value={editForm.relationshipStatus}
+                    onChange={(e) => setEditForm({ ...editForm, relationshipStatus: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-navy-950 border border-navy-750 text-white focus:outline-none focus:border-brand-purple"
+                  >
+                    <option value="Single">Single</option>
+                    <option value="Committed">Committed</option>
+                    <option value="Non-committed">Non-committed</option>
+                  </select>
+                  <label className="mt-2 flex items-center gap-2 cursor-pointer text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={editForm.relationshipVisible}
+                      onChange={(e) => setEditForm({ ...editForm, relationshipVisible: e.target.checked })}
+                      className="w-3.5 h-3.5 rounded text-brand-purple bg-navy-950 border-navy-750 focus:ring-0"
+                    />
+                    <span className="text-[11px] text-slate-300">Show relationship status on public profile</span>
+                  </label>
                 </div>
               </div>
 
@@ -869,6 +956,79 @@ export default function ProfilePage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Campus Friends / Connections Modal */}
+      {showFriendsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-navy-950/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-navy-900 border border-navy-750 rounded-3xl max-w-lg w-full max-h-[85vh] overflow-y-auto shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-navy-800">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-electric-400" />
+                <h3 className="text-base font-bold text-white">Campus Connections ({friendsList.length})</h3>
+              </div>
+              <button
+                onClick={() => setShowFriendsModal(false)}
+                className="p-1 rounded-xl text-slate-400 hover:text-white hover:bg-navy-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {friendsList.length === 0 ? (
+              <div className="py-12 text-center text-slate-400 space-y-2">
+                <Users className="w-10 h-10 mx-auto text-slate-600" />
+                <p className="text-xs">No connected friends yet.</p>
+                <Link
+                  href="/browse"
+                  onClick={() => setShowFriendsModal(false)}
+                  className="inline-block mt-2 px-4 py-2 rounded-xl bg-electric-500 text-white text-xs font-bold"
+                >
+                  Discover Students
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2.5 max-h-[60vh] overflow-y-auto pr-1">
+                {friendsList.map((f: any) => (
+                  <div
+                    key={f.id || f.userId}
+                    className="p-3 rounded-2xl bg-navy-950 border border-navy-800 flex items-center justify-between gap-3 shadow-sm hover:border-navy-700 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      {f.avatarUrl ? (
+                        <img
+                          src={f.avatarUrl}
+                          alt={f.displayName}
+                          className="w-10 h-10 rounded-full object-cover border border-navy-700 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                          {f.displayName?.[0] || 'S'}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-white truncate flex items-center gap-1.5">
+                          <span>{f.displayName}</span>
+                          {f.isVerified && <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                        </p>
+                        <p className="text-[10px] text-slate-400 truncate">
+                          {f.universityName || f.course || 'Verified Student'}
+                        </p>
+                      </div>
+                    </div>
+                    <Link
+                      href="/messages"
+                      onClick={() => setShowFriendsModal(false)}
+                      className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 hover:opacity-90 text-white text-xs font-semibold shrink-0 shadow-sm"
+                    >
+                      Message
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
