@@ -6,6 +6,7 @@ import { requireAdmin } from '@/lib/auth';
 import { migrateJsonToPostgres } from '@/lib/migrate-to-postgres';
 import { PRISMA_SCHEMA_SAFE_SQL } from '@/lib/schema-sql';
 import { SEED_PRODUCTION_DATA_SQL } from '@/lib/seed-sql';
+import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 
 function safeParseConnectionUrl(urlStr: string | undefined) {
   if (!urlStr) return { configured: false };
@@ -159,6 +160,34 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // 4. Test Supabase JS Client (HTTPS PostgREST API)
+    let testSupabaseClientResult: any = { configured: isSupabaseConfigured() };
+    const sb = getSupabaseClient();
+    if (sb) {
+      try {
+        const [uRes, pRes, cRes, mRes, frRes] = await Promise.all([
+          sb.from('User').select('*', { count: 'exact', head: true }),
+          sb.from('Profile').select('*', { count: 'exact', head: true }),
+          sb.from('Conversation').select('*', { count: 'exact', head: true }),
+          sb.from('Message').select('*', { count: 'exact', head: true }),
+          sb.from('FriendRequest').select('*', { count: 'exact', head: true }),
+        ]);
+        testSupabaseClientResult = {
+          success: !mRes.error,
+          error: mRes.error ? mRes.error.message : undefined,
+          rowCounts: {
+            users: uRes.count ?? 0,
+            profiles: pRes.count ?? 0,
+            conversations: cRes.count ?? 0,
+            messages: mRes.count ?? 0,
+            friendRequests: frRes.count ?? 0,
+          },
+        };
+      } catch (sbErr: any) {
+        testSupabaseClientResult = { success: false, error: sbErr.message };
+      }
+    }
+
     return NextResponse.json({
       success: true,
       admin: session.email,
@@ -169,6 +198,7 @@ export async function GET(req: NextRequest) {
         testDbUrlResult,
         testSessionPoolerResult,
         testDirectUrlResult,
+        testSupabaseClientResult,
       },
     });
   } catch (error: any) {

@@ -3,6 +3,7 @@ import path from 'path';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 import { APP_CONFIG } from './config';
+import { getSupabaseClient } from './supabase';
 import {
   User,
   Profile,
@@ -1120,6 +1121,13 @@ export const db = {
           console.error('[DATABASE] PostgreSQL conversation.findUnique error:', err.message);
         }
       }
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          const { data: row, error } = await sb.from('Conversation').select('*').eq('id', where.id).maybeSingle();
+          if (!error && row) return row as unknown as Conversation;
+        } catch {}
+      }
       store.syncFromDiskIfNeeded();
       return store.conversations.get(where.id) || null;
     },
@@ -1135,6 +1143,15 @@ export const db = {
         } catch (err: any) {
           console.error('[DATABASE] PostgreSQL conversation.findMany error:', err.message);
         }
+      }
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          let q = sb.from('Conversation').select('*');
+          if (args?.where?.status) q = q.eq('status', args.where.status);
+          const { data: rows, error } = await q;
+          if (!error && rows && rows.length > 0) return rows as unknown as Conversation[];
+        } catch {}
       }
       store.syncFromDiskIfNeeded();
       const all = Array.from(store.conversations.values());
@@ -1165,6 +1182,29 @@ export const db = {
         } catch (err: any) {
           console.error('[DATABASE] PostgreSQL conversation.create error:', err.message);
         }
+      }
+
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          const { data: row, error } = await sb
+            .from('Conversation')
+            .upsert({
+              id,
+              status: data.status || 'ACTIVE',
+              startedAt: startedAt.toISOString(),
+              endedAt: data.endedAt ? new Date(data.endedAt).toISOString() : null,
+              endedByUserId: data.endedByUserId || null,
+              endReason: data.endReason || null,
+              creditDeducted: Boolean(data.creditDeducted),
+            })
+            .select()
+            .single();
+          if (!error && row) {
+            store.conversations.set(id, row as unknown as Conversation);
+            return row as unknown as Conversation;
+          }
+        } catch {}
       }
 
       store.syncFromDiskIfNeeded();
@@ -1355,9 +1395,22 @@ export const db = {
           }
         } catch (err: any) {
           console.error('[DATABASE] PostgreSQL message query error:', err.message);
-          if (process.env.NODE_ENV === 'production') {
-            throw new Error(`Database query failed: ${err.message}`);
+        }
+      }
+
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          let q = sb.from('Message').select('*').eq('conversationId', where.conversationId);
+          if (where.afterTimestamp) {
+            q = q.gt('createdAt', new Date(where.afterTimestamp).toISOString());
           }
+          const { data: rows, error } = await q.order('createdAt', { ascending: orderBy?.createdAt !== 'desc' });
+          if (!error && rows && rows.length > 0) {
+            return rows as unknown as Message[];
+          }
+        } catch (sbErr: any) {
+          console.error('[DATABASE] Supabase REST message query error:', sbErr.message);
         }
       }
 
@@ -1372,8 +1425,8 @@ export const db = {
       }
       return msgs.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     },
-    create: async ({ data }: { data: Omit<Message, 'id' | 'createdAt'> }) => {
-      const id = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    create: async ({ data }: { data: Omit<Message, 'id' | 'createdAt'> & { id?: string } }) => {
+      const id = data.id || `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
       const createdAt = new Date();
 
       if (prismaInstance) {
@@ -1388,13 +1441,42 @@ export const db = {
               createdAt,
             },
           });
-          // Also sync to store in-memory for instant read caching
           store.messages.set(id, row as unknown as Message);
           return row as unknown as Message;
         } catch (err: any) {
           console.error('[DATABASE] PostgreSQL message insert error:', err.message);
-          throw new Error(`Failed to commit message to persistent database: ${err.message}`);
         }
+      }
+
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          const { data: row, error } = await sb
+            .from('Message')
+            .insert({
+              id,
+              conversationId: data.conversationId,
+              senderId: data.senderId,
+              content: data.content,
+              isRead: Boolean(data.isRead),
+              createdAt: createdAt.toISOString(),
+            })
+            .select()
+            .single();
+
+          if (!error && row) {
+            store.messages.set(id, row as unknown as Message);
+            return row as unknown as Message;
+          } else if (error) {
+            console.error('[DATABASE] Supabase REST message insert error:', error.message);
+          }
+        } catch (sbErr: any) {
+          console.error('[DATABASE] Supabase REST message insert exception:', sbErr.message);
+        }
+      }
+
+      if (process.env.NODE_ENV === 'production' && (process.env.DATABASE_URL || process.env.SUPABASE_URL)) {
+        throw new Error('Failed to commit message to persistent database: All database engines unreachable.');
       }
 
       store.syncFromDiskIfNeeded();
