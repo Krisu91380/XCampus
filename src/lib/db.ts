@@ -684,6 +684,29 @@ if (isPostgresUrl) {
   }
 }
 
+let isPrismaAvailable: boolean | null = null;
+let lastPrismaProbeTime = 0;
+
+async function canUsePrisma(): Promise<boolean> {
+  if (!prismaInstance) return false;
+  const now = Date.now();
+  if (isPrismaAvailable !== null && now - lastPrismaProbeTime < 30000) {
+    return isPrismaAvailable;
+  }
+  lastPrismaProbeTime = now;
+  try {
+    const probe = prismaInstance.$queryRaw`SELECT 1`;
+    await Promise.race([
+      probe,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1500)),
+    ]);
+    isPrismaAvailable = true;
+  } catch {
+    isPrismaAvailable = false;
+  }
+  return isPrismaAvailable;
+}
+
 export const prisma = prismaInstance;
 
 export const db = {
@@ -692,7 +715,7 @@ export const db = {
 
   user: {
     findUnique: async ({ where }: { where: { id?: string; email?: string } }): Promise<User | null> => {
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           if (where.id) {
             const row = await prismaInstance.user.findUnique({ where: { id: where.id } });
@@ -730,7 +753,7 @@ export const db = {
       return null;
     },
     findMany: async (args?: { where?: Partial<User> }): Promise<User[]> => {
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const rows = await prismaInstance.user.findMany({
             where: {
@@ -774,7 +797,7 @@ export const db = {
       const normalizedEmail = data.email.toLowerCase().trim();
       const now = new Date();
 
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const row = await prismaInstance.user.create({
             data: {
@@ -837,7 +860,7 @@ export const db = {
     },
     update: async ({ where, data }: { where: { id: string }; data: Partial<User> }): Promise<User> => {
       const now = new Date();
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const row = await prismaInstance.user.update({
             where: { id: where.id },
@@ -878,7 +901,7 @@ export const db = {
       return updated;
     },
     count: async () => {
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           return await prismaInstance.user.count({ where: { deletedAt: null } });
         } catch {}
@@ -897,7 +920,7 @@ export const db = {
 
   profile: {
     findUnique: async ({ where }: { where: { userId: string } }): Promise<Profile | null> => {
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const row = await prismaInstance.profile.findUnique({ where: { userId: where.userId } });
           if (row) {
@@ -930,7 +953,7 @@ export const db = {
       return store.profiles.get(where.userId) || null;
     },
     findMany: async (args?: { where?: { isDiscoverable?: boolean; isOnline?: boolean } }): Promise<Profile[]> => {
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const rows = await prismaInstance.profile.findMany({
             where: {
@@ -990,7 +1013,7 @@ export const db = {
       const createInterests = typeof create.interests === 'string' ? create.interests : JSON.stringify(create.interests || []);
       const updateInterests = update.interests !== undefined ? (typeof update.interests === 'string' ? update.interests : JSON.stringify(update.interests)) : undefined;
 
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const row = await prismaInstance.profile.upsert({
             where: { userId: where.userId },
@@ -1079,7 +1102,7 @@ export const db = {
       return newProfile;
     },
     update: async ({ where, data }: { where: { userId: string }; data: Partial<Profile> }) => {
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const updateInterests = data.interests !== undefined ? (typeof data.interests === 'string' ? data.interests : JSON.stringify(data.interests)) : undefined;
           await prismaInstance.profile.update({
@@ -1306,7 +1329,7 @@ export const db = {
 
   conversation: {
     findUnique: async ({ where }: { where: { id: string } }): Promise<Conversation | null> => {
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const row = await prismaInstance.conversation.findUnique({ where: { id: where.id } });
           if (row) return row as unknown as Conversation;
@@ -1325,7 +1348,7 @@ export const db = {
       return store.conversations.get(where.id) || null;
     },
     findMany: async (args?: { where?: { status?: string } }): Promise<Conversation[]> => {
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const rows = await prismaInstance.conversation.findMany({
             where: {
@@ -1357,7 +1380,7 @@ export const db = {
       const id = data.id || `conv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
       const startedAt = new Date();
 
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const row = await prismaInstance.conversation.create({
             data: {
@@ -1411,7 +1434,7 @@ export const db = {
       return conv;
     },
     update: async ({ where, data }: { where: { id: string }; data: Partial<Conversation> }) => {
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const row = await prismaInstance.conversation.update({
             where: { id: where.id },
@@ -1453,7 +1476,7 @@ export const db = {
 
   conversationParticipant: {
     findMany: async (args?: { where?: { userId?: string; conversationId?: string; hidden?: boolean } }): Promise<ConversationParticipant[]> => {
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const rows = await prismaInstance.conversationParticipant.findMany({
             where: {
@@ -1493,7 +1516,7 @@ export const db = {
       });
     },
     findFirst: async ({ where }: { where: { userId: string; conversationId: string } }): Promise<ConversationParticipant | null> => {
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const row = await prismaInstance.conversationParticipant.findFirst({
             where: {
@@ -1532,7 +1555,7 @@ export const db = {
       const id = `part-${data.conversationId}-${data.userId}`;
       const joinedAt = new Date();
 
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const row = await prismaInstance.conversationParticipant.upsert({
             where: {
@@ -1605,7 +1628,7 @@ export const db = {
       const convId = where.conversationId_userId?.conversationId || where.conversationId;
       const uId = where.conversationId_userId?.userId || where.userId;
 
-      if (prismaInstance && convId && uId) {
+      if (prismaInstance && (await canUsePrisma()) && convId && uId) {
         try {
           await prismaInstance.conversationParticipant.update({
             where: {
@@ -1662,7 +1685,7 @@ export const db = {
       where: { conversationId: string; afterTimestamp?: Date | string | number };
       orderBy?: { createdAt: 'asc' | 'desc' };
     }): Promise<Message[]> => {
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const afterDate = where.afterTimestamp ? new Date(where.afterTimestamp) : undefined;
           const rows = await prismaInstance.message.findMany({
@@ -1713,7 +1736,7 @@ export const db = {
       const id = data.id || `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
       const createdAt = new Date();
 
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const row = await prismaInstance.message.create({
             data: {
@@ -2081,7 +2104,7 @@ export const db = {
   friendRequest: {
     findUnique: async ({ where }: { where: { id: string } }): Promise<FriendRequest | null> => {
       const targetId = where.id.trim();
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const row = await prismaInstance.friendRequest.findUnique({ where: { id: targetId } });
           if (row) return row as unknown as FriendRequest;
@@ -2103,7 +2126,7 @@ export const db = {
       return store.friendRequests.get(targetId) || Array.from(store.friendRequests.values()).find((r) => r.id === targetId) || null;
     },
     findFirst: async ({ where }: { where: { senderId?: string; receiverId?: string; status?: FriendRequestStatus } }): Promise<FriendRequest | null> => {
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const row = await prismaInstance.friendRequest.findFirst({
             where: {
@@ -2148,7 +2171,7 @@ export const db = {
         OR?: Array<{ senderId?: string; receiverId?: string; status?: FriendRequestStatus }>;
       };
     }): Promise<FriendRequest[]> => {
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const rows = await prismaInstance.friendRequest.findMany({
             where: {
@@ -2200,7 +2223,7 @@ export const db = {
       const id = `freq-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const now = new Date();
 
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const row = await prismaInstance.friendRequest.create({
             data: {
@@ -2254,7 +2277,7 @@ export const db = {
     },
     update: async ({ where, data }: { where: { id: string }; data: Partial<FriendRequest> }) => {
       const now = new Date();
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           const row = await prismaInstance.friendRequest.update({
             where: { id: where.id },
@@ -2289,7 +2312,7 @@ export const db = {
       return updated;
     },
     delete: async ({ where }: { where: { id: string } }) => {
-      if (prismaInstance) {
+      if (prismaInstance && (await canUsePrisma())) {
         try {
           await prismaInstance.friendRequest.delete({ where: { id: where.id } });
         } catch (err: any) {
