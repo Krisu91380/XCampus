@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import bcrypt from 'bcryptjs';
+import { PrismaClient } from '@prisma/client';
 import { APP_CONFIG } from './config';
 import {
   User,
@@ -24,10 +25,13 @@ import {
   FriendRequestStatus,
 } from '@/types';
 
-// Global singleton database store with disk persistence across hot reloads & server restarts
 declare global {
   // eslint-disable-next-line no-var
   var __campusConnectDb: InMemoryStore | undefined;
+  // eslint-disable-next-line no-var
+  var __campusConnectPrisma: PrismaClient | undefined;
+  // eslint-disable-next-line no-var
+  var __campusConnectPgMigrated: boolean | undefined;
 }
 
 class InMemoryStore {
@@ -640,8 +644,38 @@ class InMemoryStore {
 const store: InMemoryStore = (globalThis as any).__campusConnectDb || new InMemoryStore();
 (globalThis as any).__campusConnectDb = store;
 
+const isPostgresUrl = Boolean(
+  process.env.DATABASE_URL &&
+    (process.env.DATABASE_URL.startsWith('postgres://') ||
+      process.env.DATABASE_URL.startsWith('postgresql://'))
+);
+
+let prismaInstance: PrismaClient | null = null;
+if (isPostgresUrl) {
+  try {
+    prismaInstance = (globalThis as any).__campusConnectPrisma || new PrismaClient();
+    (globalThis as any).__campusConnectPrisma = prismaInstance;
+
+    // Trigger one-time async background migration from data_store.json to PostgreSQL
+    if (!(globalThis as any).__campusConnectPgMigrated) {
+      (globalThis as any).__campusConnectPgMigrated = true;
+      import('./migrate-to-postgres')
+        .then(({ migrateJsonToPostgres }) => {
+          if (prismaInstance) migrateJsonToPostgres(prismaInstance);
+        })
+        .catch((e) => console.warn('Postgres migration notice:', e.message));
+    }
+  } catch (err) {
+    console.warn('Prisma PostgreSQL initialization warning:', err);
+    prismaInstance = null;
+  }
+}
+
+export const prisma = prismaInstance;
+
 export const db = {
   store,
+  prisma: prismaInstance,
 
   user: {
     findUnique: async ({ where }: { where: { id?: string; email?: string } }): Promise<User | null> => {
