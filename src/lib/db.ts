@@ -1678,24 +1678,57 @@ export const db = {
   },
 
   message: {
+    findUnique: async ({ where }: { where: { id: string } }): Promise<Message | null> => {
+      const mem = store.messages.get(where.id);
+      if (mem) return mem;
+      if (prismaInstance && (await canUsePrisma())) {
+        try {
+          const row = await prismaInstance.message.findUnique({ where: { id: where.id } });
+          if (row) {
+            store.messages.set(row.id, row as unknown as Message);
+            return row as unknown as Message;
+          }
+        } catch {}
+      }
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          const { data: row, error } = await sb.from('Message').select('*').eq('id', where.id).maybeSingle();
+          if (!error && row) {
+            store.messages.set(row.id, row as unknown as Message);
+            return row as unknown as Message;
+          }
+        } catch {}
+      }
+      return null;
+    },
     findMany: async ({
       where,
       orderBy,
+      take,
     }: {
-      where: { conversationId: string; afterTimestamp?: Date | string | number };
+      where: {
+        conversationId: string;
+        afterTimestamp?: Date | string | number;
+        beforeTimestamp?: Date | string | number;
+      };
       orderBy?: { createdAt: 'asc' | 'desc' };
+      take?: number;
     }): Promise<Message[]> => {
       if (prismaInstance && (await canUsePrisma())) {
         try {
           const afterDate = where.afterTimestamp ? new Date(where.afterTimestamp) : undefined;
+          const beforeDate = where.beforeTimestamp ? new Date(where.beforeTimestamp) : undefined;
           const rows = await prismaInstance.message.findMany({
             where: {
               conversationId: where.conversationId,
               ...(afterDate ? { createdAt: { gt: afterDate } } : {}),
+              ...(beforeDate ? { createdAt: { lt: beforeDate } } : {}),
             },
             orderBy: {
               createdAt: orderBy?.createdAt || 'asc',
             },
+            ...(take ? { take } : {}),
           });
           if (rows.length > 0) {
             return rows as unknown as Message[];
@@ -1712,6 +1745,12 @@ export const db = {
           if (where.afterTimestamp) {
             q = q.gt('createdAt', new Date(where.afterTimestamp).toISOString());
           }
+          if (where.beforeTimestamp) {
+            q = q.lt('createdAt', new Date(where.beforeTimestamp).toISOString());
+          }
+          if (take) {
+            q = q.limit(take);
+          }
           const { data: rows, error } = await q.order('createdAt', { ascending: orderBy?.createdAt !== 'desc' });
           if (!error && rows && rows.length > 0) {
             return rows as unknown as Message[];
@@ -1727,10 +1766,19 @@ export const db = {
         const afterTime = new Date(where.afterTimestamp).getTime();
         msgs = msgs.filter((m) => new Date(m.createdAt).getTime() > afterTime);
       }
-      if (orderBy?.createdAt === 'desc') {
-        return msgs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      if (where.beforeTimestamp) {
+        const beforeTime = new Date(where.beforeTimestamp).getTime();
+        msgs = msgs.filter((m) => new Date(m.createdAt).getTime() < beforeTime);
       }
-      return msgs.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      if (orderBy?.createdAt === 'desc') {
+        msgs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      } else {
+        msgs.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      }
+      if (take && msgs.length > take) {
+        return msgs.slice(0, take);
+      }
+      return msgs;
     },
     create: async ({ data }: { data: Omit<Message, 'id' | 'createdAt'> & { id?: string } }) => {
       const id = data.id || `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;

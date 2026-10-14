@@ -6,6 +6,7 @@ export const sendMessageSchema = z.object({
     .trim()
     .min(1, 'Message cannot be empty')
     .max(1000, 'Message cannot exceed 1000 characters'),
+  clientMessageId: z.string().optional(),
 });
 
 export const reportUserSchema = z.object({

@@ -9,160 +9,144 @@ export async function GET(req: NextRequest) {
   try {
     const session = await requireAuth(req);
 
-    // 1. Ensure all accepted friends have deterministic conversations & participants in database
-    const allFriendRequests = await db.friendRequest.findMany();
+    // 1. Fetch friend requests and user's participations in parallel
+    const [allFriendRequests, participations, userBlocks, partnerBlocks] = await Promise.all([
+      db.friendRequest.findMany(),
+      db.conversationParticipant.findMany({ where: { userId: session.userId } }),
+      db.block.findMany({ where: { blockerId: session.userId } }),
+      db.block.findMany({ where: { blockedId: session.userId } }),
+    ]);
+
+    const blockedUserIds = new Set<string>([
+      ...userBlocks.map((b) => b.blockedId),
+      ...partnerBlocks.map((b) => b.blockerId),
+    ]);
+
     const myAcceptedFriendships = allFriendRequests.filter(
       (r) =>
         r.status === 'ACCEPTED' &&
         (r.senderId === session.userId || r.receiverId === session.userId)
     );
 
+    // Fast ensure for friends not in blocked list
     for (const fr of myAcceptedFriendships) {
       const partnerId = fr.senderId === session.userId ? fr.receiverId : fr.senderId;
-
-      // Skip if blocked
-      const isBlocked = await db.block.findFirst({
-        where: { blockerId: session.userId, blockedId: partnerId },
-      });
-      const isBlockedBy = await db.block.findFirst({
-        where: { blockerId: partnerId, blockedId: session.userId },
-      });
-      if (isBlocked || isBlockedBy) continue;
-
+      if (blockedUserIds.has(partnerId)) continue;
       const convId = generateSignedConversationId(session.userId, partnerId);
-      await ensureConversationAndParticipants(convId, session.userId, partnerId);
+      // Ensure conversation asynchronously or in-memory
+      ensureConversationAndParticipants(convId, session.userId, partnerId).catch(() => {});
     }
-
-    const participations = await db.conversationParticipant.findMany({
-      where: { userId: session.userId },
-    });
 
     const conversations = [];
     const seenPartnerIds = new Set<string>();
     const seenConvIds = new Set<string>();
 
-    for (const p of participations) {
-      if (p.hidden) continue;
-      if (seenConvIds.has(p.conversationId)) continue;
+    // 2. Process active participations in parallel
+    const validParticipations = participations.filter((p) => !p.hidden);
 
-      const conv = await db.conversation.findUnique({ where: { id: p.conversationId } });
-      if (!conv) continue;
+    const convDetails = await Promise.all(
+      validParticipations.map(async (p) => {
+        if (seenConvIds.has(p.conversationId)) return null;
 
-      // Find partner
-      const allParts = await db.conversationParticipant.findMany({
-        where: { conversationId: conv.id },
-      });
-      const partnerPart = allParts.find((x) => x.userId !== session.userId);
-
-      let partnerInfo = null;
-      if (partnerPart) {
-        // Check if either user blocked the other
-        const isBlocked = await db.block.findFirst({
-          where: { blockerId: session.userId, blockedId: partnerPart.userId },
-        });
-        const isBlockedBy = await db.block.findFirst({
-          where: { blockerId: partnerPart.userId, blockedId: session.userId },
-        });
-        if (isBlocked || isBlockedBy) continue;
-
-        const partnerUser = await db.user.findUnique({ where: { id: partnerPart.userId } });
-        const partnerProfile = await db.profile.findUnique({ where: { userId: partnerPart.userId } });
-        const partnerUni = partnerUser?.universityId
-          ? await db.university.findUnique({ where: { id: partnerUser.universityId } })
-          : null;
-
-        const isFriend = Boolean(
-          await db.friendRequest.findFirst({
+        const [conv, allParts, latestMessages] = await Promise.all([
+          db.conversation.findUnique({ where: { id: p.conversationId } }),
+          db.conversationParticipant.findMany({ where: { conversationId: p.conversationId } }),
+          db.message.findMany({
             where: {
-              senderId: session.userId,
-              receiverId: partnerPart.userId,
-              status: 'ACCEPTED',
+              conversationId: p.conversationId,
+              afterTimestamp: p.clearedAt || undefined,
             },
-          }) ||
-          await db.friendRequest.findFirst({
-            where: {
-              senderId: partnerPart.userId,
-              receiverId: session.userId,
-              status: 'ACCEPTED',
-            },
-          })
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          }),
+        ]);
+
+        if (!conv) return null;
+        const partnerPart = allParts.find((x) => x.userId !== session.userId);
+        if (!partnerPart || blockedUserIds.has(partnerPart.userId)) return null;
+
+        const [partnerUser, partnerProfile] = await Promise.all([
+          db.user.findUnique({ where: { id: partnerPart.userId } }),
+          db.profile.findUnique({ where: { userId: partnerPart.userId } }),
+        ]);
+
+        let partnerUni = null;
+        if (partnerUser?.universityId) {
+          partnerUni = await db.university.findUnique({ where: { id: partnerUser.universityId } });
+        }
+
+        const isFriend = myAcceptedFriendships.some(
+          (fr) =>
+            (fr.senderId === session.userId && fr.receiverId === partnerPart.userId) ||
+            (fr.senderId === partnerPart.userId && fr.receiverId === session.userId)
         );
 
-        partnerInfo = {
-          id: partnerPart.userId,
-          displayName: partnerProfile?.displayName || 'Student',
-          avatarUrl: partnerProfile?.avatarUrl,
-          course: partnerProfile?.course,
-          branch: partnerProfile?.branch,
-          academicYear: partnerProfile?.academicYear,
-          semester: partnerProfile?.semester,
-          isOnline: partnerProfile?.isOnline || false,
-          isVerified: partnerUser?.role === 'VERIFIED_STUDENT',
-          isFriend,
-          universityName: partnerUni?.name || 'University',
-          universityCode: partnerUni?.code || 'UNI',
+        const lastMessage = latestMessages[0] || null;
+
+        return {
+          id: conv.id,
+          status: conv.status,
+          startedAt: conv.startedAt,
+          endedAt: conv.endedAt,
+          partner: {
+            id: partnerPart.userId,
+            displayName: partnerProfile?.displayName || 'Student',
+            avatarUrl: partnerProfile?.avatarUrl,
+            course: partnerProfile?.course,
+            branch: partnerProfile?.branch,
+            academicYear: partnerProfile?.academicYear,
+            semester: partnerProfile?.semester,
+            isOnline: partnerProfile?.isOnline || false,
+            isVerified: partnerUser?.role === 'VERIFIED_STUDENT',
+            isFriend,
+            universityName: partnerUni?.name || 'University',
+            universityCode: partnerUni?.code || 'UNI',
+          },
+          lastMessage: lastMessage
+            ? {
+                content: lastMessage.content,
+                createdAt: lastMessage.createdAt,
+                isMine: lastMessage.senderId === session.userId,
+              }
+            : null,
+          hasUnread: Boolean(p.hasUnread),
+          unreadCount: p.hasUnread ? 1 : 0,
         };
+      })
+    );
+
+    for (const item of convDetails) {
+      if (item) {
+        conversations.push(item);
+        seenConvIds.add(item.id);
+        if (item.partner?.id) seenPartnerIds.add(item.partner.id);
       }
-
-      // Fetch messages ordered desc to get latest (respecting clearedAt if chat was previously cleared)
-      const messages = await db.message.findMany({
-        where: {
-          conversationId: conv.id,
-          afterTimestamp: p.clearedAt || undefined,
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-      const lastMessage = messages[0] || null;
-      const unreadCount = messages.filter((m) => m.senderId !== session.userId && !m.isRead).length;
-
-      seenConvIds.add(conv.id);
-      if (partnerInfo?.id) {
-        seenPartnerIds.add(partnerInfo.id);
-      }
-
-      conversations.push({
-        id: conv.id,
-        status: conv.status,
-        startedAt: conv.startedAt,
-        endedAt: conv.endedAt,
-        partner: partnerInfo,
-        lastMessage: lastMessage
-          ? {
-              content: lastMessage.content,
-              createdAt: lastMessage.createdAt,
-              isMine: lastMessage.senderId === session.userId,
-            }
-          : null,
-        hasUnread: p.hasUnread || unreadCount > 0,
-        unreadCount: unreadCount > 0 ? unreadCount : p.hasUnread ? 1 : 0,
-      });
     }
 
-    // 2. Guarantee that every accepted friend appears in conversations list even before first message
+    // 3. Guarantee that every accepted friend appears in conversations list even before first message
     for (const fr of myAcceptedFriendships) {
       const partnerId = fr.senderId === session.userId ? fr.receiverId : fr.senderId;
-      if (seenPartnerIds.has(partnerId)) continue;
-
-      const isBlocked = await db.block.findFirst({
-        where: { blockerId: session.userId, blockedId: partnerId },
-      });
-      const isBlockedBy = await db.block.findFirst({
-        where: { blockerId: partnerId, blockedId: session.userId },
-      });
-      if (isBlocked || isBlockedBy) continue;
+      if (seenPartnerIds.has(partnerId) || blockedUserIds.has(partnerId)) continue;
 
       const convId = generateSignedConversationId(session.userId, partnerId);
-      const partnerUser = await db.user.findUnique({ where: { id: partnerId } });
-      const partnerProfile = await db.profile.findUnique({ where: { userId: partnerId } });
-      const partnerUni = partnerUser?.universityId
-        ? await db.university.findUnique({ where: { id: partnerUser.universityId } })
-        : null;
+      if (seenConvIds.has(convId)) continue;
 
-      const messages = await db.message.findMany({
-        where: { conversationId: convId },
-        orderBy: { createdAt: 'desc' },
-      });
-      const lastMessage = messages[0] || null;
+      const [partnerUser, partnerProfile, latestMessages] = await Promise.all([
+        db.user.findUnique({ where: { id: partnerId } }),
+        db.profile.findUnique({ where: { userId: partnerId } }),
+        db.message.findMany({
+          where: { conversationId: convId },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        }),
+      ]);
+
+      let partnerUni = null;
+      if (partnerUser?.universityId) {
+        partnerUni = await db.university.findUnique({ where: { id: partnerUser.universityId } });
+      }
+
+      const lastMessage = latestMessages[0] || null;
 
       conversations.push({
         id: convId,

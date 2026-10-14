@@ -39,14 +39,43 @@ function ChatRoomContent() {
   const conversationId = params?.id ? decodeURIComponent(params.id as string) : '';
   const callSessionIdRef = useRef<string>('');
 
-  // Auth & Conversation State
+  // Auth & Conversation State (Synchronous local cache for instant opening)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [conversation, setConversation] = useState<any>(null);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [conversation, setConversation] = useState<any>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const cached = localStorage.getItem(`campusconnect_cache_conv_${conversationId}`);
+      if (cached) return JSON.parse(cached).conversation || null;
+    } catch {}
+    return null;
+  });
+  const [messages, setMessages] = useState<any[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const cached = localStorage.getItem(`campusconnect_cache_conv_${conversationId}`);
+      if (cached) return JSON.parse(cached).messages || [];
+    } catch {}
+    return [];
+  });
   const [inputValue, setInputValue] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      const cached = localStorage.getItem(`campusconnect_cache_conv_${conversationId}`);
+      return !cached;
+    } catch {
+      return true;
+    }
+  });
   const [sending, setSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+
+  // Message references for smooth delta sync & scroll
+  const messagesRef = useRef<any[]>(messages);
+  messagesRef.current = messages;
+  const isFirstLoadRef = useRef(true);
 
   // Video / Omegle Room State
   const [isVideoActive, setIsVideoActive] = useState(isMatchMode);
@@ -60,7 +89,7 @@ function ChatRoomContent() {
   const [videoError, setVideoError] = useState<string | null>(null);
 
   // Friend State
-  const [isFriend, setIsFriend] = useState(false);
+  const [isFriend, setIsFriend] = useState(() => Boolean(conversation?.partner?.isFriend));
   const isMoneyRoom = isFriend || roomParam === 'money';
   const [friendRequestPending, setFriendRequestPending] = useState(false);
   const [addingFriend, setAddingFriend] = useState(false);
@@ -73,7 +102,7 @@ function ChatRoomContent() {
   const [submittingReport, setSubmittingReport] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Refs for WebRTC
+  // Refs for WebRTC & Chat
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const videoContainerRef = useRef<HTMLDivElement | null>(null);
@@ -102,14 +131,14 @@ function ChatRoomContent() {
     }
   };
 
-  // 1. Initial Data Fetch
+  // 1. Initial Data Fetch (Parallel, Stale-While-Revalidate)
   useEffect(() => {
     let isMounted = true;
     const fetchInitial = async () => {
       try {
         const [meRes, msgRes] = await Promise.all([
           fetch('/api/auth/me'),
-          fetch(`/api/chat/${conversationId}/messages`),
+          fetch(`/api/chat/${conversationId}/messages?limit=40`),
         ]);
 
         const meData = await meRes.json();
@@ -126,12 +155,34 @@ function ChatRoomContent() {
         }
 
         setConversation(msgData.conversation);
-        setMessages(msgData.messages || []);
+        setHasMore(Boolean(msgData.hasMore));
+
+        // Reconcile server messages with any optimistic messages
+        setMessages((prev) => {
+          const serverMap = new Map(msgData.messages.map((m: any) => [m.id, { ...m, status: 'delivered' }]));
+          const pending = prev.filter(
+            (m) =>
+              (m.status === 'sending' || m.status === 'failed') &&
+              !serverMap.has(m.id) &&
+              !serverMap.has(m.clientMessageId)
+          );
+          const merged = [...msgData.messages, ...pending];
+
+          try {
+            localStorage.setItem(
+              `campusconnect_cache_conv_${conversationId}`,
+              JSON.stringify({ conversation: msgData.conversation, messages: msgData.messages })
+            );
+          } catch {}
+
+          return merged;
+        });
+
         if (msgData.conversation?.partner?.isFriend) {
           setIsFriend(true);
         }
       } catch (err: any) {
-        if (isMounted) setErrorMessage(err.message);
+        if (isMounted && !conversation) setErrorMessage(err.message);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -144,38 +195,111 @@ function ChatRoomContent() {
     };
   }, [conversationId]);
 
+  // Scroll to bottom on first load and when new messages appear
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (isFirstLoadRef.current && messages.length > 0) {
+      scrollToBottom('auto');
+      isFirstLoadRef.current = false;
+    } else {
+      scrollToBottom('smooth');
+    }
+  }, [messages.length]);
 
-  // 2. Poll Messages Fallback
+  // 2. High-Speed Delta Polling (Only fetches messages created after latest timestamp)
   useEffect(() => {
     if (!conversationId) return;
+
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/chat/${conversationId}/messages`);
+        const msgs = messagesRef.current;
+        const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
+        const sinceParam = lastMsg?.createdAt
+          ? `?since=${encodeURIComponent(lastMsg.createdAt)}`
+          : '?limit=40';
+
+        const res = await fetch(`/api/chat/${conversationId}/messages${sinceParam}`);
         const data = await res.json();
-        if (data.success && Array.isArray(data.messages)) {
+
+        if (data.success && Array.isArray(data.messages) && data.messages.length > 0) {
           setMessages((prev) => {
             const map = new Map(prev.map((m) => [m.id, m]));
+            const optMap = new Map();
+            prev.forEach((m) => {
+              if (m.clientMessageId) optMap.set(m.clientMessageId, m.id);
+            });
+
             let changed = false;
             for (const m of data.messages) {
-              if (!map.has(m.id)) {
-                map.set(m.id, m);
+              const matchedOptId = optMap.get(m.clientMessageId) || optMap.get(m.id);
+              if (matchedOptId && map.has(matchedOptId)) {
+                map.set(matchedOptId, { ...m, status: 'delivered' });
+                changed = true;
+              } else if (!map.has(m.id)) {
+                map.set(m.id, { ...m, status: 'delivered' });
                 changed = true;
               }
             }
-            return changed ? Array.from(map.values()) : prev;
+
+            if (!changed) return prev;
+            const updated = Array.from(map.values());
+
+            try {
+              localStorage.setItem(
+                `campusconnect_cache_conv_${conversationId}`,
+                JSON.stringify({ conversation, messages: updated })
+              );
+            } catch {}
+
+            return updated;
           });
+
           if (data.conversation?.partner?.isFriend) {
             setIsFriend(true);
           }
         }
       } catch {}
-    }, 2500);
+    }, 1500);
 
     return () => clearInterval(interval);
-  }, [conversationId]);
+  }, [conversationId, conversation]);
+
+  // Load older messages on demand
+  const handleLoadOlder = async () => {
+    if (loadingOlder || !hasMore || messages.length === 0) return;
+    const oldest = messages[0];
+    setLoadingOlder(true);
+    const scrollContainer = messagesContainerRef.current;
+    const oldScrollHeight = scrollContainer ? scrollContainer.scrollHeight : 0;
+
+    try {
+      const res = await fetch(
+        `/api/chat/${conversationId}/messages?before=${encodeURIComponent(oldest.createdAt)}&limit=30`
+      );
+      const data = await res.json();
+      if (res.ok && data.success && Array.isArray(data.messages) && data.messages.length > 0) {
+        setMessages((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const newOlder = data.messages.filter((m: any) => !existingIds.has(m.id));
+          return [...newOlder, ...prev];
+        });
+        setHasMore(Boolean(data.hasMore));
+
+        // Preserve scroll position
+        requestAnimationFrame(() => {
+          if (scrollContainer) {
+            const newScrollHeight = scrollContainer.scrollHeight;
+            scrollContainer.scrollTop = newScrollHeight - oldScrollHeight;
+          }
+        });
+      } else {
+        setHasMore(false);
+      }
+    } catch {
+      //
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
 
   // Signaling helper
   const sendSignal = useCallback(
@@ -647,20 +771,37 @@ function ChatRoomContent() {
     }
   };
 
-  // Send Message Handler
+  // Instant Optimistic Message Sender
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim() || sending) return;
 
     const content = inputValue.trim();
-    setInputValue('');
-    setSending(true);
+    const clientMessageId = 'opt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
 
+    // 1. Instant Optimistic UI Update (0ms delay)
+    const optimisticMessage = {
+      id: clientMessageId,
+      clientMessageId,
+      conversationId,
+      senderId: currentUserId || 'me',
+      content,
+      isRead: false,
+      createdAt: new Date().toISOString(),
+      isMine: true,
+      status: 'sending' as const,
+    };
+
+    setMessages((prev) => [...prev, optimisticMessage]);
+    setInputValue('');
+    scrollToBottom('smooth');
+
+    // 2. Background Dispatch to PostgreSQL
     try {
       const res = await fetch(`/api/chat/${conversationId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, clientMessageId }),
       });
 
       const data = await res.json();
@@ -668,14 +809,69 @@ function ChatRoomContent() {
         throw new Error(data.message || 'Failed to send message');
       }
 
-      setMessages((prev) => {
-        if (prev.some((m) => m.id === data.message.id)) return prev;
-        return [...prev, data.message];
-      });
+      // Mark delivered and synchronize server-assigned message ID
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === clientMessageId || m.clientMessageId === clientMessageId
+            ? { ...data.message, status: 'delivered' }
+            : m
+        )
+      );
+
+      // Save to local cache
+      try {
+        localStorage.setItem(
+          `campusconnect_cache_conv_${conversationId}`,
+          JSON.stringify({
+            conversation,
+            messages: messagesRef.current.map((m) =>
+              m.id === clientMessageId ? { ...data.message, status: 'delivered' } : m
+            ),
+          })
+        );
+      } catch {}
     } catch (err: any) {
-      showToast(err.message);
-    } finally {
-      setSending(false);
+      // Mark as failed with retry capability
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === clientMessageId || m.clientMessageId === clientMessageId
+            ? { ...m, status: 'failed', errorMessage: err.message }
+            : m
+        )
+      );
+    }
+  };
+
+  // Retry Failed Message
+  const handleRetryMessage = async (failedMsg: any) => {
+    const clientMessageId = failedMsg.clientMessageId || failedMsg.id;
+    setMessages((prev) =>
+      prev.map((m) => (m.id === failedMsg.id ? { ...m, status: 'sending' } : m))
+    );
+
+    try {
+      const res = await fetch(`/api/chat/${conversationId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: failedMsg.content, clientMessageId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Retry failed');
+      }
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === failedMsg.id || m.clientMessageId === clientMessageId
+            ? { ...data.message, status: 'delivered' }
+            : m
+        )
+      );
+    } catch {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === failedMsg.id ? { ...m, status: 'failed' } : m))
+      );
     }
   };
 
@@ -685,16 +881,33 @@ function ChatRoomContent() {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  if (loading) {
+  // Lightweight skeleton shown only on cold open when no cached data exists
+  if (loading && !conversation) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-24 text-center text-slate-400">
-        <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-brand-purple" />
-        <p className="text-xs">Connecting to secure student room...</p>
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-4 h-[calc(100vh-4.5rem)] flex flex-col space-y-3 animate-pulse">
+        <div className="glass-card rounded-2xl px-4 py-3 border border-navy-750 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-navy-800" />
+            <div className="space-y-1.5">
+              <div className="w-32 h-3.5 rounded bg-navy-800" />
+              <div className="w-48 h-2.5 rounded bg-navy-850" />
+            </div>
+          </div>
+          <div className="w-24 h-8 rounded-xl bg-navy-800" />
+        </div>
+        <div className="flex-1 glass-card rounded-3xl border border-navy-750 p-6 flex flex-col justify-between">
+          <div className="space-y-4 max-w-lg">
+            <div className="w-48 h-9 rounded-2xl bg-navy-850 self-start" />
+            <div className="w-64 h-9 rounded-2xl bg-brand-purple/20 ml-auto" />
+            <div className="w-56 h-9 rounded-2xl bg-navy-850 self-start" />
+          </div>
+          <div className="h-11 rounded-xl bg-navy-900 border border-navy-800" />
+        </div>
       </div>
     );
   }
 
-  if (errorMessage) {
+  if (errorMessage && !conversation) {
     return (
       <div className="max-w-md mx-auto px-4 py-20 text-center space-y-4">
         <AlertCircle className="w-12 h-12 text-rose-500 mx-auto" />
@@ -1101,6 +1314,27 @@ function ChatRoomContent() {
               🔒 End-to-end moderated chat session. Respect campus guidelines.
             </div>
 
+            {/* Load older messages button if conversation history has more */}
+            {hasMore && (
+              <div className="text-center py-1">
+                <button
+                  type="button"
+                  onClick={handleLoadOlder}
+                  disabled={loadingOlder}
+                  className="text-[11px] text-brand-purple hover:text-electric-300 font-semibold flex items-center justify-center gap-1.5 mx-auto py-1 px-3 rounded-full bg-navy-900 border border-navy-800 transition-colors cursor-pointer"
+                >
+                  {loadingOlder ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin text-electric-400" />
+                      <span>Loading older messages...</span>
+                    </>
+                  ) : (
+                    <span>Load older messages</span>
+                  )}
+                </button>
+              </div>
+            )}
+
             {messages.length === 0 ? (
               <div className="py-16 text-center text-slate-500 text-xs">
                 <p>Say hello to {partner?.displayName}! Send a message below.</p>
@@ -1114,15 +1348,43 @@ function ChatRoomContent() {
                   <div
                     className={`max-w-[85%] px-3.5 py-2 rounded-2xl text-xs leading-relaxed shadow-sm ${
                       m.isMine
-                        ? 'bg-gradient-to-r from-brand-purple to-electric-600 text-white rounded-br-none'
+                        ? m.status === 'failed'
+                          ? 'bg-rose-900/60 border border-rose-500/50 text-white rounded-br-none'
+                          : 'bg-gradient-to-r from-brand-purple to-electric-600 text-white rounded-br-none'
                         : 'bg-navy-850 border border-navy-750 text-slate-200 rounded-bl-none'
                     }`}
                   >
                     <p className="whitespace-pre-wrap break-words">{m.content}</p>
                   </div>
-                  <span className="text-[10px] text-slate-500 mt-0.5 px-1 font-mono">
-                    {format(new Date(m.createdAt), 'hh:mm a')}
-                  </span>
+                  <div className="flex items-center gap-1 mt-0.5 px-1 font-mono text-[10px] text-slate-500">
+                    <span>{format(new Date(m.createdAt), 'hh:mm a')}</span>
+                    {m.isMine && (
+                      <>
+                        {m.status === 'sending' && (
+                          <span title="Sending...">
+                            <Loader2 className="w-2.5 h-2.5 animate-spin text-slate-400" />
+                          </span>
+                        )}
+                        {m.status === 'failed' && (
+                          <div className="flex items-center gap-1 text-rose-400">
+                            <AlertCircle className="w-3 h-3 text-rose-400" />
+                            <button
+                              type="button"
+                              onClick={() => handleRetryMessage(m)}
+                              className="text-[10px] text-rose-400 underline font-sans font-semibold hover:text-white cursor-pointer"
+                            >
+                              Retry
+                            </button>
+                          </div>
+                        )}
+                        {(!m.status || m.status === 'delivered') && (
+                          <span title="Delivered & Saved">
+                            <CheckCheck className="w-3 h-3 text-electric-400" />
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               ))
             )}
@@ -1148,10 +1410,10 @@ function ChatRoomContent() {
               />
               <button
                 type="submit"
-                disabled={!inputValue.trim() || sending}
+                disabled={!inputValue.trim()}
                 className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white font-bold text-xs shadow-md shadow-brand-purple/20 hover:opacity-95 disabled:opacity-40 transition-opacity flex items-center gap-1.5 cursor-pointer shrink-0"
               >
-                {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                <Send className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Send</span>
               </button>
             </form>

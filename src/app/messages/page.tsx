@@ -62,6 +62,8 @@ export default function MessagesPage() {
   // Active chat state
   const [messages, setMessages] = useState<any[]>([]);
   const [loadingChat, setLoadingChat] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [sending, setSending] = useState(false);
   const [chatPartner, setChatPartner] = useState<any>(null);
@@ -76,6 +78,8 @@ export default function MessagesPage() {
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const messagesRef = useRef<any[]>(messages);
+  messagesRef.current = messages;
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -203,16 +207,39 @@ export default function MessagesPage() {
     }
   }, [conversations, selectedConvId]);
 
-  // 2. Fetch Active Conversation Messages
+  // 2. Fetch Active Conversation Messages (Stale-While-Revalidate)
   const fetchMessages = async (convId: string) => {
     try {
-      const res = await fetch(`/api/chat/${convId}/messages`);
+      const res = await fetch(`/api/chat/${convId}/messages?limit=40`);
       const data = await res.json();
       if (res.ok && data.success) {
-        setMessages(data.messages || []);
+        setHasMore(Boolean(data.hasMore));
         if (data.conversation?.partner) {
           setChatPartner(data.conversation.partner);
         }
+
+        setMessages((prev) => {
+          const serverMap = new Map(data.messages.map((m: any) => [m.id, { ...m, status: 'delivered' }]));
+          const pending = prev.filter(
+            (m) =>
+              (m.status === 'sending' || m.status === 'failed') &&
+              !serverMap.has(m.id) &&
+              !serverMap.has(m.clientMessageId)
+          );
+          const merged = [...data.messages, ...pending];
+
+          try {
+            localStorage.setItem(
+              `campusconnect_cache_conv_${convId}`,
+              JSON.stringify({
+                conversation: data.conversation,
+                messages: data.messages,
+              })
+            );
+          } catch {}
+
+          return merged;
+        });
       }
     } catch {
       //
@@ -221,69 +248,268 @@ export default function MessagesPage() {
 
   const handleSelectConversation = (convId: string) => {
     setSelectedConvId(convId);
-    setLoadingChat(true);
     setActiveMenuOpen(false);
 
+    // 1. Instant Cache-First Display (0ms perceived load)
+    let hasCache = false;
+    try {
+      const cached = localStorage.getItem(`campusconnect_cache_conv_${convId}`);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed.messages) && parsed.messages.length > 0) {
+          setMessages(parsed.messages);
+          if (parsed.conversation?.partner) {
+            setChatPartner(parsed.conversation.partner);
+          }
+          hasCache = true;
+        }
+      }
+    } catch {}
+
     const conv = conversations.find((c) => c.id === convId);
-    if (conv?.partner) {
+    if (conv?.partner && !hasCache) {
       setChatPartner(conv.partner);
+    }
+
+    if (!hasCache) {
+      setLoadingChat(true);
+      setMessages([]);
     }
 
     fetchMessages(convId).finally(() => setLoadingChat(false));
   };
 
-  // Poll messages for active chat room every 2.5s
+  // High-Speed Delta Polling for active chat room (Every 1500ms)
   useEffect(() => {
     if (!selectedConvId) return;
 
     if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-    pollTimerRef.current = setInterval(() => {
-      fetchMessages(selectedConvId);
-    }, 2500);
+    pollTimerRef.current = setInterval(async () => {
+      try {
+        const msgs = messagesRef.current;
+        const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
+        const sinceParam = lastMsg?.createdAt
+          ? `?since=${encodeURIComponent(lastMsg.createdAt)}`
+          : '?limit=40';
+
+        const res = await fetch(`/api/chat/${selectedConvId}/messages${sinceParam}`);
+        const data = await res.json();
+
+        if (data.success && Array.isArray(data.messages) && data.messages.length > 0) {
+          setMessages((prev) => {
+            const map = new Map(prev.map((m) => [m.id, m]));
+            const optMap = new Map();
+            prev.forEach((m) => {
+              if (m.clientMessageId) optMap.set(m.clientMessageId, m.id);
+            });
+
+            let changed = false;
+            for (const m of data.messages) {
+              const matchedOptId = optMap.get(m.clientMessageId) || optMap.get(m.id);
+              if (matchedOptId && map.has(matchedOptId)) {
+                map.set(matchedOptId, { ...m, status: 'delivered' });
+                changed = true;
+              } else if (!map.has(m.id)) {
+                map.set(m.id, { ...m, status: 'delivered' });
+                changed = true;
+              }
+            }
+
+            if (!changed) return prev;
+            const updated = Array.from(map.values());
+
+            try {
+              localStorage.setItem(
+                `campusconnect_cache_conv_${selectedConvId}`,
+                JSON.stringify({
+                  conversation: { partner: chatPartner },
+                  messages: updated,
+                })
+              );
+            } catch {}
+
+            return updated;
+          });
+
+          // Update sidebar snippet
+          const latestIncoming = data.messages[data.messages.length - 1];
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.id === selectedConvId
+                ? {
+                    ...c,
+                    lastMessage: {
+                      content: latestIncoming.content,
+                      createdAt: latestIncoming.createdAt,
+                      isMine: false,
+                    },
+                  }
+                : c
+            )
+          );
+        }
+      } catch {}
+    }, 1500);
 
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     };
-  }, [selectedConvId]);
+  }, [selectedConvId, chatPartner]);
+
+  // Load older messages for active conversation
+  const handleLoadOlder = async () => {
+    if (loadingOlder || !hasMore || !selectedConvId || messages.length === 0) return;
+    const oldest = messages[0];
+    setLoadingOlder(true);
+    const scrollContainer = messagesContainerRef.current;
+    const oldScrollHeight = scrollContainer ? scrollContainer.scrollHeight : 0;
+
+    try {
+      const res = await fetch(
+        `/api/chat/${selectedConvId}/messages?before=${encodeURIComponent(oldest.createdAt)}&limit=30`
+      );
+      const data = await res.json();
+      if (res.ok && data.success && Array.isArray(data.messages) && data.messages.length > 0) {
+        setMessages((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const newOlder = data.messages.filter((m: any) => !existingIds.has(m.id));
+          return [...newOlder, ...prev];
+        });
+        setHasMore(Boolean(data.hasMore));
+
+        // Preserve scroll position
+        requestAnimationFrame(() => {
+          if (scrollContainer) {
+            const newScrollHeight = scrollContainer.scrollHeight;
+            scrollContainer.scrollTop = newScrollHeight - oldScrollHeight;
+          }
+        });
+      } else {
+        setHasMore(false);
+      }
+    } catch {
+      //
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages.length]);
 
-  // 3. Send Message
+  // 3. Instant Optimistic Message Send
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedConvId || !inputValue.trim() || sending) return;
 
     const content = inputValue.trim();
+    const clientMessageId = 'opt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+
+    // 1. Instant optimistic append
+    const optimisticMsg = {
+      id: clientMessageId,
+      clientMessageId,
+      conversationId: selectedConvId,
+      senderId: 'me',
+      content,
+      isRead: false,
+      createdAt: new Date().toISOString(),
+      isMine: true,
+      status: 'sending' as const,
+    };
+
+    setMessages((prev) => [...prev, optimisticMsg]);
     setInputValue('');
-    setSending(true);
+    scrollToBottom('smooth');
+
+    // Update conversation snippet in sidebar instantly
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.id === selectedConvId
+          ? {
+              ...c,
+              lastMessage: { content, createdAt: optimisticMsg.createdAt, isMine: true },
+            }
+          : c
+      )
+    );
+
+    // 2. Background Dispatch to PostgreSQL
+    try {
+      const res = await fetch(`/api/chat/${selectedConvId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, clientMessageId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to send message');
+      }
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === clientMessageId || m.clientMessageId === clientMessageId
+            ? { ...data.message, status: 'delivered' }
+            : m
+        )
+      );
+
+      try {
+        const cached = localStorage.getItem(`campusconnect_cache_conv_${selectedConvId}`);
+        const parsed = cached ? JSON.parse(cached) : {};
+        localStorage.setItem(
+          `campusconnect_cache_conv_${selectedConvId}`,
+          JSON.stringify({
+            conversation: parsed.conversation || { partner: chatPartner },
+            messages: messagesRef.current.map((m) =>
+              m.id === clientMessageId ? { ...data.message, status: 'delivered' } : m
+            ),
+          })
+        );
+      } catch {}
+    } catch (err: any) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === clientMessageId || m.clientMessageId === clientMessageId
+            ? { ...m, status: 'failed', errorMessage: err.message }
+            : m
+        )
+      );
+    }
+  };
+
+  // Retry Failed Message
+  const handleRetryMessage = async (failedMsg: any) => {
+    const clientMessageId = failedMsg.clientMessageId || failedMsg.id;
+    setMessages((prev) =>
+      prev.map((m) => (m.id === failedMsg.id ? { ...m, status: 'sending' } : m))
+    );
 
     try {
       const res = await fetch(`/api/chat/${selectedConvId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content: failedMsg.content, clientMessageId }),
       });
 
       const data = await res.json();
-      if (res.ok && data.success) {
-        setMessages((prev) => [...prev, data.message]);
-        setConversations((prev) =>
-          prev.map((c) =>
-            c.id === selectedConvId
-              ? {
-                  ...c,
-                  lastMessage: { content, createdAt: new Date().toISOString(), isMine: true },
-                }
-              : c
-          )
-        );
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Retry failed');
       }
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === failedMsg.id || m.clientMessageId === clientMessageId
+            ? { ...data.message, status: 'delivered' }
+            : m
+        )
+      );
     } catch {
-      // Error
-    } finally {
-      setSending(false);
+      setMessages((prev) =>
+        prev.map((m) => (m.id === failedMsg.id ? { ...m, status: 'failed' } : m))
+      );
     }
   };
 
@@ -1025,10 +1251,32 @@ export default function MessagesPage() {
                   🔒 Private student conversation. Never share financial passwords or UPI PINs.
                 </div>
 
-                {loadingChat ? (
-                  <div className="py-20 text-center space-y-2">
-                    <Loader2 className="w-6 h-6 animate-spin text-brand-purple mx-auto" />
-                    <p className="text-xs text-slate-400">Loading message history...</p>
+                {/* Load older messages button if conversation history has more */}
+                {hasMore && (
+                  <div className="text-center py-1">
+                    <button
+                      type="button"
+                      onClick={handleLoadOlder}
+                      disabled={loadingOlder}
+                      className="text-[11px] text-brand-purple hover:text-electric-300 font-semibold flex items-center justify-center gap-1.5 mx-auto py-1 px-3 rounded-full bg-navy-900 border border-navy-800 transition-colors cursor-pointer"
+                    >
+                      {loadingOlder ? (
+                        <>
+                          <Loader2 className="w-3 h-3 animate-spin text-electric-400" />
+                          <span>Loading older messages...</span>
+                        </>
+                      ) : (
+                        <span>Load older messages</span>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {loadingChat && messages.length === 0 ? (
+                  <div className="py-8 space-y-4 max-w-md mx-auto animate-pulse">
+                    <div className="w-48 h-9 rounded-2xl bg-navy-850" />
+                    <div className="w-64 h-9 rounded-2xl bg-brand-purple/20 ml-auto" />
+                    <div className="w-52 h-9 rounded-2xl bg-navy-850" />
                   </div>
                 ) : messages.length === 0 ? (
                   <div className="py-20 text-center text-slate-500 text-xs">
@@ -1043,15 +1291,42 @@ export default function MessagesPage() {
                       <div
                         className={`max-w-[85%] sm:max-w-md px-4 py-2.5 rounded-2xl text-xs leading-relaxed break-words shadow-sm ${
                           m.isMine
-                            ? 'bg-gradient-to-r from-brand-purple to-electric-500 text-white rounded-br-none'
+                            ? m.status === 'failed'
+                              ? 'bg-rose-900/60 border border-rose-500/50 text-white rounded-br-none'
+                              : 'bg-gradient-to-r from-brand-purple to-electric-500 text-white rounded-br-none'
                             : 'bg-navy-850 border border-navy-750 text-slate-200 rounded-bl-none'
                         }`}
                       >
                         <p>{m.content}</p>
                       </div>
-                      <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-400 px-1 font-mono">
+                      <div className="flex items-center gap-1.5 mt-1 text-[10px] text-slate-400 px-1 font-mono">
                         <span>{formatMessageTime(m.createdAt)}</span>
-                        {m.isMine && <CheckCheck className="w-3 h-3 text-electric-400" />}
+                        {m.isMine && (
+                          <>
+                            {m.status === 'sending' && (
+                              <span title="Sending...">
+                                <Loader2 className="w-2.5 h-2.5 animate-spin text-slate-400" />
+                              </span>
+                            )}
+                            {m.status === 'failed' && (
+                              <div className="flex items-center gap-1 text-rose-400">
+                                <AlertCircle className="w-3 h-3 text-rose-400" />
+                                <button
+                                  type="button"
+                                  onClick={() => handleRetryMessage(m)}
+                                  className="text-[10px] text-rose-400 underline font-sans font-semibold hover:text-white cursor-pointer"
+                                >
+                                  Retry
+                                </button>
+                              </div>
+                            )}
+                            {(!m.status || m.status === 'delivered') && (
+                              <span title="Delivered & Saved">
+                                <CheckCheck className="w-3 h-3 text-electric-400" />
+                              </span>
+                            )}
+                          </>
+                        )}
                       </div>
                     </div>
                   ))
@@ -1072,17 +1347,11 @@ export default function MessagesPage() {
                 />
                 <button
                   type="submit"
-                  disabled={sending || !inputValue.trim()}
+                  disabled={!inputValue.trim()}
                   className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 hover:opacity-90 disabled:opacity-40 text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-brand-purple/20 cursor-pointer"
                 >
-                  {sending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      <span>Send</span>
-                      <Send className="w-3.5 h-3.5" />
-                    </>
-                  )}
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Send</span>
                 </button>
               </form>
             </>
