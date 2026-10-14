@@ -29,6 +29,7 @@ import {
   X,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { ThemeToggle } from '@/components/ThemeProvider';
 
 function ChatRoomContent() {
   const params = useParams();
@@ -116,6 +117,8 @@ function ChatRoomContent() {
   const seenSignalsRef = useRef<Set<string>>(new Set());
   const iceCandidatesQueueRef = useRef<RTCIceCandidateInit[]>([]);
   const isEndingCallRef = useRef(false);
+  const isNearBottomRef = useRef(true);
+  const isLoadingOlderRef = useRef(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -129,6 +132,13 @@ function ChatRoomContent() {
         behavior,
       });
     }
+  };
+
+  const handleMessagesScroll = () => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    isNearBottomRef.current = distanceFromBottom < 140;
   };
 
   // 1. Initial Data Fetch (Parallel, Stale-While-Revalidate)
@@ -195,15 +205,19 @@ function ChatRoomContent() {
     };
   }, [conversationId]);
 
-  // Scroll to bottom on first load and when new messages appear
+  // Smart Auto-Scroll Behavior: Jumps on initial load, smooth scrolls if user was near bottom, never jumps while reading older messages
   useEffect(() => {
+    if (isLoadingOlderRef.current) return;
     if (isFirstLoadRef.current && messages.length > 0) {
-      scrollToBottom('auto');
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      }
       isFirstLoadRef.current = false;
-    } else {
+      isNearBottomRef.current = true;
+    } else if (isNearBottomRef.current) {
       scrollToBottom('smooth');
     }
-  }, [messages.length]);
+  }, [messages]);
 
   // 2. High-Speed Delta Polling (Only fetches messages created after latest timestamp)
   useEffect(() => {
@@ -268,6 +282,7 @@ function ChatRoomContent() {
     if (loadingOlder || !hasMore || messages.length === 0) return;
     const oldest = messages[0];
     setLoadingOlder(true);
+    isLoadingOlderRef.current = true;
     const scrollContainer = messagesContainerRef.current;
     const oldScrollHeight = scrollContainer ? scrollContainer.scrollHeight : 0;
 
@@ -290,12 +305,16 @@ function ChatRoomContent() {
             const newScrollHeight = scrollContainer.scrollHeight;
             scrollContainer.scrollTop = newScrollHeight - oldScrollHeight;
           }
+          setTimeout(() => {
+            isLoadingOlderRef.current = false;
+          }, 150);
         });
       } else {
         setHasMore(false);
+        isLoadingOlderRef.current = false;
       }
     } catch {
-      //
+      isLoadingOlderRef.current = false;
     } finally {
       setLoadingOlder(false);
     }
@@ -792,6 +811,7 @@ function ChatRoomContent() {
       status: 'sending' as const,
     };
 
+    isNearBottomRef.current = true;
     setMessages((prev) => [...prev, optimisticMessage]);
     setInputValue('');
     scrollToBottom('smooth');
@@ -927,22 +947,22 @@ function ChatRoomContent() {
   const isEnded = conversation?.status === 'ENDED';
 
   return (
-    <div className="w-full max-w-7xl mx-auto md:px-4 lg:px-6 md:py-4 h-[calc(100dvh-4rem)] md:h-[calc(100vh-4.5rem)] flex flex-col md:space-y-3 overflow-hidden">
+    <div className="w-full max-w-7xl mx-auto md:px-4 lg:px-6 md:py-3 h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] flex flex-col md:space-y-3 overflow-hidden min-h-0">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-16 md:top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-brand-purple/90 backdrop-blur border border-white/20 text-white text-xs font-semibold shadow-2xl animate-fade-in flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-electric-300" />
+        <div className="fixed top-16 md:top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-purple-600/90 backdrop-blur border border-white/20 text-white text-xs font-semibold shadow-2xl animate-fade-in flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-purple-200" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* 1. Header Bar - Compact & sleek on mobile, rich on desktop */}
-      <div className="glass-card md:rounded-2xl px-3 sm:px-4 py-2 sm:py-3 border-b md:border border-navy-750 flex items-center justify-between shrink-0 shadow-lg bg-navy-950/95 md:bg-navy-900/60 backdrop-blur-md z-30">
+      <div className="md:rounded-2xl px-3 sm:px-4 py-2 sm:py-3 border-b md:border border-slate-200 dark:border-navy-750 flex items-center justify-between shrink-0 shadow-sm md:shadow-lg bg-white/95 dark:bg-navy-900/95 backdrop-blur-md z-30">
         {/* Left: Partner identity */}
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
           <Link
             href="/messages"
-            className="p-1 sm:p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-navy-850 shrink-0"
+            className="p-1 sm:p-1.5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-navy-850 shrink-0 transition-colors"
             title="Back to Messages"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -953,42 +973,42 @@ function ChatRoomContent() {
               <img
                 src={partner.avatarUrl}
                 alt={partner.displayName}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border border-navy-700"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border border-slate-200 dark:border-navy-700 shadow-sm"
               />
             ) : (
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center text-white font-bold text-sm">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
                 {partner?.displayName?.[0] || 'S'}
               </div>
             )}
             {partner?.isOnline && (
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-navy-900" />
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-navy-900" />
             )}
           </div>
 
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <h2 className="text-xs sm:text-sm font-bold text-white truncate max-w-[130px] sm:max-w-xs">
+              <h2 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate max-w-[130px] sm:max-w-xs">
                 {partner?.displayName}
               </h2>
               {partner?.isVerified && (
                 <span title="Verified Student" className="shrink-0">
-                  <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
+                  <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
                 </span>
               )}
               {isMoneyRoom ? (
-                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-bold items-center gap-1 shadow-sm shrink-0">
-                  <Sparkles className="w-3 h-3 text-amber-400" />
+                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-[10px] font-bold items-center gap-1 shadow-sm shrink-0">
+                  <Sparkles className="w-3 h-3 text-amber-500" />
                   <span>Personal Room</span>
                 </span>
               ) : (
-                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-electric-500/20 border border-electric-500/40 text-electric-300 text-[10px] font-bold items-center gap-1 shadow-sm shrink-0">
-                  <Sparkles className="w-3 h-3 text-electric-400" />
+                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-700 dark:text-purple-300 text-[10px] font-bold items-center gap-1 shadow-sm shrink-0">
+                  <Sparkles className="w-3 h-3 text-purple-500" />
                   <span>Match Room</span>
                 </span>
               )}
             </div>
-            <p className="text-[10px] sm:text-[11px] text-slate-400 flex items-center gap-1 truncate max-w-[130px] sm:max-w-xs">
-              <GraduationCap className="w-3 h-3 text-brand-purple shrink-0" />
+            <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 truncate max-w-[130px] sm:max-w-xs">
+              <GraduationCap className="w-3 h-3 text-purple-600 shrink-0" />
               <span className="truncate">{partner?.universityName}</span>
               {partner?.course && <span className="hidden sm:inline truncate">• {partner.course}</span>}
             </p>
@@ -996,7 +1016,7 @@ function ChatRoomContent() {
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Add Friend Trigger */}
           {!isFriend && (
             <button
@@ -1004,7 +1024,7 @@ function ChatRoomContent() {
               disabled={addingFriend || friendRequestPending}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                 friendRequestPending
-                  ? 'bg-navy-800 text-slate-400 border border-navy-700'
+                  ? 'bg-slate-100 dark:bg-navy-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-navy-700'
                   : 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:opacity-90 text-white shadow-md shadow-emerald-600/20'
               }`}
               title="Establish permanent friendship"
@@ -1029,7 +1049,7 @@ function ChatRoomContent() {
           {!isVideoActive ? (
             <button
               onClick={() => setIsVideoActive(true)}
-              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 hover:opacity-95 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-brand-purple/20 transition-all cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-95 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-purple-600/20 transition-all cursor-pointer"
               title="Start Live Video Feed"
             >
               <Video className="w-3.5 h-3.5" />
@@ -1038,10 +1058,10 @@ function ChatRoomContent() {
           ) : (
             <button
               onClick={handleEndCall}
-              className="px-3 py-1.5 rounded-xl bg-navy-800 hover:bg-navy-750 text-slate-300 text-xs font-semibold flex items-center gap-1.5 border border-navy-700 transition-colors cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 dark:hover:bg-navy-750 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 border border-slate-200 dark:border-navy-700 transition-colors cursor-pointer"
               title="Switch to Text-Only Chat"
             >
-              <PhoneOff className="w-3.5 h-3.5 text-rose-400" />
+              <PhoneOff className="w-3.5 h-3.5 text-rose-500" />
               <span className="hidden sm:inline">Text Only</span>
             </button>
           )}
@@ -1050,7 +1070,7 @@ function ChatRoomContent() {
           {!isMoneyRoom && (
             <button
               onClick={handleNextMatch}
-              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-95 text-navy-950 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-95 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
               title="End this session and automatically match with the next student"
             >
               <FastForward className="w-3.5 h-3.5" />
@@ -1058,25 +1078,30 @@ function ChatRoomContent() {
             </button>
           )}
 
+          {/* Theme Toggle */}
+          <div className="hidden sm:flex items-center">
+            <ThemeToggle />
+          </div>
+
           {/* Three-dot dropdown menu */}
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-navy-850 transition-colors"
+              className="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-850 transition-colors"
             >
               <MoreVertical className="w-4 h-4" />
             </button>
 
             {showMenu && (
-              <div className="absolute right-0 top-full mt-1 w-44 rounded-2xl bg-navy-900 border border-navy-750 shadow-2xl py-1.5 z-40 text-xs">
+              <div className="absolute right-0 top-full mt-1 w-44 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-750 shadow-2xl py-1.5 z-40 text-xs">
                 <button
                   onClick={() => {
                     setShowMenu(false);
                     setShowReportModal(true);
                   }}
-                  className="w-full px-3.5 py-2 text-left text-slate-300 hover:bg-navy-800 hover:text-white flex items-center gap-2"
+                  className="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-navy-800 dark:hover:text-white flex items-center gap-2"
                 >
-                  <Flag className="w-3.5 h-3.5 text-amber-400" />
+                  <Flag className="w-3.5 h-3.5 text-amber-500" />
                   <span>Report User</span>
                 </button>
                 <button
@@ -1084,9 +1109,9 @@ function ChatRoomContent() {
                     setShowMenu(false);
                     handleDeleteChat();
                   }}
-                  className="w-full px-3.5 py-2 text-left text-slate-300 hover:bg-navy-800 hover:text-white flex items-center gap-2"
+                  className="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-navy-800 dark:hover:text-white flex items-center gap-2"
                 >
-                  <Trash2 className="w-3.5 h-3.5 text-slate-400" />
+                  <Trash2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                   <span>Clear Chat</span>
                 </button>
                 <button
@@ -1094,7 +1119,7 @@ function ChatRoomContent() {
                     setShowMenu(false);
                     handleBlockUser();
                   }}
-                  className="w-full px-3.5 py-2 text-left text-rose-400 hover:bg-rose-950/40 flex items-center gap-2"
+                  className="w-full px-3.5 py-2 text-left text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2"
                 >
                   <Ban className="w-3.5 h-3.5" />
                   <span>Block User</span>
@@ -1305,14 +1330,15 @@ function ChatRoomContent() {
         <div
           className={`${
             isVideoActive ? 'lg:col-span-5 xl:col-span-4' : 'col-span-12 max-w-4xl mx-auto w-full'
-          } md:glass-card md:rounded-3xl border-0 md:border border-navy-750 flex flex-col justify-between overflow-hidden md:shadow-2xl flex-1 min-h-0 bg-navy-950 md:bg-transparent`}
+          } md:rounded-3xl border-0 md:border border-slate-200 dark:border-navy-750 flex flex-col justify-between overflow-hidden md:shadow-xl flex-1 min-h-0 bg-white dark:bg-navy-950 md:bg-white md:dark:bg-navy-900/60`}
         >
           {/* Chat Messages Scroll Container */}
           <div
             ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto overscroll-contain p-3 sm:p-5 space-y-3 min-h-[200px]"
+            onScroll={handleMessagesScroll}
+            className="flex-1 overflow-y-auto overscroll-contain p-3 sm:p-5 space-y-3 min-h-0 bg-white dark:bg-navy-950"
           >
-            <div className="p-2 sm:p-2.5 rounded-xl bg-navy-900/90 border border-navy-800 text-center text-[10px] sm:text-[11px] text-slate-400">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-slate-50 dark:bg-navy-900/90 border border-slate-200 dark:border-navy-800 text-center text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400">
               🔒 End-to-end moderated chat session. Respect campus guidelines.
             </div>
 
@@ -1323,11 +1349,11 @@ function ChatRoomContent() {
                   type="button"
                   onClick={handleLoadOlder}
                   disabled={loadingOlder}
-                  className="text-[11px] text-brand-purple hover:text-electric-300 font-semibold flex items-center justify-center gap-1.5 mx-auto py-1 px-3 rounded-full bg-navy-900 border border-navy-800 transition-colors cursor-pointer"
+                  className="text-[11px] text-purple-600 dark:text-purple-400 hover:text-purple-700 font-semibold flex items-center justify-center gap-1.5 mx-auto py-1 px-3 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-navy-900 dark:hover:bg-navy-800 border border-slate-200 dark:border-navy-800 transition-colors cursor-pointer"
                 >
                   {loadingOlder ? (
                     <>
-                      <Loader2 className="w-3 h-3 animate-spin text-electric-400" />
+                      <Loader2 className="w-3 h-3 animate-spin text-purple-600 dark:text-purple-400" />
                       <span>Loading older messages...</span>
                     </>
                   ) : (
@@ -1338,7 +1364,7 @@ function ChatRoomContent() {
             )}
 
             {messages.length === 0 ? (
-              <div className="py-16 text-center text-slate-500 text-xs">
+              <div className="py-16 text-center text-slate-400 dark:text-slate-500 text-xs">
                 <p>Say hello to {partner?.displayName}! Send a message below.</p>
               </div>
             ) : (
@@ -1351,14 +1377,14 @@ function ChatRoomContent() {
                     className={`max-w-[85%] px-3.5 py-2 rounded-2xl text-xs leading-relaxed shadow-sm ${
                       m.isMine
                         ? m.status === 'failed'
-                          ? 'bg-rose-900/60 border border-rose-500/50 text-white rounded-br-none'
-                          : 'bg-gradient-to-r from-brand-purple to-electric-600 text-white rounded-br-none'
-                        : 'bg-navy-850 border border-navy-750 text-slate-200 rounded-bl-none'
+                          ? 'bg-rose-500 text-white rounded-br-none'
+                          : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-br-none'
+                        : 'bg-slate-100 dark:bg-navy-850 border border-slate-200/70 dark:border-navy-750 text-slate-900 dark:text-slate-100 rounded-bl-none'
                     }`}
                   >
                     <p className="whitespace-pre-wrap break-words">{m.content}</p>
                   </div>
-                  <div className="flex items-center gap-1 mt-0.5 px-1 font-mono text-[10px] text-slate-500">
+                  <div className="flex items-center gap-1 mt-0.5 px-1 font-mono text-[10px] text-slate-400 dark:text-slate-500">
                     <span>{format(new Date(m.createdAt), 'hh:mm a')}</span>
                     {m.isMine && (
                       <>
@@ -1368,12 +1394,12 @@ function ChatRoomContent() {
                           </span>
                         )}
                         {m.status === 'failed' && (
-                          <div className="flex items-center gap-1 text-rose-400">
-                            <AlertCircle className="w-3 h-3 text-rose-400" />
+                          <div className="flex items-center gap-1 text-rose-500">
+                            <AlertCircle className="w-3 h-3 text-rose-500" />
                             <button
                               type="button"
                               onClick={() => handleRetryMessage(m)}
-                              className="text-[10px] text-rose-400 underline font-sans font-semibold hover:text-white cursor-pointer"
+                              className="text-[10px] text-rose-500 underline font-sans font-semibold hover:text-rose-600 cursor-pointer"
                             >
                               Retry
                             </button>
@@ -1381,7 +1407,7 @@ function ChatRoomContent() {
                         )}
                         {(!m.status || m.status === 'delivered') && (
                           <span title="Delivered & Saved">
-                            <CheckCheck className="w-3 h-3 text-electric-400" />
+                            <CheckCheck className="w-3 h-3 text-purple-600 dark:text-purple-400" />
                           </span>
                         )}
                       </>
@@ -1394,13 +1420,13 @@ function ChatRoomContent() {
 
           {/* Chat Message Input Bar */}
           {isEnded ? (
-            <div className="p-3 bg-navy-900 border-t border-navy-800 text-center text-xs text-slate-400">
+            <div className="p-3 bg-slate-100 dark:bg-navy-900 border-t border-slate-200 dark:border-navy-800 text-center text-xs text-slate-500 dark:text-slate-400">
               This conversation has ended.
             </div>
           ) : (
             <form
               onSubmit={handleSendMessage}
-              className="p-2 sm:p-3 bg-navy-950/95 md:bg-navy-900/80 border-t border-navy-850 md:border-navy-800 flex items-center gap-2 shrink-0 pb-[max(0.6rem,env(safe-area-inset-bottom))] md:pb-3 backdrop-blur-md"
+              className="p-2 sm:p-3 bg-white/95 dark:bg-navy-950/95 md:bg-white md:dark:bg-navy-900/80 border-t border-slate-200 dark:border-navy-850 flex items-center gap-2 shrink-0 pb-[max(0.6rem,env(safe-area-inset-bottom))] md:pb-3 backdrop-blur-md"
             >
               <input
                 type="text"
@@ -1408,12 +1434,12 @@ function ChatRoomContent() {
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Message..."
                 maxLength={1000}
-                className="flex-1 px-4 py-2.5 rounded-full md:rounded-xl bg-navy-900 md:bg-navy-950 border border-navy-750 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-brand-purple transition-colors shadow-inner"
+                className="flex-1 px-4 py-2.5 rounded-full md:rounded-xl bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-750 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:outline-none focus:border-purple-600 transition-colors shadow-inner"
               />
               <button
                 type="submit"
                 disabled={!inputValue.trim()}
-                className="p-2.5 sm:px-4 sm:py-2.5 rounded-full md:rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white font-bold text-xs shadow-md shadow-brand-purple/20 hover:opacity-95 disabled:opacity-40 transition-opacity flex items-center justify-center gap-1.5 cursor-pointer shrink-0 active:scale-95"
+                className="p-2.5 sm:px-4 sm:py-2.5 rounded-full md:rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold text-xs shadow-md shadow-purple-600/20 hover:opacity-95 disabled:opacity-40 transition-opacity flex items-center justify-center gap-1.5 cursor-pointer shrink-0 active:scale-95"
               >
                 <Send className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                 <span className="hidden sm:inline">Send</span>

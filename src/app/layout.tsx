@@ -38,7 +38,7 @@ export default function RootLayout({
         <ThemeProvider>
           <GlobalIncomingCallBanner />
           <Navbar />
-          <main className="flex-1 flex flex-col">{children}</main>
+          <main className="flex-1 flex flex-col min-h-0">{children}</main>
           <Footer />
         </ThemeProvider>
       </body>

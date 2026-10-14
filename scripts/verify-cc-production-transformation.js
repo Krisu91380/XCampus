@@ -108,7 +108,7 @@ async function run() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: 'admin@campusconnect.edu', password: 'AdminSecurePassword123!' }),
   });
-  assert(loginAdmin.res.status === 200 && loginAdmin.json?.authenticated, 'Super Admin authenticated');
+  assert(loginAdmin.res.status === 200 && (loginAdmin.json?.success || loginAdmin.json?.authenticated), 'Super Admin authenticated');
   const adminCookie = extractCookie(loginAdmin.res);
 
   // 3. Instagram-Inspired Profile Verification

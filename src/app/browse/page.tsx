@@ -180,19 +180,19 @@ export default function BrowseStudentsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-purple/10 border border-brand-purple/30 text-brand-purple text-xs font-semibold mb-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-600 dark:text-purple-400 text-xs font-semibold mb-2">
             <Compass className="w-3.5 h-3.5" />
             <span>Discoverable Student Directory</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Browse Student Profiles</h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">Browse Student Profiles</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Real consenting peers from Lovely Professional University and leading campuses.
           </p>
         </div>
 
         <Link
           href="/match"
-          className="self-start sm:self-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-brand-purple/20"
+          className="self-start sm:self-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-purple-600/20 hover:opacity-95 transition-opacity"
         >
           <Sparkles className="w-4 h-4" />
           <span>Try Auto-Matchmaker</span>
@@ -200,7 +200,7 @@ export default function BrowseStudentsPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="glass-card rounded-2xl p-3.5 sm:p-4 border border-navy-750">
+      <div className="rounded-2xl p-3.5 sm:p-4 bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-750 shadow-sm">
         <form onSubmit={handleSearchSubmit} className="flex flex-col sm:grid sm:grid-cols-4 gap-2.5 sm:gap-3 text-xs">
           {/* Search Input */}
           <div className="sm:col-span-2 relative">
@@ -210,7 +210,7 @@ export default function BrowseStudentsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by name, course, interests..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-navy-900 border border-navy-750 text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple text-xs"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-750 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-purple-600 text-xs transition-colors"
             />
           </div>
 
@@ -219,7 +219,7 @@ export default function BrowseStudentsPage() {
             <select
               value={selectedUni}
               onChange={(e) => setSelectedUni(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl bg-navy-900 border border-navy-750 text-white focus:outline-none focus:border-brand-purple text-xs"
+              className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-750 text-slate-900 dark:text-white focus:outline-none focus:border-purple-600 text-xs transition-colors"
             >
               <option value="">All Universities</option>
               {universities.map((u) => (
@@ -235,7 +235,7 @@ export default function BrowseStudentsPage() {
             <select
               value={selectedGender}
               onChange={(e) => setSelectedGender(e.target.value)}
-              className="flex-1 px-3 py-2.5 rounded-xl bg-navy-900 border border-navy-750 text-white focus:outline-none focus:border-brand-purple text-xs"
+              className="flex-1 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-750 text-slate-900 dark:text-white focus:outline-none focus:border-purple-600 text-xs transition-colors"
             >
               <option value="ALL">All Genders</option>
               <option value="FEMALE">Girls</option>
@@ -245,7 +245,7 @@ export default function BrowseStudentsPage() {
 
             <button
               type="submit"
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 hover:opacity-95 text-white font-bold transition-opacity cursor-pointer shrink-0 shadow-sm"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-95 text-white font-bold transition-opacity cursor-pointer shrink-0 shadow-sm"
             >
               Filter
             </button>
@@ -255,14 +255,14 @@ export default function BrowseStudentsPage() {
 
       {/* Student Cards Grid */}
       {loading ? (
-        <div className="py-20 text-center text-slate-400">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-brand-purple" />
+        <div className="py-20 text-center text-slate-500 dark:text-slate-400">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-purple-600" />
           <p className="text-xs">Finding available students...</p>
         </div>
       ) : students.length === 0 ? (
-        <div className="glass-card rounded-2xl p-12 text-center border border-navy-750 text-slate-400 text-xs space-y-2">
-          <Compass className="w-10 h-10 text-slate-600 mx-auto mb-2" />
-          <h3 className="text-sm font-bold text-white">No Matching Students Found</h3>
+        <div className="rounded-2xl p-12 text-center bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-750 text-slate-500 dark:text-slate-400 text-xs space-y-2 shadow-sm">
+          <Compass className="w-10 h-10 text-slate-400 dark:text-slate-600 mx-auto mb-2" />
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">No Matching Students Found</h3>
           <p className="max-w-md mx-auto">
             Try broadening your search query or selecting "All Universities" to discover more peers.
           </p>
@@ -272,7 +272,7 @@ export default function BrowseStudentsPage() {
           {students.map((st) => (
             <div
               key={st.id}
-              className="glass-card rounded-2xl p-6 border border-navy-750 hover:border-brand-purple/40 transition-all flex flex-col justify-between"
+              className="rounded-2xl p-6 bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-750 hover:border-purple-500/50 dark:hover:border-purple-500/50 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
             >
               <div>
                 {/* Header: Avatar, Name, Online Badge */}
@@ -283,53 +283,53 @@ export default function BrowseStudentsPage() {
                         <img
                           src={st.avatarUrl}
                           alt={st.displayName}
-                          className="w-12 h-12 rounded-full object-cover border border-navy-700"
+                          className="w-12 h-12 rounded-full object-cover border border-slate-200 dark:border-navy-700 shadow-sm"
                         />
                       ) : (
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center text-white font-bold text-base">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold text-base shadow-sm">
                           {st.displayName[0]}
                         </div>
                       )}
                       {st.isOnline && (
                         <span
                           title="Online right now"
-                          className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-400 border-2 border-navy-900"
+                          className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-navy-900"
                         />
                       )}
                     </div>
 
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <h3 className="text-sm font-bold text-white">{st.displayName}</h3>
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">{st.displayName}</h3>
                         {st.isVerified && (
-                          <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                          <ShieldCheck className="w-4 h-4 text-emerald-500" />
                         )}
                       </div>
-                      <p className="text-[11px] text-slate-400">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
                         {st.academicYear || 'Student'}
                       </p>
                     </div>
                   </div>
 
-                  <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-navy-800 text-slate-300">
+                  <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-700">
                     {st.university?.code || 'UNI'}
                   </span>
                 </div>
 
                 {/* University & Course */}
-                <div className="text-xs text-slate-300 mb-3 space-y-1">
-                  <p className="font-semibold text-brand-purple flex items-center gap-1.5">
+                <div className="text-xs text-slate-600 dark:text-slate-300 mb-3 space-y-1">
+                  <p className="font-semibold text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
                     <GraduationCap className="w-3.5 h-3.5" />
                     {st.university?.name || 'Verified University'}
                   </p>
                   {st.course && (
-                    <p className="text-[11px] text-slate-400">{st.course}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">{st.course}</p>
                   )}
                 </div>
 
                 {/* Bio */}
                 {st.bio && (
-                  <p className="text-xs text-slate-400 italic mb-4 line-clamp-2">
+                  <p className="text-xs text-slate-600 dark:text-slate-400 italic mb-4 line-clamp-2">
                     "{st.bio}"
                   </p>
                 )}
@@ -340,7 +340,7 @@ export default function BrowseStudentsPage() {
                     {st.interests.slice(0, 4).map((tag: string) => (
                       <span
                         key={tag}
-                        className="text-[10px] px-2 py-0.5 rounded-md bg-navy-850 text-slate-300 border border-navy-750"
+                        className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-navy-850 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-750"
                       >
                         {tag}
                       </span>
@@ -383,7 +383,7 @@ export default function BrowseStudentsPage() {
                       <button
                         onClick={() => handleDeclineFriendRequest(incomingReq.id)}
                         disabled={actionLoadingId === incomingReq.id}
-                        className="px-3 py-2 rounded-xl bg-navy-800 hover:bg-navy-750 text-slate-400 hover:text-white text-xs font-bold cursor-pointer"
+                        className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-navy-800 dark:hover:bg-navy-750 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white text-xs font-bold border border-slate-200 dark:border-navy-700 cursor-pointer"
                         title="Decline request"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -397,8 +397,8 @@ export default function BrowseStudentsPage() {
                 );
                 if (outgoingReq) {
                   return (
-                    <div className="w-full py-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold flex items-center justify-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-amber-400" />
+                    <div className="w-full py-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-semibold flex items-center justify-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-amber-500" />
                       <span>Request Sent (Pending)</span>
                     </div>
                   );
@@ -408,7 +408,7 @@ export default function BrowseStudentsPage() {
                   <button
                     onClick={() => handleSendFriendRequest(st.id)}
                     disabled={actionLoadingId === st.id}
-                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white text-xs font-bold hover:opacity-95 disabled:opacity-50 transition-opacity flex items-center justify-center gap-1.5 shadow-md shadow-brand-purple/20 cursor-pointer"
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold hover:opacity-95 disabled:opacity-50 transition-opacity flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/20 cursor-pointer"
                   >
                     {actionLoadingId === st.id ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />

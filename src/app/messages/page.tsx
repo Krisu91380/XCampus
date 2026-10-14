@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import VideoCallModal from '@/components/VideoCallModal';
+import { ThemeToggle } from '@/components/ThemeProvider';
 
 export default function MessagesPage() {
   const router = useRouter();
@@ -76,10 +77,15 @@ export default function MessagesPage() {
   // Notification Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Scroll and layout control refs
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
   const messagesRef = useRef<any[]>(messages);
   messagesRef.current = messages;
+
+  const isNearBottomRef = useRef(true);
+  const isInitialLoadRef = useRef(true);
+  const isLoadingOlderRef = useRef(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -93,6 +99,13 @@ export default function MessagesPage() {
         behavior,
       });
     }
+  };
+
+  const handleMessagesScroll = () => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    isNearBottomRef.current = distanceFromBottom < 140;
   };
 
   // 1. Fetch Conversations List
@@ -249,6 +262,8 @@ export default function MessagesPage() {
   const handleSelectConversation = (convId: string) => {
     setSelectedConvId(convId);
     setActiveMenuOpen(false);
+    isInitialLoadRef.current = true;
+    isNearBottomRef.current = true;
 
     // 1. Instant Cache-First Display (0ms perceived load)
     let hasCache = false;
@@ -356,11 +371,12 @@ export default function MessagesPage() {
     };
   }, [selectedConvId, chatPartner]);
 
-  // Load older messages for active conversation
+  // Load older messages for active conversation without viewport jump
   const handleLoadOlder = async () => {
     if (loadingOlder || !hasMore || !selectedConvId || messages.length === 0) return;
     const oldest = messages[0];
     setLoadingOlder(true);
+    isLoadingOlderRef.current = true;
     const scrollContainer = messagesContainerRef.current;
     const oldScrollHeight = scrollContainer ? scrollContainer.scrollHeight : 0;
 
@@ -377,26 +393,43 @@ export default function MessagesPage() {
         });
         setHasMore(Boolean(data.hasMore));
 
-        // Preserve scroll position
+        // Preserve scroll position perfectly
         requestAnimationFrame(() => {
           if (scrollContainer) {
             const newScrollHeight = scrollContainer.scrollHeight;
             scrollContainer.scrollTop = newScrollHeight - oldScrollHeight;
           }
+          setTimeout(() => {
+            isLoadingOlderRef.current = false;
+          }, 150);
         });
       } else {
         setHasMore(false);
+        isLoadingOlderRef.current = false;
       }
     } catch {
-      //
+      isLoadingOlderRef.current = false;
     } finally {
       setLoadingOlder(false);
     }
   };
 
+  // Smart Auto-Scroll Behavior:
+  // Jumps instantly to bottom on initial open, scrolls smoothly only if user was already at bottom,
+  // and NEVER forces bottom scroll when user is reading older messages.
   useEffect(() => {
-    scrollToBottom();
-  }, [messages.length]);
+    if (isLoadingOlderRef.current) return;
+
+    if (isInitialLoadRef.current && messages.length > 0) {
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      }
+      isInitialLoadRef.current = false;
+      isNearBottomRef.current = true;
+    } else if (isNearBottomRef.current) {
+      scrollToBottom('smooth');
+    }
+  }, [messages]);
 
   // 3. Instant Optimistic Message Send
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -419,6 +452,7 @@ export default function MessagesPage() {
       status: 'sending' as const,
     };
 
+    isNearBottomRef.current = true;
     setMessages((prev) => [...prev, optimisticMsg]);
     setInputValue('');
     scrollToBottom('smooth');
@@ -457,12 +491,10 @@ export default function MessagesPage() {
       );
 
       try {
-        const cached = localStorage.getItem(`campusconnect_cache_conv_${selectedConvId}`);
-        const parsed = cached ? JSON.parse(cached) : {};
         localStorage.setItem(
           `campusconnect_cache_conv_${selectedConvId}`,
           JSON.stringify({
-            conversation: parsed.conversation || { partner: chatPartner },
+            conversation: { partner: chatPartner },
             messages: messagesRef.current.map((m) =>
               m.id === clientMessageId ? { ...data.message, status: 'delivered' } : m
             ),
@@ -482,6 +514,7 @@ export default function MessagesPage() {
 
   // Retry Failed Message
   const handleRetryMessage = async (failedMsg: any) => {
+    if (!selectedConvId) return;
     const clientMessageId = failedMsg.clientMessageId || failedMsg.id;
     setMessages((prev) =>
       prev.map((m) => (m.id === failedMsg.id ? { ...m, status: 'sending' } : m))
@@ -513,7 +546,7 @@ export default function MessagesPage() {
     }
   };
 
-  // 4. Friend Management Actions
+  // Friend Request Actions
   const handleAcceptFriendRequest = async (requestId: string) => {
     setFriendActionLoadingId(requestId);
     setFriendActionError(null);
@@ -528,20 +561,10 @@ export default function MessagesPage() {
         throw new Error(data.message || 'Failed to accept friend request');
       }
 
-      setFriendsData((prev) => ({
-        ...prev,
-        incoming: prev.incoming.filter((r) => r.id !== requestId),
-      }));
-
-      await Promise.all([fetchFriends(), fetchConversations()]);
-
-      if (data.conversationId) {
-        handleSelectConversation(data.conversationId);
-      }
       showToast('Friend request accepted!');
+      await Promise.all([fetchFriends(), fetchConversations()]);
     } catch (err: any) {
-      setFriendActionError(err.message || 'Error accepting friend request');
-      fetchFriends();
+      setFriendActionError(err.message);
     } finally {
       setFriendActionLoadingId(null);
     }
@@ -561,16 +584,10 @@ export default function MessagesPage() {
         throw new Error(data.message || 'Failed to decline friend request');
       }
 
-      setFriendsData((prev) => ({
-        ...prev,
-        incoming: prev.incoming.filter((r) => r.id !== requestId),
-      }));
-
-      await fetchFriends();
-      showToast('Friend request declined.');
-    } catch (err: any) {
-      setFriendActionError(err.message || 'Error declining friend request');
+      showToast('Friend request declined');
       fetchFriends();
+    } catch (err: any) {
+      setFriendActionError(err.message);
     } finally {
       setFriendActionLoadingId(null);
     }
@@ -765,38 +782,40 @@ export default function MessagesPage() {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-0 sm:px-6 lg:px-8 sm:py-4 md:py-6 flex-1 flex flex-col h-[calc(100dvh-4rem)] md:h-[calc(100vh-4.5rem)] overflow-hidden">
+    <div className="w-full max-w-7xl mx-auto p-0 sm:p-2 md:p-3 flex-1 flex flex-col h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] overflow-hidden min-h-0">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-16 md:top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-brand-purple/90 backdrop-blur border border-white/20 text-white text-xs font-semibold shadow-2xl animate-fade-in flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-electric-300" />
+        <div className="fixed top-16 md:top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-slate-900/90 dark:bg-brand-purple/90 backdrop-blur border border-white/20 text-white text-xs font-semibold shadow-2xl animate-fade-in flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-purple-400" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      <div className="glass-card rounded-none sm:rounded-3xl border-0 sm:border border-navy-750 shadow-2xl flex-1 flex overflow-hidden">
+      {/* Main Messages Shell: Clean White Card in Light Mode, Dark Navy in Dark Mode */}
+      <div className="bg-white dark:bg-navy-900 rounded-none sm:rounded-2xl border-0 sm:border border-slate-200 dark:border-navy-800 shadow-sm flex-1 flex overflow-hidden min-h-0">
         {/* Left Column: Conversation Sidebar List */}
         <aside
           aria-label="Conversations"
-          className={`w-full md:w-80 lg:w-96 border-r border-navy-750 flex flex-col bg-navy-900/60 ${
+          className={`w-full md:w-80 lg:w-96 border-r border-slate-200 dark:border-navy-800 flex flex-col bg-slate-50/70 dark:bg-navy-900/60 min-h-0 shrink-0 ${
             selectedConvId ? 'hidden md:flex' : 'flex'
           }`}
         >
           {/* Sidebar Header */}
-          <div className="p-4 border-b border-navy-800 space-y-3">
+          <div className="p-3.5 border-b border-slate-200 dark:border-navy-800 bg-white dark:bg-navy-900 space-y-3 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-electric-400" />
-                <h1 className="text-base font-bold text-white">Messages</h1>
-                <span className="px-2 py-0.5 rounded-full bg-navy-800 text-[11px] font-mono text-slate-300">
+                <MessageSquare className="w-5 h-5 text-brand-purple" />
+                <h1 className="text-base font-bold text-slate-900 dark:text-white">Messages</h1>
+                <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-navy-800 text-[11px] font-mono text-slate-600 dark:text-slate-300 font-semibold">
                   {conversations.length}
                 </span>
               </div>
 
               <div className="flex items-center gap-1.5">
+                <ThemeToggle className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 border-slate-200 dark:border-navy-700" />
                 <Link
                   href="/match"
-                  className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 hover:opacity-90 text-white text-xs font-semibold flex items-center gap-1 shadow-sm"
+                  className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white text-xs font-semibold flex items-center gap-1 shadow-xs"
                   title="Find a new student match"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -813,30 +832,30 @@ export default function MessagesPage() {
                 placeholder="Search by student name, university..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 rounded-xl bg-navy-950/80 border border-navy-750 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-brand-purple transition-colors"
+                className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-750 text-slate-900 dark:text-white placeholder-slate-400 text-xs focus:bg-white focus:outline-none focus:border-brand-purple transition-all"
               />
             </div>
           </div>
 
           {/* Pending Friend Requests Section */}
           {(friendsData.incoming.length > 0 || friendActionError) && (
-            <div className="p-3 bg-gradient-to-r from-brand-purple/20 via-navy-900 to-electric-500/15 border-b border-navy-750 space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-white">
-                <span className="flex items-center gap-1.5 text-electric-300">
-                  <UserPlus className="w-3.5 h-3.5 text-electric-400" />
+            <div className="p-3 bg-purple-50/70 dark:bg-navy-950 border-b border-slate-200 dark:border-navy-750 space-y-2 shrink-0">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-white">
+                <span className="flex items-center gap-1.5 text-brand-purple dark:text-electric-300">
+                  <UserPlus className="w-3.5 h-3.5" />
                   <span>Friend Requests</span>
                 </span>
                 {friendsData.incoming.length > 0 && (
-                  <span className="px-1.5 py-0.5 rounded-full bg-electric-500 text-[10px] text-white font-mono font-bold animate-pulse">
+                  <span className="px-1.5 py-0.5 rounded-full bg-brand-purple text-[10px] text-white font-mono font-bold animate-pulse">
                     {friendsData.incoming.length}
                   </span>
                 )}
               </div>
 
               {friendActionError && (
-                <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px] flex items-center justify-between gap-1.5 animate-fade-in">
+                <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 text-[11px] flex items-center justify-between gap-1.5 animate-fade-in">
                   <span>{friendActionError}</span>
-                  <button onClick={() => setFriendActionError(null)} className="p-0.5 hover:text-white">
+                  <button onClick={() => setFriendActionError(null)} className="p-0.5 hover:opacity-80">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
@@ -849,28 +868,28 @@ export default function MessagesPage() {
                     return (
                       <div
                         key={req.id}
-                        className="p-2.5 rounded-xl bg-navy-950/90 border border-navy-750 flex items-center justify-between gap-2 shadow-sm"
+                        className="p-2.5 rounded-xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-750 flex items-center justify-between gap-2 shadow-xs"
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           {student.avatarUrl ? (
                             <img
                               src={student.avatarUrl}
                               alt={student.displayName || 'Student'}
-                              className="w-8 h-8 rounded-full object-cover border border-navy-700 shrink-0"
+                              className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-navy-700 shrink-0"
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-purple to-indigo-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
                               {student.displayName?.[0] || 'S'}
                             </div>
                           )}
                           <div className="min-w-0">
-                            <p className="text-xs font-bold text-white truncate flex items-center gap-1">
+                            <p className="text-xs font-bold text-slate-900 dark:text-white truncate flex items-center gap-1">
                               <span>{student.displayName || 'Student'}</span>
                               {student.isVerified && (
-                                <ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0" />
+                                <ShieldCheck className="w-3 h-3 text-emerald-500 shrink-0" />
                               )}
                             </p>
-                            <p className="text-[10px] text-slate-400 truncate">
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
                               {student.universityName || student.course || 'Campus Peer'}
                             </p>
                           </div>
@@ -880,7 +899,7 @@ export default function MessagesPage() {
                           <button
                             onClick={() => handleAcceptFriendRequest(req.id)}
                             disabled={friendActionLoadingId === req.id}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 shadow disabled:opacity-50 transition-colors cursor-pointer"
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs disabled:opacity-50 transition-colors cursor-pointer"
                             title="Accept and start chatting"
                           >
                             {friendActionLoadingId === req.id ? (
@@ -895,7 +914,7 @@ export default function MessagesPage() {
                           <button
                             onClick={() => handleDeclineFriendRequest(req.id)}
                             disabled={friendActionLoadingId === req.id}
-                            className="p-1 rounded-lg bg-navy-800 hover:bg-rose-950/50 hover:text-rose-400 text-slate-400 text-xs border border-navy-700 disabled:opacity-50 transition-colors cursor-pointer"
+                            className="p-1 rounded-lg bg-slate-100 dark:bg-navy-800 hover:bg-rose-50 hover:text-rose-600 text-slate-500 dark:text-slate-400 text-xs border border-slate-200 dark:border-navy-700 disabled:opacity-50 transition-colors cursor-pointer"
                             title="Decline request"
                           >
                             <X className="w-3.5 h-3.5" />
@@ -909,27 +928,27 @@ export default function MessagesPage() {
             </div>
           )}
 
-          {/* Conversation List Scroll Area */}
-          <div className="flex-1 overflow-y-auto divide-y divide-navy-800/40">
+          {/* Conversation List Scroll Area (Independently scrollable) */}
+          <div className="flex-1 overflow-y-auto overscroll-contain min-h-0 divide-y divide-slate-100 dark:divide-navy-800/40">
             {loadingList ? (
               <div className="py-16 text-center space-y-2">
                 <Loader2 className="w-6 h-6 animate-spin text-brand-purple mx-auto" />
-                <p className="text-xs text-slate-400">Loading your conversations...</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Loading your conversations...</p>
               </div>
             ) : filteredConversations.length === 0 ? (
               <div className="py-16 px-6 text-center space-y-3">
-                <div className="w-12 h-12 rounded-full bg-navy-800/60 text-slate-400 flex items-center justify-center mx-auto">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-navy-800/60 text-slate-400 flex items-center justify-center mx-auto">
                   <Compass className="w-6 h-6" />
                 </div>
-                <h2 className="text-sm font-bold text-white">No Conversations Found</h2>
-                <p className="text-xs text-slate-400">
+                <h2 className="text-sm font-bold text-slate-800 dark:text-white">No Conversations Found</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   {searchQuery
                     ? 'No match found for your search query.'
                     : 'Connect with peers from LPU and other universities to start chatting.'}
                 </p>
                 <Link
                   href="/match"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-purple hover:bg-brand-purple/90 text-white text-xs font-semibold shadow-xs"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Find a Match</span>
@@ -944,8 +963,8 @@ export default function MessagesPage() {
                     key={conv.id}
                     className={`w-full p-3.5 sm:p-4 text-left flex items-start justify-between gap-2.5 transition-colors group relative ${
                       isSelected
-                        ? 'bg-electric-500/15 border-l-4 border-electric-500'
-                        : 'hover:bg-navy-850/60'
+                        ? 'bg-slate-100/90 dark:bg-navy-850/90 border-l-4 border-brand-purple'
+                        : 'hover:bg-slate-100/50 dark:hover:bg-navy-850/50'
                     }`}
                   >
                     {/* Clickable Area for Chat Selection */}
@@ -958,42 +977,42 @@ export default function MessagesPage() {
                           <img
                             src={partner.avatarUrl}
                             alt={partner.displayName}
-                            className="w-11 h-11 rounded-full object-cover border border-navy-700"
+                            className="w-11 h-11 rounded-full object-cover border border-slate-200 dark:border-navy-750"
                           />
                         ) : (
-                          <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center text-white font-bold text-sm shadow">
+                          <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-brand-purple to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-xs">
                             {partner?.displayName?.[0] || 'S'}
                           </div>
                         )}
                         {partner?.isOnline && (
-                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-navy-900" />
+                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-navy-900" />
                         )}
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1 mb-0.5">
-                          <span className="text-xs font-bold text-white truncate flex items-center gap-1">
+                          <span className="text-xs font-bold text-slate-900 dark:text-white truncate flex items-center gap-1">
                             <span>{partner?.displayName || 'Student'}</span>
                             {partner?.isVerified && (
-                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                             )}
                             {partner?.isFriend && (
-                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-400 font-semibold">
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-semibold border border-emerald-200 dark:border-emerald-500/30">
                                 Friend
                               </span>
                             )}
                           </span>
-                          <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono shrink-0">
                             {formatConversationTime(conv.lastMessage?.createdAt || conv.startedAt)}
                           </span>
                         </div>
 
-                        <p className="text-[11px] text-slate-400 truncate mb-1">
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mb-1">
                           {partner?.universityName || 'Verified University Student'}
                         </p>
 
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-[11px] text-slate-300 truncate">
+                          <p className="text-[11px] text-slate-600 dark:text-slate-300 truncate">
                             {conv.lastMessage?.content ? (
                               <span>
                                 {conv.lastMessage.isMine && (
@@ -1002,12 +1021,12 @@ export default function MessagesPage() {
                                 {conv.lastMessage.content}
                               </span>
                             ) : (
-                              <span className="italic text-slate-500">Connected. Say hello!</span>
+                              <span className="italic text-slate-400">Connected. Say hello!</span>
                             )}
                           </p>
 
                           {conv.unreadCount > 0 && (
-                            <span className="px-1.5 py-0.5 rounded-full bg-electric-500 text-white font-bold text-[9px] shrink-0">
+                            <span className="px-1.5 py-0.5 rounded-full bg-brand-purple text-white font-bold text-[9px] shrink-0">
                               {conv.unreadCount}
                             </span>
                           )}
@@ -1022,7 +1041,7 @@ export default function MessagesPage() {
                           e.stopPropagation();
                           setOpenItemMenuId(openItemMenuId === conv.id ? null : conv.id);
                         }}
-                        className="p-1 rounded-lg text-slate-500 hover:text-white hover:bg-navy-800 transition-colors"
+                        className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-navy-800 transition-colors"
                         title="Chat options"
                       >
                         <MoreVertical className="w-3.5 h-3.5" />
@@ -1031,48 +1050,48 @@ export default function MessagesPage() {
                       {openItemMenuId === conv.id && (
                         <div
                           onClick={(e) => e.stopPropagation()}
-                          className="absolute right-0 top-full mt-1 w-44 rounded-2xl bg-navy-900 border border-navy-750 shadow-2xl py-1.5 z-40 text-xs"
+                          className="absolute right-0 top-full mt-1 w-44 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-750 shadow-xl py-1.5 z-40 text-xs text-slate-700 dark:text-slate-200"
                         >
                           <button
                             onClick={() => {
                               setOpenItemMenuId(null);
                               setProfileModalUser(partner);
                             }}
-                            className="w-full px-3.5 py-2 text-left text-slate-300 hover:bg-navy-800 hover:text-white flex items-center gap-2"
+                            className="w-full px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-navy-800 flex items-center gap-2 cursor-pointer"
                           >
-                            <User className="w-3.5 h-3.5 text-electric-400" />
+                            <User className="w-3.5 h-3.5 text-brand-purple" />
                             <span>View Profile</span>
                           </button>
 
                           {partner?.isFriend ? (
                             <button
                               onClick={() => handleRemoveFriend(partner)}
-                              className="w-full px-3.5 py-2 text-left text-slate-300 hover:bg-navy-800 hover:text-white flex items-center gap-2"
+                              className="w-full px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-navy-800 flex items-center gap-2 cursor-pointer text-amber-600 dark:text-amber-400"
                             >
-                              <UserMinus className="w-3.5 h-3.5 text-amber-400" />
+                              <UserMinus className="w-3.5 h-3.5" />
                               <span>Remove Friend</span>
                             </button>
                           ) : (
                             <button
                               onClick={() => handleSendFriendRequest(partner)}
-                              className="w-full px-3.5 py-2 text-left text-slate-300 hover:bg-navy-800 hover:text-white flex items-center gap-2"
+                              className="w-full px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-navy-800 flex items-center gap-2 cursor-pointer text-emerald-600 dark:text-emerald-400"
                             >
-                              <UserPlus className="w-3.5 h-3.5 text-emerald-400" />
+                              <UserPlus className="w-3.5 h-3.5" />
                               <span>Add Friend</span>
                             </button>
                           )}
 
                           <button
                             onClick={() => handleDeleteChat(conv.id)}
-                            className="w-full px-3.5 py-2 text-left text-slate-300 hover:bg-navy-800 hover:text-white flex items-center gap-2"
+                            className="w-full px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-navy-800 flex items-center gap-2 cursor-pointer text-slate-600 dark:text-slate-400"
                           >
-                            <Trash2 className="w-3.5 h-3.5 text-slate-400" />
+                            <Trash2 className="w-3.5 h-3.5" />
                             <span>Delete Chat</span>
                           </button>
 
                           <button
                             onClick={() => handleBlockUser(partner)}
-                            className="w-full px-3.5 py-2 text-left text-rose-400 hover:bg-rose-950/40 flex items-center gap-2"
+                            className="w-full px-3.5 py-2 text-left hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center gap-2 cursor-pointer"
                           >
                             <Ban className="w-3.5 h-3.5" />
                             <span>Block User</span>
@@ -1087,21 +1106,21 @@ export default function MessagesPage() {
           </div>
         </aside>
 
-        {/* Right Column: Active Conversation Messages */}
+        {/* Right Column: Active Conversation Messages (Instagram DM Clean Experience) */}
         <section
           aria-label="Active Conversation"
-          className={`flex-1 flex flex-col bg-navy-950/70 ${
+          className={`flex-1 flex flex-col bg-white dark:bg-navy-950 min-h-0 overflow-hidden ${
             selectedConvId ? 'flex' : 'hidden md:flex'
           }`}
         >
           {selectedConvId && chatPartner ? (
             <>
-              {/* Active Chat Header - Sleek Instagram DM style */}
-              <div className="p-2.5 sm:p-4 border-b border-navy-800 bg-navy-950/95 md:bg-navy-900/60 backdrop-blur-md flex items-center justify-between z-10 shrink-0">
-                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              {/* Active Chat Header - Instagram DM Clean Style */}
+              <div className="p-3 sm:p-4 border-b border-slate-200 dark:border-navy-800 bg-white/95 dark:bg-navy-900/95 backdrop-blur-md flex items-center justify-between z-10 shrink-0">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                   <button
                     onClick={() => setSelectedConvId(null)}
-                    className="md:hidden p-1.5 rounded-full text-slate-300 hover:text-white hover:bg-navy-850 active:scale-95 shrink-0"
+                    className="md:hidden p-1.5 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-850 active:scale-95 shrink-0"
                     title="Back to conversation list"
                   >
                     <ArrowLeft className="w-5 h-5" />
@@ -1112,40 +1131,42 @@ export default function MessagesPage() {
                       <img
                         src={chatPartner.avatarUrl}
                         alt={chatPartner.displayName}
-                        className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border border-navy-700"
+                        className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border border-slate-200 dark:border-navy-700"
                       />
                     ) : (
-                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center text-white font-bold text-sm">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-brand-purple to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-xs">
                         {chatPartner.displayName?.[0] || 'S'}
                       </div>
                     )}
                     {chatPartner.isOnline && (
-                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-navy-900" />
+                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-navy-900" />
                     )}
                   </div>
 
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <h2 className="text-xs sm:text-sm font-bold text-white truncate max-w-[120px] sm:max-w-xs">{chatPartner.displayName}</h2>
+                      <h2 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate max-w-[130px] sm:max-w-xs">
+                        {chatPartner.displayName}
+                      </h2>
                       {chatPartner.isVerified && (
-                        <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
+                        <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 shrink-0" />
                       )}
                       {chatPartner.isFriend ? (
-                        <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold shrink-0">
+                        <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold shrink-0">
                           ✓ Friends
                         </span>
                       ) : (
                         <button
                           onClick={handleSendFriendRequest}
                           disabled={addingFriend}
-                          className="px-2 py-0.5 rounded-full bg-electric-500/15 border border-electric-500/30 text-electric-300 hover:bg-electric-500 hover:text-white text-[10px] font-semibold flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                          className="px-2 py-0.5 rounded-full bg-purple-50 hover:bg-brand-purple hover:text-white dark:bg-purple-500/15 border border-purple-200 dark:border-purple-500/30 text-purple-700 dark:text-purple-300 text-[10px] font-semibold flex items-center gap-1 transition-colors cursor-pointer shrink-0"
                         >
                           <UserPlus className="w-3 h-3" />
                           <span className="hidden sm:inline">{addingFriend ? 'Sending...' : 'Add Friend'}</span>
                         </button>
                       )}
                     </div>
-                    <p className="text-[10px] sm:text-[11px] text-slate-400 flex items-center gap-1 truncate max-w-[120px] sm:max-w-xs">
+                    <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 truncate max-w-[130px] sm:max-w-xs">
                       <GraduationCap className="w-3 h-3 text-brand-purple shrink-0" />
                       <span className="truncate">{chatPartner.universityName}</span>
                       {chatPartner.course && <span className="hidden sm:inline truncate">• {chatPartner.course}</span>}
@@ -1155,12 +1176,13 @@ export default function MessagesPage() {
 
                 {/* Right Action Icons */}
                 <div className="flex items-center gap-2">
+                  <ThemeToggle className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 border-slate-200 dark:border-navy-700" />
                   <button
                     onClick={() => {
                       setIsCallInitiator(true);
                       setIsVideoModalOpen(true);
                     }}
-                    className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 hover:opacity-90 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-brand-purple/20 transition-all"
+                    className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
                     title="Start Live Video Call"
                   >
                     <Video className="w-3.5 h-3.5" />
@@ -1170,20 +1192,20 @@ export default function MessagesPage() {
                   {chatPartner.isFriend ? (
                     <Link
                       href={`/chat/${selectedConvId}?room=personal&autoCall=true`}
-                      className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all"
-                      title="Enter private Personal Room for live video call with friend"
+                      className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-500/20 hover:bg-amber-100 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/40 text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all"
+                      title="Enter private Personal Room for video call with friend"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Personal Room</span>
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      <span className="hidden sm:inline">Personal Room</span>
                     </Link>
                   ) : (
                     <Link
                       href={`/chat/${selectedConvId}?room=match&match=true&autoCall=true`}
-                      className="px-2.5 py-1.5 rounded-xl border border-navy-750 hover:bg-navy-850 text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                      className="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-navy-750 hover:bg-slate-100 dark:hover:bg-navy-850 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
                       title="Open Match Room view"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-electric-400" />
-                      <span>Match Room</span>
+                      <Sparkles className="w-3.5 h-3.5 text-brand-purple" />
+                      <span className="hidden sm:inline">Match Room</span>
                     </Link>
                   )}
 
@@ -1191,50 +1213,50 @@ export default function MessagesPage() {
                   <div className="relative">
                     <button
                       onClick={() => setActiveMenuOpen(!activeMenuOpen)}
-                      className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-navy-850 transition-colors"
+                      className="p-1.5 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-navy-850 transition-colors cursor-pointer"
                     >
                       <MoreVertical className="w-4 h-4" />
                     </button>
 
                     {activeMenuOpen && (
-                      <div className="absolute right-0 top-full mt-1 w-44 rounded-2xl bg-navy-900 border border-navy-750 shadow-2xl py-1.5 z-40 text-xs">
+                      <div className="absolute right-0 top-full mt-1 w-44 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-750 shadow-xl py-1.5 z-40 text-xs text-slate-700 dark:text-slate-200">
                         <button
                           onClick={() => {
                             setActiveMenuOpen(false);
                             setProfileModalUser(chatPartner);
                           }}
-                          className="w-full px-3.5 py-2 text-left text-slate-300 hover:bg-navy-800 hover:text-white flex items-center gap-2"
+                          className="w-full px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-navy-800 flex items-center gap-2 cursor-pointer"
                         >
-                          <User className="w-3.5 h-3.5 text-electric-400" />
+                          <User className="w-3.5 h-3.5 text-brand-purple" />
                           <span>View Profile</span>
                         </button>
                         {chatPartner.isFriend ? (
                           <button
                             onClick={() => handleRemoveFriend()}
-                            className="w-full px-3.5 py-2 text-left text-slate-300 hover:bg-navy-800 hover:text-white flex items-center gap-2"
+                            className="w-full px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-navy-800 text-amber-600 dark:text-amber-400 flex items-center gap-2 cursor-pointer"
                           >
-                            <UserMinus className="w-3.5 h-3.5 text-amber-400" />
+                            <UserMinus className="w-3.5 h-3.5" />
                             <span>Remove Friend</span>
                           </button>
                         ) : (
                           <button
                             onClick={() => handleSendFriendRequest()}
-                            className="w-full px-3.5 py-2 text-left text-slate-300 hover:bg-navy-800 hover:text-white flex items-center gap-2"
+                            className="w-full px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-navy-800 text-emerald-600 dark:text-emerald-400 flex items-center gap-2 cursor-pointer"
                           >
-                            <UserPlus className="w-3.5 h-3.5 text-emerald-400" />
+                            <UserPlus className="w-3.5 h-3.5" />
                             <span>Add Friend</span>
                           </button>
                         )}
                         <button
                           onClick={() => handleDeleteChat()}
-                          className="w-full px-3.5 py-2 text-left text-slate-300 hover:bg-navy-800 hover:text-white flex items-center gap-2"
+                          className="w-full px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-navy-800 text-slate-600 dark:text-slate-400 flex items-center gap-2 cursor-pointer"
                         >
-                          <Trash2 className="w-3.5 h-3.5 text-slate-400" />
+                          <Trash2 className="w-3.5 h-3.5" />
                           <span>Delete Chat</span>
                         </button>
                         <button
                           onClick={() => handleBlockUser()}
-                          className="w-full px-3.5 py-2 text-left text-rose-400 hover:bg-rose-950/40 flex items-center gap-2"
+                          className="w-full px-3.5 py-2 text-left hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center gap-2 cursor-pointer"
                         >
                           <Ban className="w-3.5 h-3.5" />
                           <span>Block User</span>
@@ -1245,10 +1267,14 @@ export default function MessagesPage() {
                 </div>
               </div>
 
-              {/* Messages Body */}
-              <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overscroll-contain p-3 sm:p-6 space-y-3 sm:space-y-3.5">
-                <div className="p-2 sm:p-2.5 rounded-xl bg-navy-900/80 border border-navy-800 text-center text-[10px] sm:text-[11px] text-slate-400 max-w-md mx-auto">
-                  🔒 Private student conversation. Never share financial passwords or UPI PINs.
+              {/* Messages Body (Independently scrollable message area) */}
+              <div
+                ref={messagesContainerRef}
+                onScroll={handleMessagesScroll}
+                className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-3 min-h-0 bg-white dark:bg-navy-950"
+              >
+                <div className="p-2 sm:p-2.5 rounded-xl bg-slate-50 dark:bg-navy-900/80 border border-slate-200 dark:border-navy-800 text-center text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                  🔒 Private student conversation. Never share passwords or payment credentials.
                 </div>
 
                 {/* Load older messages button if conversation history has more */}
@@ -1258,11 +1284,11 @@ export default function MessagesPage() {
                       type="button"
                       onClick={handleLoadOlder}
                       disabled={loadingOlder}
-                      className="text-[11px] text-brand-purple hover:text-electric-300 font-semibold flex items-center justify-center gap-1.5 mx-auto py-1 px-3 rounded-full bg-navy-900 border border-navy-800 transition-colors cursor-pointer"
+                      className="text-[11px] text-brand-purple hover:underline font-semibold flex items-center justify-center gap-1.5 mx-auto py-1 px-3 rounded-full bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 transition-colors cursor-pointer"
                     >
                       {loadingOlder ? (
                         <>
-                          <Loader2 className="w-3 h-3 animate-spin text-electric-400" />
+                          <Loader2 className="w-3 h-3 animate-spin text-brand-purple" />
                           <span>Loading older messages...</span>
                         </>
                       ) : (
@@ -1274,12 +1300,12 @@ export default function MessagesPage() {
 
                 {loadingChat && messages.length === 0 ? (
                   <div className="py-8 space-y-4 max-w-md mx-auto animate-pulse">
-                    <div className="w-48 h-9 rounded-2xl bg-navy-850" />
-                    <div className="w-64 h-9 rounded-2xl bg-brand-purple/20 ml-auto" />
-                    <div className="w-52 h-9 rounded-2xl bg-navy-850" />
+                    <div className="w-48 h-9 rounded-2xl bg-slate-100 dark:bg-navy-850" />
+                    <div className="w-64 h-9 rounded-2xl bg-purple-100 dark:bg-brand-purple/20 ml-auto" />
+                    <div className="w-52 h-9 rounded-2xl bg-slate-100 dark:bg-navy-850" />
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className="py-20 text-center text-slate-500 text-xs">
+                  <div className="py-20 text-center text-slate-400 text-xs">
                     <p>Start the conversation! Say hello to {chatPartner.displayName}.</p>
                   </div>
                 ) : (
@@ -1289,17 +1315,17 @@ export default function MessagesPage() {
                       className={`flex flex-col ${m.isMine ? 'items-end' : 'items-start'}`}
                     >
                       <div
-                        className={`max-w-[85%] sm:max-w-md px-4 py-2.5 rounded-2xl text-xs leading-relaxed break-words shadow-sm ${
+                        className={`max-w-[85%] sm:max-w-md px-4 py-2.5 text-xs leading-relaxed break-words shadow-xs ${
                           m.isMine
                             ? m.status === 'failed'
-                              ? 'bg-rose-900/60 border border-rose-500/50 text-white rounded-br-none'
-                              : 'bg-gradient-to-r from-brand-purple to-electric-500 text-white rounded-br-none'
-                            : 'bg-navy-850 border border-navy-750 text-slate-200 rounded-bl-none'
+                              ? 'bg-rose-600 text-white rounded-2xl rounded-br-sm'
+                              : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl rounded-br-sm shadow-sm'
+                            : 'bg-slate-100 dark:bg-navy-800 text-slate-900 dark:text-slate-100 rounded-2xl rounded-bl-sm border border-slate-200/60 dark:border-navy-700/60'
                         }`}
                       >
-                        <p>{m.content}</p>
+                        <p className="whitespace-pre-wrap">{m.content}</p>
                       </div>
-                      <div className="flex items-center gap-1.5 mt-1 text-[10px] text-slate-400 px-1 font-mono">
+                      <div className="flex items-center gap-1.5 mt-1 text-[10px] text-slate-400 dark:text-slate-500 px-1 font-mono">
                         <span>{formatMessageTime(m.createdAt)}</span>
                         {m.isMine && (
                           <>
@@ -1309,12 +1335,12 @@ export default function MessagesPage() {
                               </span>
                             )}
                             {m.status === 'failed' && (
-                              <div className="flex items-center gap-1 text-rose-400">
-                                <AlertCircle className="w-3 h-3 text-rose-400" />
+                              <div className="flex items-center gap-1 text-rose-500">
+                                <AlertCircle className="w-3 h-3 text-rose-500" />
                                 <button
                                   type="button"
                                   onClick={() => handleRetryMessage(m)}
-                                  className="text-[10px] text-rose-400 underline font-sans font-semibold hover:text-white cursor-pointer"
+                                  className="text-[10px] text-rose-500 underline font-sans font-semibold hover:opacity-80 cursor-pointer"
                                 >
                                   Retry
                                 </button>
@@ -1322,7 +1348,7 @@ export default function MessagesPage() {
                             )}
                             {(!m.status || m.status === 'delivered') && (
                               <span title="Delivered & Saved">
-                                <CheckCheck className="w-3 h-3 text-electric-400" />
+                                <CheckCheck className="w-3.5 h-3.5 text-brand-purple dark:text-electric-400" />
                               </span>
                             )}
                           </>
@@ -1333,22 +1359,22 @@ export default function MessagesPage() {
                 )}
               </div>
 
-              {/* Chat Input Bar - Instagram DM style with safe area inset */}
+              {/* Chat Input Bar - Instagram DM Style Fixed at Bottom */}
               <form
                 onSubmit={handleSendMessage}
-                className="p-2 sm:p-4 border-t border-navy-850 md:border-navy-800 bg-navy-950/95 md:bg-navy-900/60 backdrop-blur-md flex items-center gap-2 shrink-0 pb-[max(0.6rem,env(safe-area-inset-bottom))] md:pb-4"
+                className="p-3 sm:p-4 border-t border-slate-200 dark:border-navy-800 bg-white dark:bg-navy-900 flex items-center gap-2 shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
               >
                 <input
                   type="text"
                   placeholder={`Message ${chatPartner.displayName}...`}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  className="flex-1 px-4 py-2.5 rounded-full md:rounded-xl bg-navy-900 md:bg-navy-950 border border-navy-750 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-electric-500 transition-colors shadow-inner"
+                  className="flex-1 px-4 py-2.5 rounded-full bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-750 text-slate-900 dark:text-white placeholder-slate-400 text-xs focus:bg-white focus:outline-none focus:border-brand-purple transition-all shadow-inner"
                 />
                 <button
                   type="submit"
                   disabled={!inputValue.trim()}
-                  className="p-2.5 sm:px-4 sm:py-2.5 rounded-full md:rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 hover:opacity-90 disabled:opacity-40 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-brand-purple/20 cursor-pointer shrink-0 active:scale-95"
+                  className="p-2.5 sm:px-5 sm:py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-95 disabled:opacity-40 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer shrink-0"
                 >
                   <Send className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                   <span className="hidden sm:inline">Send</span>
@@ -1356,17 +1382,17 @@ export default function MessagesPage() {
               </form>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 text-slate-400">
-              <div className="w-16 h-16 rounded-full bg-navy-900 border border-navy-800 flex items-center justify-center text-electric-400 shadow-inner">
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 text-slate-500 dark:text-slate-400">
+              <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-800 flex items-center justify-center text-brand-purple shadow-inner">
                 <MessageSquare className="w-8 h-8" />
               </div>
-              <h2 className="text-base font-bold text-white">Your CC Inbox</h2>
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">Your CC Inbox</h2>
               <p className="text-xs max-w-sm">
                 Select a conversation from the left to start messaging, or find a new verified university student partner.
               </p>
               <Link
                 href="/match"
-                className="mt-2 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white text-xs font-bold shadow-lg shadow-brand-purple/20"
+                className="mt-2 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold shadow-md shadow-purple-500/20"
               >
                 <Sparkles className="w-4 h-4" />
                 <span>Find a Match</span>
@@ -1378,16 +1404,16 @@ export default function MessagesPage() {
 
       {/* Blocked Users Modal */}
       {showBlockedModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-navy-900 border border-navy-750 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-navy-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-navy-950/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-750 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-navy-800">
               <div className="flex items-center gap-2">
-                <Ban className="w-4 h-4 text-rose-400" />
-                <h3 className="text-sm font-bold text-white">Blocked Students</h3>
+                <Ban className="w-4 h-4 text-rose-500" />
+                <h3 className="text-sm font-bold">Blocked Students</h3>
               </div>
               <button
                 onClick={() => setShowBlockedModal(false)}
-                className="p-1 rounded-xl text-slate-400 hover:text-white"
+                className="p-1 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1400,37 +1426,36 @@ export default function MessagesPage() {
                   <span>Loading blocked accounts...</span>
                 </div>
               ) : blockedUsers.length === 0 ? (
-                <div className="py-8 text-center text-slate-500 text-xs">
+                <div className="py-8 text-center text-slate-400 text-xs">
                   <p>No blocked users. You have a clean connections list!</p>
                 </div>
               ) : (
                 blockedUsers.map((b) => (
                   <div
                     key={b.userId}
-                    className="p-3 rounded-2xl bg-navy-950 border border-navy-800 flex items-center justify-between gap-3"
+                    className="p-3 rounded-2xl bg-slate-50 dark:bg-navy-950 border border-slate-200 dark:border-navy-800 flex items-center justify-between gap-3"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       {b.avatarUrl ? (
                         <img
                           src={b.avatarUrl}
                           alt={b.displayName}
-                          className="w-8 h-8 rounded-full object-cover border border-navy-700 shrink-0"
+                          className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-navy-700 shrink-0"
                         />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-white text-xs font-bold shrink-0">
                           {b.displayName?.[0] || 'S'}
                         </div>
                       )}
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-white truncate">{b.displayName}</p>
-                        <p className="text-[10px] text-slate-400 truncate">{b.universityName}</p>
+                        <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{b.displayName}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{b.universityName || 'Student'}</p>
                       </div>
                     </div>
-
                     <button
                       onClick={() => handleUnblockUser(b.userId)}
                       disabled={unblockingId === b.userId}
-                      className="px-3 py-1.5 rounded-xl bg-navy-800 hover:bg-emerald-600 hover:text-white text-slate-300 text-xs font-semibold border border-navy-700 transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
+                      className="px-3 py-1 rounded-lg bg-slate-200 dark:bg-navy-800 hover:bg-slate-300 dark:hover:bg-navy-700 text-slate-800 dark:text-slate-200 text-xs font-semibold"
                     >
                       {unblockingId === b.userId ? 'Unblocking...' : 'Unblock'}
                     </button>
@@ -1442,113 +1467,71 @@ export default function MessagesPage() {
         </div>
       )}
 
-      {/* Embedded Video Call Modal */}
-      {isVideoModalOpen && selectedConvId && chatPartner && (
-        <VideoCallModal
-          conversationId={selectedConvId}
-          partner={chatPartner}
-          isInitiator={isCallInitiator}
-          isOpen={isVideoModalOpen}
-          onClose={() => setIsVideoModalOpen(false)}
-        />
-      )}
-
-      {/* Student Profile Quick View Modal */}
+      {/* Partner Profile Modal */}
       {profileModalUser && (
-        <div
-          className="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
-          onClick={() => setProfileModalUser(null)}
-        >
-          <div
-            className="w-full max-w-md bg-navy-900 border border-navy-750 rounded-3xl p-6 shadow-2xl space-y-5 animate-scale-up"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3.5">
-                <div className="relative">
-                  {profileModalUser.avatarUrl ? (
-                    <img
-                      src={profileModalUser.avatarUrl}
-                      alt={profileModalUser.displayName}
-                      className="w-16 h-16 rounded-full object-cover border-2 border-brand-purple shadow-md"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-brand-purple to-electric-500 flex items-center justify-center text-white text-xl font-bold shadow-md">
-                      {profileModalUser.displayName?.[0] || 'S'}
-                    </div>
-                  )}
-                  {profileModalUser.isOnline && (
-                    <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-navy-900" />
-                  )}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-navy-950/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center text-slate-900 dark:text-white relative">
+            <button
+              onClick={() => setProfileModalUser(null)}
+              className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="w-20 h-20 rounded-full mx-auto overflow-hidden border-2 border-brand-purple">
+              {profileModalUser.avatarUrl ? (
+                <img
+                  src={profileModalUser.avatarUrl}
+                  alt={profileModalUser.displayName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-tr from-brand-purple to-indigo-600 flex items-center justify-center text-white text-2xl font-bold">
+                  {profileModalUser.displayName?.[0] || 'S'}
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-white flex items-center gap-1.5">
-                    <span>{profileModalUser.displayName}</span>
-                    {profileModalUser.isVerified && (
-                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    )}
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    {profileModalUser.universityName || 'Verified University Student'}
-                  </p>
-                  <div className="mt-1 flex items-center gap-1.5">
-                    {profileModalUser.isFriend ? (
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold">
-                        ✓ Connected Friend
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full bg-electric-500/10 border border-electric-500/30 text-electric-300 text-[10px] font-semibold">
-                        Campus Peer
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => setProfileModalUser(null)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-navy-800 transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              )}
             </div>
 
-            <div className="space-y-3 text-xs bg-navy-950/60 p-4 rounded-2xl border border-navy-800">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center justify-center gap-1.5">
+                <span>{profileModalUser.displayName}</span>
+                {profileModalUser.isVerified && (
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                )}
+              </h3>
+              <p className="text-xs text-brand-purple font-medium mt-0.5">{profileModalUser.universityName}</p>
               {profileModalUser.course && (
-                <div className="flex items-center justify-between py-1 border-b border-navy-800/60">
-                  <span className="text-slate-400">Course / Program</span>
-                  <span className="text-white font-medium">{profileModalUser.course}</span>
-                </div>
-              )}
-              {profileModalUser.branch && (
-                <div className="flex items-center justify-between py-1 border-b border-navy-800/60">
-                  <span className="text-slate-400">Branch / Specialization</span>
-                  <span className="text-white font-medium">{profileModalUser.branch}</span>
-                </div>
-              )}
-              {profileModalUser.academicYear && (
-                <div className="flex items-center justify-between py-1 border-b border-navy-800/60">
-                  <span className="text-slate-400">Academic Year</span>
-                  <span className="text-white font-medium">{profileModalUser.academicYear}</span>
-                </div>
-              )}
-              {profileModalUser.bio && (
-                <div className="pt-1">
-                  <span className="text-slate-400 block mb-1">About Student</span>
-                  <p className="text-slate-200 leading-relaxed italic">{profileModalUser.bio}</p>
-                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{profileModalUser.course}</p>
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-1">
+            {profileModalUser.bio && (
+              <p className="text-xs text-slate-600 dark:text-slate-300 italic px-2">
+                &quot;{profileModalUser.bio}&quot;
+              </p>
+            )}
+
+            <div className="pt-2 flex items-center justify-center gap-2">
               <button
                 onClick={() => setProfileModalUser(null)}
-                className="px-4 py-2 rounded-xl bg-navy-850 hover:bg-navy-800 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-200"
               >
                 Close
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Video Call Modal */}
+      {isVideoModalOpen && chatPartner && (
+        <VideoCallModal
+          isOpen={isVideoModalOpen}
+          onClose={() => setIsVideoModalOpen(false)}
+          conversationId={selectedConvId || ''}
+          partner={chatPartner}
+          isInitiator={isCallInitiator}
+        />
       )}
     </div>
   );
