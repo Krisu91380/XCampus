@@ -1007,7 +1007,7 @@ export const db = {
       update,
     }: {
       where: { userId: string };
-      create: Omit<Profile, 'id' | 'createdAt' | 'updatedAt'>;
+      create: Partial<Profile> & { userId: string; displayName: string };
       update: Partial<Profile>;
     }) => {
       const createInterests = typeof create.interests === 'string' ? create.interests : JSON.stringify(create.interests || []);
@@ -1140,7 +1140,18 @@ export const db = {
       const id = `profile-${Date.now()}`;
       const newProfile: Profile = {
         id,
-        ...create,
+        userId: where.userId,
+        displayName: create.displayName,
+        gender: create.gender || 'PREFER_NOT_TO_SAY',
+        avatarUrl: create.avatarUrl || null,
+        bio: create.bio || null,
+        course: create.course || null,
+        academicYear: create.academicYear || null,
+        language: create.language || 'English',
+        interests: Array.isArray(create.interests) ? create.interests : [],
+        isOnline: Boolean(create.isOnline),
+        isDiscoverable: create.isDiscoverable !== false,
+        lastSeenAt: create.lastSeenAt || new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
       };

@@ -62,7 +62,16 @@ export async function GET(req: NextRequest) {
     }
     const upDb = await db.profile.upsert({
       where: { userId: 'user-student-krish' },
-      create: { userId: 'user-student-krish', displayName: 'Krish Barak', avatarUrl: testAvatar },
+      create: {
+        userId: 'user-student-krish',
+        displayName: 'Krish Barak',
+        gender: 'MALE',
+        language: 'English',
+        interests: ['Coding'],
+        isOnline: true,
+        isDiscoverable: true,
+        avatarUrl: testAvatar,
+      },
       update: { avatarUrl: testAvatar },
     });
     results.testDbUpsert = upDb;
@@ -104,6 +113,11 @@ export async function POST(req: NextRequest) {
       create: {
         userId: 'user-student-krish',
         displayName: 'Krish Barak',
+        gender: 'MALE',
+        language: 'English',
+        interests: ['Coding'],
+        isOnline: true,
+        isDiscoverable: true,
         avatarUrl: testAvatarUrl,
       },
       update: {
