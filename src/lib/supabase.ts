@@ -107,7 +107,15 @@ export async function uploadProfilePhotoToSupabase(
       return null;
     }
 
-    // Get public URL
+    // For private buckets, generate a long-lived signed URL; otherwise fallback to publicUrl
+    const { data: signedData } = await supabase.storage
+      .from(bucketName)
+      .createSignedUrl(filePath, 60 * 60 * 24 * 365); // 1-year valid signed URL
+
+    if (signedData?.signedUrl) {
+      return signedData.signedUrl;
+    }
+
     const {
       data: { publicUrl },
     } = supabase.storage.from(bucketName).getPublicUrl(filePath);

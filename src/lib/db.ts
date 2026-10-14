@@ -707,6 +707,81 @@ async function canUsePrisma(): Promise<boolean> {
   return isPrismaAvailable;
 }
 
+export function unpackProfileRow(row: any): Profile {
+  if (!row) return row;
+  let interests: any = row.interests;
+  let socialLinks: any = row.socialLinks || {};
+  let skills: any = row.skills || [];
+  let branch: string = row.branch || '';
+  let semester: string = row.semester || '';
+
+  try {
+    if (typeof interests === 'string') {
+      const parsed = JSON.parse(interests);
+      if (Array.isArray(parsed)) {
+        interests = parsed;
+      } else if (parsed && typeof parsed === 'object') {
+        interests = Array.isArray(parsed.tags) ? parsed.tags : (Array.isArray(parsed.interests) ? parsed.interests : []);
+        if (parsed.socialLinks && typeof parsed.socialLinks === 'object') {
+          socialLinks = { ...parsed.socialLinks, ...socialLinks };
+        }
+        if (Array.isArray(parsed.skills) && (!skills || skills.length === 0)) {
+          skills = parsed.skills;
+        }
+        if (!branch && parsed.branch) branch = parsed.branch;
+        if (!semester && parsed.semester) semester = parsed.semester;
+      }
+    }
+  } catch {}
+
+  if (!Array.isArray(interests)) interests = [];
+
+  return {
+    ...row,
+    interests,
+    socialLinks,
+    skills,
+    branch,
+    semester,
+  } as unknown as Profile;
+}
+
+export function packProfileInterests(
+  interestsInput: any,
+  socialLinksInput?: any,
+  skillsInput?: any,
+  branchInput?: string,
+  semesterInput?: string
+): string {
+  let tags: string[] = [];
+  if (Array.isArray(interestsInput)) {
+    tags = interestsInput;
+  } else if (typeof interestsInput === 'string') {
+    try {
+      const parsed = JSON.parse(interestsInput);
+      if (Array.isArray(parsed)) {
+        tags = parsed;
+      } else if (parsed && typeof parsed === 'object') {
+        tags = Array.isArray(parsed.tags) ? parsed.tags : (Array.isArray(parsed.interests) ? parsed.interests : []);
+        if (!socialLinksInput && parsed.socialLinks) socialLinksInput = parsed.socialLinks;
+        if (!skillsInput && parsed.skills) skillsInput = parsed.skills;
+        if (!branchInput && parsed.branch) branchInput = parsed.branch;
+        if (!semesterInput && parsed.semester) semesterInput = parsed.semester;
+      }
+    } catch {
+      tags = [interestsInput];
+    }
+  }
+
+  return JSON.stringify({
+    tags,
+    socialLinks: socialLinksInput || {},
+    skills: skillsInput || [],
+    branch: branchInput || '',
+    semester: semesterInput || '',
+  });
+}
+
 export const prisma = prismaInstance;
 
 export const db = {
@@ -918,17 +993,19 @@ export const db = {
     },
   },
 
+  unpackProfileRow: (row: any): Profile => unpackProfileRow(row),
+  packProfileInterests: (interests: any, socialLinks?: any, skills?: any, branch?: string, semester?: string): string =>
+    packProfileInterests(interests, socialLinks, skills, branch, semester),
+
   profile: {
     findUnique: async ({ where }: { where: { userId: string } }): Promise<Profile | null> => {
       if (prismaInstance && (await canUsePrisma())) {
         try {
           const row = await prismaInstance.profile.findUnique({ where: { userId: where.userId } });
           if (row) {
-            let interests = row.interests;
-            try {
-              if (typeof interests === 'string') interests = JSON.parse(interests);
-            } catch {}
-            return { ...row, interests: Array.isArray(interests) ? interests : [], _source: 'prisma' } as unknown as Profile;
+            const unpacked = unpackProfileRow(row);
+            store.profiles.set(where.userId, unpacked);
+            return { ...unpacked, _source: 'prisma' } as unknown as Profile;
           }
         } catch (err: any) {
           console.error('[DATABASE] PostgreSQL profile.findUnique error:', err.message);
@@ -941,11 +1018,7 @@ export const db = {
           if (error) {
             console.error('[DATABASE] Supabase profile.findUnique error:', error.message);
           } else if (row) {
-            let interests = row.interests;
-            try {
-              if (typeof interests === 'string') interests = JSON.parse(interests);
-            } catch {}
-            const prof = { ...row, interests: Array.isArray(interests) ? interests : [] } as unknown as Profile;
+            const prof = unpackProfileRow(row);
             store.profiles.set(where.userId, prof);
             return prof;
           }
@@ -954,7 +1027,8 @@ export const db = {
         }
       }
       store.syncFromDiskIfNeeded();
-      return store.profiles.get(where.userId) || null;
+      const existing = store.profiles.get(where.userId);
+      return existing ? unpackProfileRow(existing) : null;
     },
     findMany: async (args?: { where?: { isDiscoverable?: boolean; isOnline?: boolean } }): Promise<Profile[]> => {
       if (prismaInstance && (await canUsePrisma())) {
@@ -966,13 +1040,7 @@ export const db = {
             },
           });
           if (rows.length > 0) {
-            return rows.map((r) => {
-              let interests = r.interests;
-              try {
-                if (typeof interests === 'string') interests = JSON.parse(interests);
-              } catch {}
-              return { ...r, interests: Array.isArray(interests) ? interests : [] };
-            }) as unknown as Profile[];
+            return rows.map((r) => unpackProfileRow(r));
           }
         } catch (err: any) {
           console.error('[DATABASE] PostgreSQL profile.findMany error:', err.message);
@@ -987,9 +1055,7 @@ export const db = {
           const { data: rows, error } = await q;
           if (!error && rows && rows.length > 0) {
             return rows.map((r: any) => {
-              let interests = r.interests;
-              try { if (typeof interests === 'string') interests = JSON.parse(interests); } catch {}
-              const p = { ...r, interests: Array.isArray(interests) ? interests : [] } as unknown as Profile;
+              const p = unpackProfileRow(r);
               store.profiles.set(p.userId, p);
               return p;
             });
@@ -997,7 +1063,7 @@ export const db = {
         } catch {}
       }
       store.syncFromDiskIfNeeded();
-      const all = Array.from(store.profiles.values());
+      const all = Array.from(store.profiles.values()).map(unpackProfileRow);
       if (!args?.where) return all;
       return all.filter((p) => {
         if (args.where?.isDiscoverable !== undefined && p.isDiscoverable !== args.where.isDiscoverable) return false;
@@ -1014,8 +1080,16 @@ export const db = {
       create: Partial<Profile> & { userId: string; displayName: string };
       update: Partial<Profile>;
     }) => {
-      const createInterests = typeof create.interests === 'string' ? create.interests : JSON.stringify(create.interests || []);
-      const updateInterests = update.interests !== undefined ? (typeof update.interests === 'string' ? update.interests : JSON.stringify(update.interests)) : undefined;
+      const existingInMemory = store.profiles.get(where.userId);
+      const mergedSocialLinks = update.socialLinks !== undefined ? update.socialLinks : (create.socialLinks || existingInMemory?.socialLinks || {});
+      const mergedSkills = update.skills !== undefined ? update.skills : (create.skills || existingInMemory?.skills || []);
+      const mergedBranch = update.branch !== undefined ? update.branch : (create.branch || existingInMemory?.branch || '');
+      const mergedSemester = update.semester !== undefined ? update.semester : (create.semester || existingInMemory?.semester || '');
+
+      const createInterests = packProfileInterests(create.interests, create.socialLinks, create.skills, create.branch || undefined, create.semester || undefined);
+      const updateInterests = (update.interests !== undefined || update.socialLinks !== undefined || update.skills !== undefined || update.branch !== undefined || update.semester !== undefined)
+        ? packProfileInterests(update.interests !== undefined ? update.interests : existingInMemory?.interests, mergedSocialLinks, mergedSkills, mergedBranch || undefined, mergedSemester || undefined)
+        : undefined;
 
       if (prismaInstance && (await canUsePrisma())) {
         try {
@@ -1048,8 +1122,9 @@ export const db = {
               ...(update.lastSeenAt ? { lastSeenAt: new Date(update.lastSeenAt) } : {}),
             },
           });
-          store.profiles.set(where.userId, row as unknown as Profile);
-          return row as unknown as Profile;
+          const unpacked = unpackProfileRow(row);
+          store.profiles.set(where.userId, unpacked);
+          return unpacked;
         } catch (err: any) {
           console.error('[DATABASE] PostgreSQL profile.upsert error:', err.message);
         }
@@ -1121,9 +1196,7 @@ export const db = {
           if (error) {
             console.error('[DATABASE] Supabase profile upsert error:', error.message);
           } else if (row) {
-            let interests = row.interests;
-            try { if (typeof interests === 'string') interests = JSON.parse(interests); } catch {}
-            const prof = { ...row, interests: Array.isArray(interests) ? interests : [] } as unknown as Profile;
+            const prof = unpackProfileRow(row);
             store.profiles.set(where.userId, prof);
             store.saveToDisk();
             return prof;
@@ -1136,7 +1209,15 @@ export const db = {
       store.syncFromDiskIfNeeded();
       const existing = store.profiles.get(where.userId);
       if (existing) {
-        const updated = { ...existing, ...update, updatedAt: new Date() };
+        const updated = {
+          ...existing,
+          ...update,
+          socialLinks: mergedSocialLinks,
+          skills: mergedSkills,
+          branch: mergedBranch,
+          semester: mergedSemester,
+          updatedAt: new Date(),
+        };
         store.profiles.set(where.userId, updated);
         store.saveToDisk();
         return updated;
@@ -1150,9 +1231,13 @@ export const db = {
         avatarUrl: create.avatarUrl || null,
         bio: create.bio || null,
         course: create.course || null,
+        branch: mergedBranch,
         academicYear: create.academicYear || null,
+        semester: mergedSemester,
         language: create.language || 'English',
         interests: Array.isArray(create.interests) ? create.interests : [],
+        skills: mergedSkills,
+        socialLinks: mergedSocialLinks,
         isOnline: Boolean(create.isOnline),
         isDiscoverable: create.isDiscoverable !== false,
         lastSeenAt: create.lastSeenAt || new Date(),
@@ -1165,23 +1250,35 @@ export const db = {
     },
     update: async ({ where, data }: { where: { userId: string }; data: Partial<Profile> }) => {
       let pgUpdated: any = null;
+      const existingInMemory = store.profiles.get(where.userId);
+      const mergedSocialLinks = data.socialLinks !== undefined ? data.socialLinks : existingInMemory?.socialLinks;
+      const mergedSkills = data.skills !== undefined ? data.skills : existingInMemory?.skills;
+      const mergedBranch = data.branch !== undefined ? data.branch : existingInMemory?.branch;
+      const mergedSemester = data.semester !== undefined ? data.semester : existingInMemory?.semester;
+
+      const packedInterests = (data.interests !== undefined || data.socialLinks !== undefined || data.skills !== undefined || data.branch !== undefined || data.semester !== undefined)
+        ? packProfileInterests(data.interests !== undefined ? data.interests : existingInMemory?.interests, mergedSocialLinks, mergedSkills, mergedBranch || undefined, mergedSemester || undefined)
+        : undefined;
+
       if (prismaInstance && (await canUsePrisma())) {
         try {
-          const updateInterests = data.interests !== undefined ? (typeof data.interests === 'string' ? data.interests : JSON.stringify(data.interests)) : undefined;
           pgUpdated = await prismaInstance.profile.update({
             where: { userId: where.userId },
             data: {
               ...(data.displayName ? { displayName: data.displayName } : {}),
+              ...(data.gender ? { gender: data.gender } : {}),
               ...(data.avatarUrl !== undefined ? { avatarUrl: data.avatarUrl } : {}),
               ...(data.bio !== undefined ? { bio: data.bio } : {}),
               ...(data.course !== undefined ? { course: data.course } : {}),
               ...(data.academicYear !== undefined ? { academicYear: data.academicYear } : {}),
-              ...(updateInterests !== undefined ? { interests: updateInterests } : {}),
+              ...(data.language ? { language: data.language } : {}),
+              ...(packedInterests !== undefined ? { interests: packedInterests } : {}),
               ...(data.isOnline !== undefined ? { isOnline: data.isOnline } : {}),
               ...(data.isDiscoverable !== undefined ? { isDiscoverable: data.isDiscoverable } : {}),
               ...(data.lastSeenAt ? { lastSeenAt: new Date(data.lastSeenAt) } : {}),
             },
           });
+          if (pgUpdated) pgUpdated = unpackProfileRow(pgUpdated);
         } catch (e: any) {
           console.error('[DATABASE] Prisma profile.update error:', e.message);
         }
@@ -1191,16 +1288,19 @@ export const db = {
       if (sb) {
         try {
           const payload: any = { ...data, updatedAt: new Date().toISOString() };
-          if (payload.interests && typeof payload.interests !== 'string') {
-            payload.interests = JSON.stringify(payload.interests);
-          }
+          if (packedInterests !== undefined) payload.interests = packedInterests;
+          delete payload.socialLinks;
+          delete payload.skills;
+          delete payload.branch;
+          delete payload.semester;
+
           const { data: sbRow, error: sbErr } = await sb
             .from('Profile')
             .update(payload)
             .eq('userId', where.userId)
             .select()
             .maybeSingle();
-          if (sbRow) pgUpdated = sbRow;
+          if (sbRow) pgUpdated = unpackProfileRow(sbRow);
           if (sbErr) console.error('[DATABASE] Supabase profile.update error:', sbErr.message);
         } catch (e: any) {
           console.error('[DATABASE] Supabase profile.update exception:', e.message);
@@ -1210,7 +1310,16 @@ export const db = {
       store.syncFromDiskIfNeeded();
       const existing = store.profiles.get(where.userId);
       if (!existing && !pgUpdated) throw new Error(`Profile for user ${where.userId} not found`);
-      const updated = { ...(existing || {}), ...data, ...(pgUpdated || {}), updatedAt: new Date() } as Profile;
+      const updated = {
+        ...(existing || {}),
+        ...data,
+        socialLinks: mergedSocialLinks,
+        skills: mergedSkills,
+        branch: mergedBranch,
+        semester: mergedSemester,
+        ...(pgUpdated || {}),
+        updatedAt: new Date(),
+      } as Profile;
       store.profiles.set(where.userId, updated);
       store.saveToDisk();
       return updated;
