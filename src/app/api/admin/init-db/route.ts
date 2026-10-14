@@ -175,12 +175,21 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const supabaseUrlMeta = process.env.SUPABASE_URL ? {
+      rawLength: process.env.SUPABASE_URL.length,
+      protocol: (() => { try { return new URL(process.env.SUPABASE_URL.trim()).protocol; } catch { return 'invalid'; } })(),
+      hostname: (() => { try { return new URL(process.env.SUPABASE_URL.trim()).hostname; } catch { return 'invalid'; } })(),
+      pathname: (() => { try { return new URL(process.env.SUPABASE_URL.trim()).pathname; } catch { return 'invalid'; } })(),
+      hasQuotes: /^["']|["']$/.test(process.env.SUPABASE_URL.trim()),
+    } : null;
+
     return NextResponse.json({
       success: true,
       admin: session.email,
       diagnostics: {
         DATABASE_URL: dbUrlMeta,
         DIRECT_URL: directUrlMeta,
+        SUPABASE_URL: supabaseUrlMeta,
         sameProject,
         testDbUrlResult,
         testSessionPoolerResult,

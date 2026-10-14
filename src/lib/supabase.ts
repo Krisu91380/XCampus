@@ -17,11 +17,21 @@ export function getSupabaseClient(): SupabaseClient | null {
   }
 
   if (!supabaseClient) {
-    const supabaseUrl = process.env.SUPABASE_URL!;
+    let rawUrl = (process.env.SUPABASE_URL || '').trim().replace(/^["']|["']$/g, '');
+    let supabaseUrl = rawUrl;
+    try {
+      const parsed = new URL(rawUrl);
+      supabaseUrl = `${parsed.protocol}//${parsed.host}`;
+    } catch {
+      supabaseUrl = rawUrl.replace(/\/+$/, '');
+    }
+
     const supabaseKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      process.env.SUPABASE_ANON_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+      (process.env.SUPABASE_SERVICE_ROLE_KEY ||
+        process.env.SUPABASE_ANON_KEY ||
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '')
+        .trim()
+        .replace(/^["']|["']$/g, '');
 
     supabaseClient = createClient(supabaseUrl, supabaseKey, {
       auth: {
