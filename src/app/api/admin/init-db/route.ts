@@ -59,12 +59,18 @@ export async function GET(req: NextRequest) {
         : null;
 
     let testDbUrlResult: { success: boolean; error?: string; tables?: string[] } = { success: false };
+    let testSessionPoolerResult: { success: boolean; error?: string; tables?: string[] } = { success: false };
     let testDirectUrlResult: { success: boolean; error?: string; tables?: string[] } = { success: false };
 
-    // Test DATABASE_URL
+    // 1. Test DATABASE_URL (Transaction pooler)
     if (process.env.DATABASE_URL) {
+      // Append ?pgbouncer=true if not present
+      let poolerUrl = process.env.DATABASE_URL;
+      if (!poolerUrl.includes('pgbouncer=true')) {
+        poolerUrl += (poolerUrl.includes('?') ? '&' : '?') + 'pgbouncer=true&connection_limit=1';
+      }
       const client = new PrismaClient({
-        datasources: { db: { url: process.env.DATABASE_URL } },
+        datasources: { db: { url: poolerUrl } },
       });
       try {
         const rows: any = await client.$queryRaw`
@@ -81,7 +87,34 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Test DIRECT_URL
+    // 2. Test Session Pooler (port 5432 on pooler host - supports direct connections & DDL over IPv4)
+    if (process.env.DATABASE_URL) {
+      try {
+        const u = new URL(process.env.DATABASE_URL);
+        u.port = '5432';
+        u.search = '';
+        const sessionClient = new PrismaClient({
+          datasources: { db: { url: u.toString() } },
+        });
+        try {
+          const rows: any = await sessionClient.$queryRaw`
+            SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;
+          `;
+          testSessionPoolerResult = {
+            success: true,
+            tables: Array.isArray(rows) ? rows.map((r: any) => r.table_name) : [],
+          };
+        } catch (e: any) {
+          testSessionPoolerResult = { success: false, error: e.message };
+        } finally {
+          await sessionClient.$disconnect().catch(() => {});
+        }
+      } catch (err: any) {
+        testSessionPoolerResult = { success: false, error: err.message };
+      }
+    }
+
+    // 3. Test DIRECT_URL
     if (process.env.DIRECT_URL) {
       const directClient = new PrismaClient({
         datasources: { db: { url: process.env.DIRECT_URL } },
@@ -109,6 +142,7 @@ export async function GET(req: NextRequest) {
         DIRECT_URL: directUrlMeta,
         sameProject,
         testDbUrlResult,
+        testSessionPoolerResult,
         testDirectUrlResult,
       },
     });
@@ -124,18 +158,47 @@ export async function POST(req: NextRequest) {
   try {
     const session = await requireAdmin(req);
 
-    // Choose best working URL (prefer DIRECT_URL for DDL migrations, fallback to DATABASE_URL)
-    const migrationUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
-    if (!migrationUrl) {
+    // Choose best working URL
+    let candidateUrls: string[] = [];
+    if (process.env.DATABASE_URL) {
+      try {
+        const u = new URL(process.env.DATABASE_URL);
+        u.port = '5432';
+        u.search = '';
+        candidateUrls.push(u.toString()); // Session Pooler IPv4 port 5432
+      } catch {}
+      candidateUrls.push(process.env.DATABASE_URL);
+    }
+    if (process.env.DIRECT_URL) {
+      candidateUrls.push(process.env.DIRECT_URL);
+    }
+
+    if (candidateUrls.length === 0) {
       return NextResponse.json(
         { success: false, message: 'Neither DIRECT_URL nor DATABASE_URL configured.' },
         { status: 500 }
       );
     }
 
-    const prisma = new PrismaClient({
-      datasources: { db: { url: migrationUrl } },
-    });
+    let prisma: PrismaClient | null = null;
+    let selectedUrlType = '';
+    for (const testUrl of candidateUrls) {
+      try {
+        const p = new PrismaClient({ datasources: { db: { url: testUrl } } });
+        await p.$queryRaw`SELECT 1`;
+        prisma = p;
+        selectedUrlType = testUrl.includes(':5432') ? 'Session Pooler (port 5432)' : 'Transaction Pooler';
+        break;
+      } catch {
+        // try next
+      }
+    }
+
+    if (!prisma) {
+      // Fallback to first candidate
+      prisma = new PrismaClient({ datasources: { db: { url: candidateUrls[0] } } });
+      selectedUrlType = 'Default candidate';
+    }
 
     const results: { ddlSuccess: boolean; ddlStatementsRun: number; ddlErrors: string[]; migrationSuccess?: boolean; tablesNow: string[] } = {
       ddlSuccess: false,
