@@ -2,13 +2,47 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 let supabaseClient: SupabaseClient | null = null;
 
+export function getSupabaseUrl(): string | null {
+  const direct =
+    process.env.SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  if (direct && direct.trim()) {
+    let raw = direct.trim().replace(/^["']|["']$/g, '');
+    try {
+      const parsed = new URL(raw);
+      return `${parsed.protocol}//${parsed.host}`;
+    } catch {
+      return raw.replace(/\/+$/, '');
+    }
+  }
+
+  // Fallback: derive project host from DATABASE_URL or DIRECT_URL if using Supabase pooler
+  const dbUrl = process.env.DATABASE_URL || process.env.DIRECT_URL || '';
+  const match = dbUrl.match(/postgres\.([a-zA-Z0-9_-]+):/);
+  if (match && match[1]) {
+    return `https://${match[1]}.supabase.co`;
+  }
+
+  return null;
+}
+
+export function getSupabaseKey(): string | null {
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_KEY ||
+    process.env.SUPABASE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (key && key.trim()) {
+    return key.trim().replace(/^["']|["']$/g, '');
+  }
+  return null;
+}
+
 export function isSupabaseConfigured(): boolean {
-  return Boolean(
-    process.env.SUPABASE_URL &&
-      (process.env.SUPABASE_SERVICE_ROLE_KEY ||
-        process.env.SUPABASE_ANON_KEY ||
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-  );
+  return Boolean(getSupabaseUrl() && getSupabaseKey());
 }
 
 export function getSupabaseClient(): SupabaseClient | null {
@@ -17,21 +51,8 @@ export function getSupabaseClient(): SupabaseClient | null {
   }
 
   if (!supabaseClient) {
-    let rawUrl = (process.env.SUPABASE_URL || '').trim().replace(/^["']|["']$/g, '');
-    let supabaseUrl = rawUrl;
-    try {
-      const parsed = new URL(rawUrl);
-      supabaseUrl = `${parsed.protocol}//${parsed.host}`;
-    } catch {
-      supabaseUrl = rawUrl.replace(/\/+$/, '');
-    }
-
-    const supabaseKey =
-      (process.env.SUPABASE_SERVICE_ROLE_KEY ||
-        process.env.SUPABASE_ANON_KEY ||
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '')
-        .trim()
-        .replace(/^["']|["']$/g, '');
+    const supabaseUrl = getSupabaseUrl()!;
+    const supabaseKey = getSupabaseKey()!;
 
     supabaseClient = createClient(supabaseUrl, supabaseKey, {
       auth: {
@@ -65,7 +86,7 @@ export async function uploadProfilePhotoToSupabase(
       : 'jpg';
     const filePath = `user-${userId}-${Date.now()}.${ext}`;
 
-    // Upload to bucket
+    // Upload to bucket with upsert
     const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(filePath, buffer, {
@@ -87,5 +108,28 @@ export async function uploadProfilePhotoToSupabase(
   } catch (err: any) {
     console.warn('Supabase upload exception:', err.message);
     return null;
+  }
+}
+
+/**
+ * Deletes an avatar photo from Supabase Storage bucket 'avatars'.
+ */
+export async function deleteProfilePhotoFromSupabase(avatarUrl: string): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase || !avatarUrl) return false;
+
+  try {
+    const bucketName = 'avatars';
+    const marker = `/${bucketName}/`;
+    const idx = avatarUrl.indexOf(marker);
+    if (idx === -1) return false;
+
+    const filePath = avatarUrl.substring(idx + marker.length).split('?')[0];
+    if (!filePath) return false;
+
+    const { error } = await supabase.storage.from(bucketName).remove([filePath]);
+    return !error;
+  } catch {
+    return false;
   }
 }

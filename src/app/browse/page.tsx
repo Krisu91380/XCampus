@@ -178,13 +178,13 @@ export default function BrowseStudentsPage() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-purple/10 border border-brand-purple/30 text-brand-purple text-xs font-semibold mb-2">
             <Compass className="w-3.5 h-3.5" />
             <span>Discoverable Student Directory</span>
           </div>
-          <h1 className="text-3xl font-extrabold text-white">Browse Student Profiles</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Browse Student Profiles</h1>
           <p className="text-xs text-slate-400 mt-1">
             Real consenting peers from Lovely Professional University and leading campuses.
           </p>
@@ -192,7 +192,7 @@ export default function BrowseStudentsPage() {
 
         <Link
           href="/match"
-          className="self-start md:self-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-brand-purple/20"
+          className="self-start sm:self-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-brand-purple/20"
         >
           <Sparkles className="w-4 h-4" />
           <span>Try Auto-Matchmaker</span>
@@ -200,8 +200,8 @@ export default function BrowseStudentsPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="glass-card rounded-2xl p-4 border border-navy-750">
-        <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+      <div className="glass-card rounded-2xl p-3.5 sm:p-4 border border-navy-750">
+        <form onSubmit={handleSearchSubmit} className="flex flex-col sm:grid sm:grid-cols-4 gap-2.5 sm:gap-3 text-xs">
           {/* Search Input */}
           <div className="sm:col-span-2 relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -209,17 +209,17 @@ export default function BrowseStudentsPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name, course, interests (e.g. CSE, AI)..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-navy-900 border border-navy-750 text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple"
+              placeholder="Search by name, course, interests..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-navy-900 border border-navy-750 text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple text-xs"
             />
           </div>
 
           {/* University Dropdown */}
-          <div>
+          <div className="w-full">
             <select
               value={selectedUni}
               onChange={(e) => setSelectedUni(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl bg-navy-900 border border-navy-750 text-white focus:outline-none focus:border-brand-purple"
+              className="w-full px-3 py-2.5 rounded-xl bg-navy-900 border border-navy-750 text-white focus:outline-none focus:border-brand-purple text-xs"
             >
               <option value="">All Universities</option>
               {universities.map((u) => (
@@ -235,7 +235,7 @@ export default function BrowseStudentsPage() {
             <select
               value={selectedGender}
               onChange={(e) => setSelectedGender(e.target.value)}
-              className="flex-1 px-3 py-2.5 rounded-xl bg-navy-900 border border-navy-750 text-white focus:outline-none focus:border-brand-purple"
+              className="flex-1 px-3 py-2.5 rounded-xl bg-navy-900 border border-navy-750 text-white focus:outline-none focus:border-brand-purple text-xs"
             >
               <option value="ALL">All Genders</option>
               <option value="FEMALE">Girls</option>
@@ -245,7 +245,7 @@ export default function BrowseStudentsPage() {
 
             <button
               type="submit"
-              className="px-4 py-2.5 rounded-xl bg-brand-purple hover:bg-brand-violet text-white font-bold transition-colors"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 hover:opacity-95 text-white font-bold transition-opacity cursor-pointer shrink-0 shadow-sm"
             >
               Filter
             </button>

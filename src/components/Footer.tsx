@@ -1,9 +1,18 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Sparkles, Shield, Heart, Scale } from 'lucide-react';
 import { APP_CONFIG } from '@/lib/config';
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  // Hide footer completely on active chat rooms and messages dashboard
+  if (pathname?.startsWith('/chat') || pathname === '/messages') {
+    return null;
+  }
   return (
     <footer className="border-t border-navy-800 bg-navy-950 text-slate-400 text-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

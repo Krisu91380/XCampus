@@ -358,28 +358,29 @@ export default function ProfilePage() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 onChange={handlePhotoUpload}
                 className="hidden"
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingPhoto}
-                className="px-2.5 py-1 rounded-xl bg-navy-850 hover:bg-navy-800 border border-navy-700 text-slate-200 text-[11px] font-semibold flex items-center gap-1 shadow-sm transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-xl bg-navy-850 hover:bg-navy-800 border border-navy-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer active:scale-95"
                 title="Change Profile Photo"
               >
                 <Camera className="w-3.5 h-3.5 text-electric-400" />
-                <span>Upload</span>
+                <span>{profile?.avatarUrl ? 'Change Photo' : 'Upload Photo'}</span>
               </button>
 
               {profile?.avatarUrl && (
                 <button
                   onClick={handleRemovePhoto}
                   disabled={uploadingPhoto}
-                  className="p-1 rounded-xl bg-navy-850 hover:bg-rose-950/50 hover:text-rose-400 border border-navy-700 text-slate-400 transition-colors cursor-pointer"
+                  className="px-2.5 py-1.5 rounded-xl bg-navy-850 hover:bg-rose-950/50 hover:text-rose-400 border border-navy-700 text-slate-400 text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer active:scale-95"
                   title="Remove Profile Photo"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                  <span className="hidden sm:inline">Remove</span>
                 </button>
               )}
             </div>

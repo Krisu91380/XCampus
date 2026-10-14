@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { uploadProfilePhotoToSupabase, isSupabaseConfigured } from '@/lib/supabase';
+import {
+  uploadProfilePhotoToSupabase,
+  deleteProfilePhotoFromSupabase,
+  isSupabaseConfigured,
+} from '@/lib/supabase';
 import fs from 'fs';
 import path from 'path';
 
 export const dynamic = 'force-dynamic';
 
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/jpg'];
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 
 export async function POST(req: NextRequest) {
@@ -28,7 +32,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: 'Invalid image format. Supported formats: JPEG, PNG, WebP, GIF.',
+          message: 'Invalid image format. Supported formats: JPEG, PNG, WebP.',
         },
         { status: 400 }
       );
@@ -54,8 +58,7 @@ export async function POST(req: NextRequest) {
       avatarUrl = await uploadProfilePhotoToSupabase(session.userId, buffer, file.type);
     }
 
-    // 2. If Supabase is not configured or in Vercel serverless, store as resilient data URI
-    // Dynamic uploads to public/ are not served on Vercel and return 404
+    // 2. Fallback if Supabase is not configured: store as resilient data URI
     if (!avatarUrl) {
       if (process.env.VERCEL) {
         const base64 = buffer.toString('base64');
@@ -76,6 +79,16 @@ export async function POST(req: NextRequest) {
           avatarUrl = `data:${file.type};base64,${base64}`;
         }
       }
+    }
+
+    // Check existing profile to clean up previous storage photo if different
+    const currentProfile = await db.profile.findUnique({ where: { userId: session.userId } });
+    if (
+      currentProfile?.avatarUrl &&
+      currentProfile.avatarUrl !== avatarUrl &&
+      currentProfile.avatarUrl.includes('/avatars/')
+    ) {
+      deleteProfilePhotoFromSupabase(currentProfile.avatarUrl).catch(() => {});
     }
 
     // 3. Persist image URL to student profile in database
@@ -120,6 +133,12 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const session = await requireAuth(req);
+
+    // Clean up Supabase storage file if present
+    const currentProfile = await db.profile.findUnique({ where: { userId: session.userId } });
+    if (currentProfile?.avatarUrl && currentProfile.avatarUrl.includes('/avatars/')) {
+      await deleteProfilePhotoFromSupabase(currentProfile.avatarUrl).catch(() => {});
+    }
 
     await db.profile.upsert({
       where: { userId: session.userId },
