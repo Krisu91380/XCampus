@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { PrismaClient } from '@prisma/client';
 import { requireAdmin } from '@/lib/auth';
-import { migrateJsonToPostgres } from '@/lib/migrate-to-postgres';
+import { migrateJsonToPostgres, migrateJsonToSupabase } from '@/lib/migrate-to-postgres';
 import { PRISMA_SCHEMA_SAFE_SQL } from '@/lib/schema-sql';
 import { SEED_PRODUCTION_DATA_SQL } from '@/lib/seed-sql';
 import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
@@ -213,7 +213,29 @@ export async function POST(req: NextRequest) {
   try {
     const session = await requireAdmin(req);
 
-    // Choose best working URL
+    const results: {
+      prismaAttempted: boolean;
+      prismaSuccess: boolean;
+      ddlSuccess: boolean;
+      ddlStatementsRun: number;
+      ddlErrors: string[];
+      prismaMigrationSuccess?: boolean;
+      supabaseMigrationAttempted: boolean;
+      supabaseMigrationSuccess: boolean;
+      supabaseMigrationDetails?: any;
+      rowCounts: { users: number; profiles: number; conversations: number; messages: number; friendRequests: number };
+    } = {
+      prismaAttempted: false,
+      prismaSuccess: false,
+      ddlSuccess: false,
+      ddlStatementsRun: 0,
+      ddlErrors: [],
+      supabaseMigrationAttempted: false,
+      supabaseMigrationSuccess: false,
+      rowCounts: { users: 0, profiles: 0, conversations: 0, messages: 0, friendRequests: 0 },
+    };
+
+    // 1. Try Prisma direct / pooler connection if available
     let candidateUrls: string[] = [];
     if (process.env.DATABASE_URL) {
       try {
@@ -228,130 +250,125 @@ export async function POST(req: NextRequest) {
       candidateUrls.push(process.env.DIRECT_URL);
     }
 
-    if (candidateUrls.length === 0) {
+    if (candidateUrls.length > 0) {
+      results.prismaAttempted = true;
+      let prisma: PrismaClient | null = null;
+      for (const testUrl of candidateUrls) {
+        try {
+          const p = new PrismaClient({ datasources: { db: { url: testUrl } } });
+          await p.$queryRaw`SELECT 1`;
+          prisma = p;
+          break;
+        } catch {}
+      }
+
+      if (prisma) {
+        try {
+          results.prismaSuccess = true;
+          // Execute safe DDL
+          let sqlContent = PRISMA_SCHEMA_SAFE_SQL;
+          if (!sqlContent) {
+            const sqlFile = path.join(process.cwd(), 'prisma', 'prisma_schema_safe.sql');
+            if (fs.existsSync(sqlFile)) {
+              sqlContent = fs.readFileSync(sqlFile, 'utf-8');
+            }
+          }
+
+          const rawStatements = sqlContent
+            .split(';')
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0 && !s.startsWith('--'));
+
+          let executed = 0;
+          for (const stmt of rawStatements) {
+            if (!stmt || stmt.startsWith('--')) continue;
+            try {
+              await prisma.$executeRawUnsafe(stmt);
+              executed++;
+            } catch (e: any) {
+              if (
+                e.message?.includes('already exists') ||
+                e.message?.includes('duplicate key') ||
+                e.message?.includes('does not exist')
+              ) {
+                // Safe to skip
+              } else {
+                results.ddlErrors.push(e.message);
+              }
+            }
+          }
+          results.ddlSuccess = results.ddlErrors.length === 0;
+          results.ddlStatementsRun = executed;
+
+          // Prisma Seed & Migration
+          try {
+            const seedStatements = SEED_PRODUCTION_DATA_SQL
+              .split(';')
+              .map((s) => s.trim())
+              .filter((s) => s.length > 0 && !s.startsWith('--'));
+
+            for (const stmt of seedStatements) {
+              if (!stmt || stmt.startsWith('--')) continue;
+              try {
+                await prisma.$executeRawUnsafe(stmt);
+              } catch {}
+            }
+            await migrateJsonToPostgres(prisma);
+            results.prismaMigrationSuccess = true;
+          } catch (migErr: any) {
+            results.prismaMigrationSuccess = false;
+            results.ddlErrors.push(`Prisma data migration notice: ${migErr.message}`);
+          }
+        } finally {
+          await prisma.$disconnect().catch(() => {});
+        }
+      }
+    }
+
+    // 2. Supabase PostgREST Migration (over HTTPS port 443 - works even when TCP pooler 6543 is blocked)
+    const sb = getSupabaseClient();
+    if (sb) {
+      results.supabaseMigrationAttempted = true;
+      try {
+        const sbMigrationRes = await migrateJsonToSupabase(sb);
+        results.supabaseMigrationSuccess = sbMigrationRes.errors.length === 0;
+        results.supabaseMigrationDetails = sbMigrationRes;
+      } catch (sbErr: any) {
+        results.supabaseMigrationSuccess = false;
+        results.ddlErrors.push(`Supabase client migration exception: ${sbErr.message}`);
+      }
+
+      // Query live row counts directly from Supabase
+      try {
+        const [uRes, pRes, cRes, mRes, frRes] = await Promise.all([
+          sb.from('User').select('*', { count: 'exact', head: true }),
+          sb.from('Profile').select('*', { count: 'exact', head: true }),
+          sb.from('Conversation').select('*', { count: 'exact', head: true }),
+          sb.from('Message').select('*', { count: 'exact', head: true }),
+          sb.from('FriendRequest').select('*', { count: 'exact', head: true }),
+        ]);
+        results.rowCounts = {
+          users: uRes.count ?? 0,
+          profiles: pRes.count ?? 0,
+          conversations: cRes.count ?? 0,
+          messages: mRes.count ?? 0,
+          friendRequests: frRes.count ?? 0,
+        };
+      } catch {}
+    }
+
+    if (!results.prismaSuccess && !results.supabaseMigrationAttempted) {
       return NextResponse.json(
-        { success: false, message: 'Neither DIRECT_URL nor DATABASE_URL configured.' },
+        { success: false, message: 'Neither Prisma TCP connection nor Supabase HTTPS client is available.' },
         { status: 500 }
       );
     }
 
-    let prisma: PrismaClient | null = null;
-    let selectedUrlType = '';
-    for (const testUrl of candidateUrls) {
-      try {
-        const p = new PrismaClient({ datasources: { db: { url: testUrl } } });
-        await p.$queryRaw`SELECT 1`;
-        prisma = p;
-        selectedUrlType = testUrl.includes(':5432') ? 'Session Pooler (port 5432)' : 'Transaction Pooler';
-        break;
-      } catch {
-        // try next
-      }
-    }
-
-    if (!prisma) {
-      // Fallback to first candidate
-      prisma = new PrismaClient({ datasources: { db: { url: candidateUrls[0] } } });
-      selectedUrlType = 'Default candidate';
-    }
-
-    const results: { ddlSuccess: boolean; ddlStatementsRun: number; ddlErrors: string[]; migrationSuccess?: boolean; tablesNow: string[] } = {
-      ddlSuccess: false,
-      ddlStatementsRun: 0,
-      ddlErrors: [],
-      tablesNow: [],
-    };
-
-    try {
-      // 1. Get safe SQL DDL
-      let sqlContent = PRISMA_SCHEMA_SAFE_SQL;
-      if (!sqlContent) {
-        const sqlFile = path.join(process.cwd(), 'prisma', 'prisma_schema_safe.sql');
-        if (fs.existsSync(sqlFile)) {
-          sqlContent = fs.readFileSync(sqlFile, 'utf-8');
-        }
-      }
-
-      // 2. Execute statements safely
-      // Split by semicolon, filter out empty statements or comments
-      const rawStatements = sqlContent
-        .split(';')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0 && !s.startsWith('--'));
-
-      let executed = 0;
-      for (const stmt of rawStatements) {
-        if (!stmt || stmt.startsWith('--')) continue;
-        try {
-          await prisma.$executeRawUnsafe(stmt);
-          executed++;
-        } catch (e: any) {
-          // Ignore "already exists" errors safely
-          if (
-            e.message?.includes('already exists') ||
-            e.message?.includes('duplicate key') ||
-            e.message?.includes('does not exist')
-          ) {
-            // Safe to skip
-          } else {
-            results.ddlErrors.push(e.message);
-          }
-        }
-      }
-
-      results.ddlSuccess = results.ddlErrors.length === 0;
-      results.ddlStatementsRun = executed;
-
-      // 3. Query existing public tables
-      const tableRows: any = await prisma.$queryRaw`
-        SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;
-      `;
-      results.tablesNow = Array.isArray(tableRows) ? tableRows.map((r: any) => r.table_name) : [];
-
-      // 4. Run SQL Data Seeding and JSON migration
-      try {
-        const seedStatements = SEED_PRODUCTION_DATA_SQL
-          .split(';')
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0 && !s.startsWith('--'));
-
-        for (const stmt of seedStatements) {
-          if (!stmt || stmt.startsWith('--')) continue;
-          try {
-            await prisma.$executeRawUnsafe(stmt);
-          } catch (e: any) {
-            // Safe to ignore duplicate or conflict
-          }
-        }
-        await migrateJsonToPostgres(prisma);
-        results.migrationSuccess = true;
-      } catch (migErr: any) {
-        results.migrationSuccess = false;
-        results.ddlErrors.push(`Data migration notice: ${migErr.message}`);
-      }
-
-      // 5. Query live row counts
-      let counts: any = {};
-      try {
-        const [u, p, c, m, fr] = await Promise.all([
-          prisma.user.count().catch(() => 0),
-          prisma.profile.count().catch(() => 0),
-          prisma.conversation.count().catch(() => 0),
-          prisma.message.count().catch(() => 0),
-          prisma.friendRequest.count().catch(() => 0),
-        ]);
-        counts = { users: u, profiles: p, conversations: c, messages: m, friendRequests: fr };
-      } catch {}
-      (results as any).rowCounts = counts;
-
-      return NextResponse.json({
-        success: true,
-        message: 'Database initialization and migration completed.',
-        results,
-      });
-    } finally {
-      await prisma.$disconnect().catch(() => {});
-    }
+    return NextResponse.json({
+      success: true,
+      message: 'Database initialization and data migration completed.',
+      results,
+    });
   } catch (error: any) {
     return NextResponse.json(
       { success: false, message: error.message },

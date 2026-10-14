@@ -706,6 +706,19 @@ export const db = {
           console.error('[DATABASE] PostgreSQL user.findUnique error:', err.message);
         }
       }
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          let q = sb.from('User').select('*');
+          if (where.id) q = q.eq('id', where.id);
+          else if (where.email) q = q.eq('email', where.email.toLowerCase().trim());
+          const { data: row, error } = await q.maybeSingle();
+          if (!error && row && !row.deletedAt) {
+            store.users.set(row.id, row as unknown as User);
+            return row as unknown as User;
+          }
+        } catch {}
+      }
       store.syncFromDiskIfNeeded();
       if (where.id) return store.users.get(where.id) || null;
       if (where.email) {
@@ -731,6 +744,20 @@ export const db = {
         } catch (err: any) {
           console.error('[DATABASE] PostgreSQL user.findMany error:', err.message);
         }
+      }
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          let q = sb.from('User').select('*').is('deletedAt', null);
+          if (args?.where?.role) q = q.eq('role', args.where.role);
+          if (args?.where?.status) q = q.eq('status', args.where.status);
+          if (args?.where?.universityId) q = q.eq('universityId', args.where.universityId);
+          const { data: rows, error } = await q;
+          if (!error && rows && rows.length > 0) {
+            for (const r of rows) store.users.set(r.id, r as unknown as User);
+            return rows as unknown as User[];
+          }
+        } catch {}
       }
       store.syncFromDiskIfNeeded();
       const all = Array.from(store.users.values()).filter((u) => !u.deletedAt);
@@ -770,6 +797,32 @@ export const db = {
         }
       }
 
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          const { data: row, error } = await sb
+            .from('User')
+            .upsert({
+              id,
+              email: normalizedEmail,
+              passwordHash: data.passwordHash,
+              role: data.role || 'USER',
+              status: data.status || 'ACTIVE',
+              isAgeVerified: data.isAgeVerified ?? true,
+              dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth).toISOString() : null,
+              universityId: data.universityId || null,
+              createdAt: now.toISOString(),
+              updatedAt: now.toISOString(),
+            }, { onConflict: 'email' })
+            .select()
+            .single();
+          if (!error && row) {
+            store.users.set(id, row as unknown as User);
+            return row as unknown as User;
+          }
+        } catch {}
+      }
+
       store.syncFromDiskIfNeeded();
       const user: User = {
         id,
@@ -803,6 +856,19 @@ export const db = {
         }
       }
 
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          await sb.from('User').update({
+            ...(data.role ? { role: data.role } : {}),
+            ...(data.status ? { status: data.status } : {}),
+            ...(data.universityId !== undefined ? { universityId: data.universityId } : {}),
+            ...(data.passwordHash ? { passwordHash: data.passwordHash } : {}),
+            updatedAt: now.toISOString(),
+          }).eq('id', where.id);
+        } catch {}
+      }
+
       store.syncFromDiskIfNeeded();
       const existing = store.users.get(where.id);
       if (!existing) throw new Error(`User ${where.id} not found`);
@@ -815,6 +881,13 @@ export const db = {
       if (prismaInstance) {
         try {
           return await prismaInstance.user.count({ where: { deletedAt: null } });
+        } catch {}
+      }
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          const { count, error } = await sb.from('User').select('*', { count: 'exact', head: true });
+          if (!error && count !== null) return count;
         } catch {}
       }
       store.syncFromDiskIfNeeded();
@@ -837,6 +910,21 @@ export const db = {
         } catch (err: any) {
           console.error('[DATABASE] PostgreSQL profile.findUnique error:', err.message);
         }
+      }
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          const { data: row, error } = await sb.from('Profile').select('*').eq('userId', where.userId).maybeSingle();
+          if (!error && row) {
+            let interests = row.interests;
+            try {
+              if (typeof interests === 'string') interests = JSON.parse(interests);
+            } catch {}
+            const prof = { ...row, interests: Array.isArray(interests) ? interests : [] } as unknown as Profile;
+            store.profiles.set(where.userId, prof);
+            return prof;
+          }
+        } catch {}
       }
       store.syncFromDiskIfNeeded();
       return store.profiles.get(where.userId) || null;
@@ -863,6 +951,24 @@ export const db = {
           console.error('[DATABASE] PostgreSQL profile.findMany error:', err.message);
         }
       }
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          let q = sb.from('Profile').select('*');
+          if (args?.where?.isDiscoverable !== undefined) q = q.eq('isDiscoverable', args.where.isDiscoverable);
+          if (args?.where?.isOnline !== undefined) q = q.eq('isOnline', args.where.isOnline);
+          const { data: rows, error } = await q;
+          if (!error && rows && rows.length > 0) {
+            return rows.map((r: any) => {
+              let interests = r.interests;
+              try { if (typeof interests === 'string') interests = JSON.parse(interests); } catch {}
+              const p = { ...r, interests: Array.isArray(interests) ? interests : [] } as unknown as Profile;
+              store.profiles.set(p.userId, p);
+              return p;
+            });
+          }
+        } catch {}
+      }
       store.syncFromDiskIfNeeded();
       const all = Array.from(store.profiles.values());
       if (!args?.where) return all;
@@ -881,11 +987,11 @@ export const db = {
       create: Omit<Profile, 'id' | 'createdAt' | 'updatedAt'>;
       update: Partial<Profile>;
     }) => {
+      const createInterests = typeof create.interests === 'string' ? create.interests : JSON.stringify(create.interests || []);
+      const updateInterests = update.interests !== undefined ? (typeof update.interests === 'string' ? update.interests : JSON.stringify(update.interests)) : undefined;
+
       if (prismaInstance) {
         try {
-          const createInterests = typeof create.interests === 'string' ? create.interests : JSON.stringify(create.interests || []);
-          const updateInterests = update.interests !== undefined ? (typeof update.interests === 'string' ? update.interests : JSON.stringify(update.interests)) : undefined;
-
           const row = await prismaInstance.profile.upsert({
             where: { userId: where.userId },
             create: {
@@ -922,6 +1028,37 @@ export const db = {
         }
       }
 
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          const { data: row, error } = await sb
+            .from('Profile')
+            .upsert({
+              userId: where.userId,
+              displayName: update.displayName || create.displayName,
+              gender: update.gender || create.gender || 'PREFER_NOT_TO_SAY',
+              avatarUrl: update.avatarUrl !== undefined ? update.avatarUrl : (create.avatarUrl || null),
+              bio: update.bio !== undefined ? update.bio : (create.bio || null),
+              course: update.course !== undefined ? update.course : (create.course || null),
+              academicYear: update.academicYear !== undefined ? update.academicYear : (create.academicYear || null),
+              language: update.language || create.language || 'English',
+              interests: updateInterests || createInterests,
+              isOnline: update.isOnline !== undefined ? Boolean(update.isOnline) : Boolean(create.isOnline),
+              isDiscoverable: update.isDiscoverable !== undefined ? Boolean(update.isDiscoverable) : (create.isDiscoverable !== false),
+              updatedAt: new Date().toISOString(),
+            }, { onConflict: 'userId' })
+            .select()
+            .single();
+          if (!error && row) {
+            let interests = row.interests;
+            try { if (typeof interests === 'string') interests = JSON.parse(interests); } catch {}
+            const prof = { ...row, interests: Array.isArray(interests) ? interests : [] } as unknown as Profile;
+            store.profiles.set(where.userId, prof);
+            return prof;
+          }
+        } catch {}
+      }
+
       store.syncFromDiskIfNeeded();
       const existing = store.profiles.get(where.userId);
       if (existing) {
@@ -942,6 +1079,37 @@ export const db = {
       return newProfile;
     },
     update: async ({ where, data }: { where: { userId: string }; data: Partial<Profile> }) => {
+      if (prismaInstance) {
+        try {
+          const updateInterests = data.interests !== undefined ? (typeof data.interests === 'string' ? data.interests : JSON.stringify(data.interests)) : undefined;
+          await prismaInstance.profile.update({
+            where: { userId: where.userId },
+            data: {
+              ...(data.displayName ? { displayName: data.displayName } : {}),
+              ...(data.avatarUrl !== undefined ? { avatarUrl: data.avatarUrl } : {}),
+              ...(data.bio !== undefined ? { bio: data.bio } : {}),
+              ...(data.course !== undefined ? { course: data.course } : {}),
+              ...(data.academicYear !== undefined ? { academicYear: data.academicYear } : {}),
+              ...(updateInterests !== undefined ? { interests: updateInterests } : {}),
+              ...(data.isOnline !== undefined ? { isOnline: data.isOnline } : {}),
+              ...(data.isDiscoverable !== undefined ? { isDiscoverable: data.isDiscoverable } : {}),
+              ...(data.lastSeenAt ? { lastSeenAt: new Date(data.lastSeenAt) } : {}),
+            },
+          });
+        } catch {}
+      }
+
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          const payload: any = { ...data, updatedAt: new Date().toISOString() };
+          if (payload.interests && typeof payload.interests !== 'string') {
+            payload.interests = JSON.stringify(payload.interests);
+          }
+          await sb.from('Profile').update(payload).eq('userId', where.userId);
+        } catch {}
+      }
+
       store.syncFromDiskIfNeeded();
       const existing = store.profiles.get(where.userId);
       if (!existing) throw new Error(`Profile for user ${where.userId} not found`);
@@ -954,6 +1122,18 @@ export const db = {
 
   university: {
     findMany: async (args?: { where?: { isActive?: boolean } }): Promise<University[]> => {
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          let q = sb.from('University').select('*');
+          if (args?.where?.isActive !== undefined) q = q.eq('isActive', args.where.isActive);
+          const { data: rows, error } = await q;
+          if (!error && rows && rows.length > 0) {
+            for (const r of rows) store.universities.set(r.id, r as unknown as University);
+            return rows as unknown as University[];
+          }
+        } catch {}
+      }
       const all = Array.from(store.universities.values());
       if (args?.where?.isActive !== undefined) {
         return all.filter((u) => u.isActive === args.where!.isActive);
@@ -961,6 +1141,19 @@ export const db = {
       return all;
     },
     findUnique: async ({ where }: { where: { id?: string; code?: string } }): Promise<University | null> => {
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          let q = sb.from('University').select('*');
+          if (where.id) q = q.eq('id', where.id);
+          else if (where.code) q = q.eq('code', where.code);
+          const { data: row, error } = await q.maybeSingle();
+          if (!error && row) {
+            store.universities.set(row.id, row as unknown as University);
+            return row as unknown as University;
+          }
+        } catch {}
+      }
       if (where.id) return store.universities.get(where.id) || null;
       if (where.code) {
         return Array.from(store.universities.values()).find(
@@ -1236,6 +1429,18 @@ export const db = {
         }
       }
 
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          await sb.from('Conversation').update({
+            ...(data.status ? { status: data.status } : {}),
+            ...(data.endedAt !== undefined ? { endedAt: data.endedAt ? new Date(data.endedAt).toISOString() : null } : {}),
+            ...(data.endedByUserId !== undefined ? { endedByUserId: data.endedByUserId } : {}),
+            ...(data.endReason !== undefined ? { endReason: data.endReason } : {}),
+          }).eq('id', where.id);
+        } catch {}
+      }
+
       store.syncFromDiskIfNeeded();
       const existing = store.conversations.get(where.id);
       if (!existing) throw new Error(`Conversation ${where.id} not found`);
@@ -1262,6 +1467,20 @@ export const db = {
         }
       }
 
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          let q = sb.from('ConversationParticipant').select('*');
+          if (args?.where?.userId) q = q.eq('userId', args.where.userId);
+          if (args?.where?.conversationId) q = q.eq('conversationId', args.where.conversationId);
+          const { data: rows, error } = await q;
+          if (!error && rows && rows.length > 0) {
+            for (const r of rows) store.conversationParticipants.set(r.id, r as unknown as ConversationParticipant);
+            return rows as unknown as ConversationParticipant[];
+          }
+        } catch {}
+      }
+
       store.syncFromDiskIfNeeded();
       const all = Array.from(store.conversationParticipants.values());
       const where = args?.where;
@@ -1286,6 +1505,22 @@ export const db = {
         } catch (err: any) {
           console.error('[DATABASE] PostgreSQL conversationParticipant.findFirst error:', err.message);
         }
+      }
+
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          const { data: row, error } = await sb
+            .from('ConversationParticipant')
+            .select('*')
+            .eq('userId', where.userId)
+            .eq('conversationId', where.conversationId)
+            .maybeSingle();
+          if (!error && row) {
+            store.conversationParticipants.set(row.id, row as unknown as ConversationParticipant);
+            return row as unknown as ConversationParticipant;
+          }
+        } catch {}
       }
 
       store.syncFromDiskIfNeeded();
@@ -1324,6 +1559,27 @@ export const db = {
         }
       }
 
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          const { data: row, error } = await sb
+            .from('ConversationParticipant')
+            .upsert({
+              id,
+              conversationId: data.conversationId,
+              userId: data.userId,
+              joinedAt: joinedAt.toISOString(),
+              hasUnread: Boolean(data.hasUnread),
+            }, { onConflict: 'conversationId,userId' })
+            .select()
+            .single();
+          if (!error && row) {
+            store.conversationParticipants.set(id, row as unknown as ConversationParticipant);
+            return row as unknown as ConversationParticipant;
+          }
+        } catch {}
+      }
+
       store.syncFromDiskIfNeeded();
       const part: ConversationParticipant = {
         id,
@@ -1346,9 +1602,37 @@ export const db = {
       };
       data: Partial<ConversationParticipant>;
     }) => {
-      store.syncFromDiskIfNeeded();
       const convId = where.conversationId_userId?.conversationId || where.conversationId;
       const uId = where.conversationId_userId?.userId || where.userId;
+
+      if (prismaInstance && convId && uId) {
+        try {
+          await prismaInstance.conversationParticipant.update({
+            where: {
+              conversationId_userId: {
+                conversationId: convId,
+                userId: uId,
+              },
+            },
+            data,
+          });
+        } catch {}
+      }
+
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          let q = sb.from('ConversationParticipant').update(data);
+          if (convId && uId) {
+            q = q.eq('conversationId', convId).eq('userId', uId);
+          } else if (where.id) {
+            q = q.eq('id', where.id);
+          }
+          await q;
+        } catch {}
+      }
+
+      store.syncFromDiskIfNeeded();
       let existing: ConversationParticipant | undefined;
       let id = '';
 
@@ -1524,10 +1808,37 @@ export const db = {
 
   userCreditBalance: {
     findUnique: async ({ where }: { where: { userId: string } }) => {
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          const { data: row, error } = await sb.from('UserCreditBalance').select('*').eq('userId', where.userId).maybeSingle();
+          if (!error && row) {
+            const bal: UserCreditBalance = {
+              id: row.id,
+              userId: row.userId,
+              credits: row.credits,
+              updatedAt: new Date(row.updatedAt),
+            };
+            store.creditBalances.set(where.userId, bal);
+            return bal;
+          }
+        } catch {}
+      }
       store.syncFromDiskIfNeeded();
       return store.creditBalances.get(where.userId) || { id: `bal-${where.userId}`, userId: where.userId, credits: 0, updatedAt: new Date() };
     },
     create: async ({ data }: { data: { userId: string; credits: number } }) => {
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          await sb.from('UserCreditBalance').upsert({
+            id: `bal-${data.userId}`,
+            userId: data.userId,
+            credits: Math.max(0, data.credits),
+            updatedAt: new Date().toISOString(),
+          }, { onConflict: 'userId' });
+        } catch {}
+      }
       store.syncFromDiskIfNeeded();
       const bal: UserCreditBalance = {
         id: `bal-${data.userId}`,
@@ -1564,10 +1875,23 @@ export const db = {
         }
       }
 
+      const balCredits = Math.max(0, currentCredits);
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          await sb.from('UserCreditBalance').upsert({
+            id: existing?.id || `bal-${where.userId}`,
+            userId: where.userId,
+            credits: balCredits,
+            updatedAt: new Date().toISOString(),
+          }, { onConflict: 'userId' });
+        } catch {}
+      }
+
       const bal: UserCreditBalance = {
         id: existing?.id || `bal-${where.userId}`,
         userId: where.userId,
-        credits: Math.max(0, currentCredits),
+        credits: balCredits,
         updatedAt: new Date(),
       };
       store.creditBalances.set(where.userId, bal);
@@ -1765,6 +2089,16 @@ export const db = {
           console.error('[DATABASE] PostgreSQL friendRequest.findUnique error:', err.message);
         }
       }
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          const { data: row, error } = await sb.from('FriendRequest').select('*').eq('id', targetId).maybeSingle();
+          if (!error && row) {
+            store.friendRequests.set(row.id, row as unknown as FriendRequest);
+            return row as unknown as FriendRequest;
+          }
+        } catch {}
+      }
       store.syncFromDiskIfNeeded();
       return store.friendRequests.get(targetId) || Array.from(store.friendRequests.values()).find((r) => r.id === targetId) || null;
     },
@@ -1782,6 +2116,20 @@ export const db = {
         } catch (err: any) {
           console.error('[DATABASE] PostgreSQL friendRequest.findFirst error:', err.message);
         }
+      }
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          let q = sb.from('FriendRequest').select('*');
+          if (where.senderId) q = q.eq('senderId', where.senderId);
+          if (where.receiverId) q = q.eq('receiverId', where.receiverId);
+          if (where.status) q = q.eq('status', where.status);
+          const { data: row, error } = await q.maybeSingle();
+          if (!error && row) {
+            store.friendRequests.set(row.id, row as unknown as FriendRequest);
+            return row as unknown as FriendRequest;
+          }
+        } catch {}
       }
       store.syncFromDiskIfNeeded();
       const all = Array.from(store.friendRequests.values());
@@ -1814,6 +2162,20 @@ export const db = {
         } catch (err: any) {
           console.error('[DATABASE] PostgreSQL friendRequest.findMany error:', err.message);
         }
+      }
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          let q = sb.from('FriendRequest').select('*');
+          if (args?.where?.senderId) q = q.eq('senderId', args.where.senderId);
+          if (args?.where?.receiverId) q = q.eq('receiverId', args.where.receiverId);
+          if (args?.where?.status) q = q.eq('status', args.where.status);
+          const { data: rows, error } = await q;
+          if (!error && rows && rows.length > 0) {
+            for (const r of rows) store.friendRequests.set(r.id, r as unknown as FriendRequest);
+            return rows as unknown as FriendRequest[];
+          }
+        } catch {}
       }
       store.syncFromDiskIfNeeded();
       const all = Array.from(store.friendRequests.values());
@@ -1857,6 +2219,28 @@ export const db = {
         }
       }
 
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          const { data: row, error } = await sb
+            .from('FriendRequest')
+            .upsert({
+              id,
+              senderId: data.senderId,
+              receiverId: data.receiverId,
+              status: data.status || 'PENDING',
+              createdAt: now.toISOString(),
+              updatedAt: now.toISOString(),
+            }, { onConflict: 'senderId,receiverId' })
+            .select()
+            .single();
+          if (!error && row) {
+            store.friendRequests.set(id, row as unknown as FriendRequest);
+            return row as unknown as FriendRequest;
+          }
+        } catch {}
+      }
+
       store.syncFromDiskIfNeeded();
       const req: FriendRequest = {
         id,
@@ -1886,6 +2270,16 @@ export const db = {
         }
       }
 
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          await sb.from('FriendRequest').update({
+            ...(data.status ? { status: data.status } : {}),
+            updatedAt: now.toISOString(),
+          }).eq('id', where.id);
+        } catch {}
+      }
+
       store.syncFromDiskIfNeeded();
       const existing = store.friendRequests.get(where.id) || Array.from(store.friendRequests.values()).find((r) => r.id === where.id);
       if (!existing) throw new Error(`Friend request ${where.id} not found`);
@@ -1902,10 +2296,17 @@ export const db = {
           console.error('[DATABASE] PostgreSQL friendRequest.delete error:', err.message);
         }
       }
+      const sb = getSupabaseClient();
+      if (sb) {
+        try {
+          await sb.from('FriendRequest').delete().eq('id', where.id);
+        } catch {}
+      }
       store.syncFromDiskIfNeeded();
-      const res = store.friendRequests.delete(where.id);
+      store.friendRequests.delete(where.id);
       store.saveToDisk();
-      return res;
+      return true;
     },
   },
 };
+
