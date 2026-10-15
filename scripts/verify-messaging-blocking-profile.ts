@@ -1,6 +1,5 @@
 import { db } from '../src/lib/db';
 import { generateSignedConversationId, ensureConversationAndParticipants, isConnectionPermitted } from '../src/lib/conversation';
-import { signToken } from '../src/lib/auth';
 
 async function runTests() {
   console.log('=== STARTING CC MESSAGING, BLOCKING & PROFILE VERIFICATION ===\n');
@@ -27,6 +26,7 @@ async function runTests() {
         passwordHash: 'hash',
         role: 'VERIFIED_STUDENT',
         status: 'ACTIVE',
+        isAgeVerified: true,
         universityId: 'uni-lpu-01',
       },
     });
@@ -40,6 +40,7 @@ async function runTests() {
         passwordHash: 'hash',
         role: 'VERIFIED_STUDENT',
         status: 'ACTIVE',
+        isAgeVerified: true,
         universityId: 'uni-lpu-01',
       },
     });
@@ -58,11 +59,11 @@ async function runTests() {
       bio: 'Passionate about machine learning and hackathons.',
       interests: ['AI', 'React', 'Hackathons'],
       skills: ['TypeScript', 'Python', 'Tailwind'],
-      socialLinks: { username: 'alice_cse', relationshipVisible: true, relationshipStatus: 'Single', github: 'alice-tech' },
+      socialLinks: { username: 'alice_cse', relationshipVisible: true, relationshipStatus: 'Single', github: 'alice-tech' } as any,
     },
     update: {
       displayName: 'Alice Student',
-      socialLinks: { username: 'alice_cse', relationshipVisible: true, relationshipStatus: 'Single', github: 'alice-tech' },
+      socialLinks: { username: 'alice_cse', relationshipVisible: true, relationshipStatus: 'Single', github: 'alice-tech' } as any,
     },
   });
 
@@ -79,11 +80,11 @@ async function runTests() {
       bio: 'Cybersecurity and cloud infrastructure enthusiast.',
       interests: ['Cloud', 'Linux', 'CaptureTheFlag'],
       skills: ['Go', 'Docker', 'Next.js'],
-      socialLinks: { username: 'bob_sec', relationshipVisible: false, relationshipStatus: 'In a relationship' },
+      socialLinks: { username: 'bob_sec', relationshipVisible: false, relationshipStatus: 'In a relationship' } as any,
     },
     update: {
       displayName: 'Bob Student',
-      socialLinks: { username: 'bob_sec', relationshipVisible: false, relationshipStatus: 'In a relationship' },
+      socialLinks: { username: 'bob_sec', relationshipVisible: false, relationshipStatus: 'In a relationship' } as any,
     },
   });
 
@@ -207,8 +208,11 @@ async function runTests() {
   // TEST 5: Complete Student Profile Privacy
   // ==========================================
   console.log('\n--- 5. Testing Student Profile Fields & Relationship Privacy ---');
-  profA = await db.profile.findUnique({ where: { userId: studentA.id } });
-  profB = await db.profile.findUnique({ where: { userId: studentB.id } });
+  const pA = await db.profile.findUnique({ where: { userId: studentA.id } });
+  const pB = await db.profile.findUnique({ where: { userId: studentB.id } });
+  if (!pA || !pB) throw new Error('Profiles not found');
+  profA = pA;
+  profB = pB;
 
   const socialA = (profA?.socialLinks as any) || {};
   const socialB = (profB?.socialLinks as any) || {};
