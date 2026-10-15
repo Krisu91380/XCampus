@@ -184,12 +184,12 @@ export async function isConnectionPermitted(
   user1Id: string,
   user2Id: string,
   conversationId: string
-): Promise<{ permitted: boolean; reason?: string }> {
+): Promise<{ permitted: boolean; reason?: string; code?: 'BLOCKED_BY_ME' | 'BLOCKED_BY_PARTNER' | 'NOT_FRIENDS'; isFriend?: boolean; isMatch?: boolean }> {
   const cacheKey = `${user1Id}:${user2Id}:${conversationId}`;
   const now = Date.now();
   const cached = connectionPermissionCache.get(cacheKey);
   if (cached && cached.expiresAt > now) {
-    return { permitted: cached.permitted, reason: cached.reason };
+    return { permitted: cached.permitted, reason: cached.reason, code: (cached as any).code, isFriend: (cached as any).isFriend, isMatch: (cached as any).isMatch };
   }
 
   // 0. Check if either user has blocked the other
@@ -197,13 +197,18 @@ export async function isConnectionPermitted(
     db.block.findFirst({ where: { blockerId: user1Id, blockedId: user2Id } }),
     db.block.findFirst({ where: { blockerId: user2Id, blockedId: user1Id } }),
   ]);
-  if (block1 || block2) {
-    const res = { permitted: false, reason: 'Communication is blocked between these accounts.' };
+  if (block1) {
+    const res = { permitted: false, code: 'BLOCKED_BY_ME' as const, reason: 'You blocked this person.' };
+    connectionPermissionCache.set(cacheKey, { ...res, expiresAt: now + 15000 });
+    return res;
+  }
+  if (block2) {
+    const res = { permitted: false, code: 'BLOCKED_BY_PARTNER' as const, reason: 'This user is unavailable. You cannot message or call this account.' };
     connectionPermissionCache.set(cacheKey, { ...res, expiresAt: now + 15000 });
     return res;
   }
 
-  // 1. Check if users are accepted friends (run parallel queries)
+  // 1. Check if users are accepted friends
   const [fr1, fr2] = await Promise.all([
     db.friendRequest.findFirst({
       where: { senderId: user1Id, receiverId: user2Id, status: 'ACCEPTED' },
@@ -214,28 +219,28 @@ export async function isConnectionPermitted(
   ]);
 
   if (fr1 || fr2) {
-    const res = { permitted: true };
+    const res = { permitted: true, isFriend: true };
     connectionPermissionCache.set(cacheKey, { ...res, expiresAt: now + 30000 });
     return res;
   }
 
-  // 2. Check if mutual conversation was created via matchmaking
-  const conv = await db.conversation.findUnique({ where: { id: conversationId } });
-  if (conv && conv.status === 'ACTIVE') {
-    const [p1, p2] = await Promise.all([
-      db.conversationParticipant.findFirst({ where: { conversationId, userId: user1Id } }),
-      db.conversationParticipant.findFirst({ where: { conversationId, userId: user2Id } }),
-    ]);
-    if (p1 && p2) {
-      const res = { permitted: true };
-      connectionPermissionCache.set(cacheKey, { ...res, expiresAt: now + 30000 });
-      return res;
-    }
+  // 2. Check if mutual conversation was created via matchmaking and is currently active in matchQueue
+  const activeMatch = await db.matchQueue.findFirst({
+    where: {
+      matchedConversationId: conversationId,
+      status: 'MATCHED',
+    },
+  });
+  if (activeMatch) {
+    const res = { permitted: true, isFriend: false, isMatch: true };
+    connectionPermissionCache.set(cacheKey, { ...res, expiresAt: now + 30000 });
+    return res;
   }
 
   const res = {
     permitted: false,
-    reason: 'A friend request must be accepted before starting a private conversation or call.',
+    code: 'NOT_FRIENDS' as const,
+    reason: 'Only friends can message and call each other. Send a friend request to connect.',
   };
   connectionPermissionCache.set(cacheKey, { ...res, expiresAt: now + 10000 });
   return res;

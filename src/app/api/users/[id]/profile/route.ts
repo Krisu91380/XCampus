@@ -39,9 +39,10 @@ export async function GET(
       }),
     ]);
 
-    if (blockedByMe || blockedByTarget) {
+    // If target blocked current user, do not reveal profile
+    if (blockedByTarget) {
       return NextResponse.json(
-        { success: false, message: 'User profile is not accessible.' },
+        { success: false, message: 'This user is unavailable.' },
         { status: 404 }
       );
     }
@@ -97,11 +98,18 @@ export async function GET(
       friendRequestId = pendingIncoming.id;
     }
 
+    const profileSocial = (profile?.socialLinks as any) || {};
+    const username = profileSocial.username || (targetUser.email ? targetUser.email.split('@')[0] : '');
+    const relationshipStatus = profileSocial.relationshipVisible && profileSocial.relationshipStatus
+      ? profileSocial.relationshipStatus
+      : null;
+
     return NextResponse.json({
       success: true,
       user: {
         id: targetUser.id,
         displayName: profile?.displayName || 'Student Peer',
+        username,
         avatarUrl: profile?.avatarUrl || null,
         bio: profile?.bio || '',
         course: profile?.course || '',
@@ -109,9 +117,17 @@ export async function GET(
         academicYear: profile?.academicYear || '',
         semester: profile?.semester || '',
         language: profile?.language || 'English',
-        interests: profile?.interests || [],
-        skills: profile?.skills || [],
-        socialLinks: profile?.socialLinks || {},
+        interests: Array.isArray(profile?.interests) ? profile.interests : [],
+        skills: Array.isArray(profile?.skills) ? profile.skills : [],
+        relationshipStatus,
+        relationshipVisible: Boolean(profileSocial.relationshipVisible),
+        socialLinks: {
+          github: profileSocial.github || '',
+          linkedin: profileSocial.linkedin || '',
+          instagram: profileSocial.instagram || '',
+          twitter: profileSocial.twitter || '',
+          website: profileSocial.website || '',
+        },
         universityName: uni?.name || 'Lovely Professional University',
         universityCode: uni?.code || 'LPU',
         isVerified: targetUser.role === 'VERIFIED_STUDENT',
@@ -119,6 +135,7 @@ export async function GET(
         isFriend: friendshipStatus === 'FRIENDS',
         friendshipStatus,
         friendRequestId,
+        isBlockedByMe: Boolean(blockedByMe),
         isSelf: session.userId === targetUser.id,
       },
     });

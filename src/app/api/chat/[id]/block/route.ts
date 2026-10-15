@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth';
 import { blockUserSchema } from '@/validators/chat';
 import { db } from '@/lib/db';
 import { broadcastEndConversation } from '@/lib/events';
+import { invalidateConversationCache } from '@/lib/conversation';
 
 export async function POST(
   req: NextRequest,
@@ -34,6 +35,20 @@ export async function POST(
       },
     });
 
+    // Clean up friend requests between these two users
+    const allReqs = await db.friendRequest.findMany();
+    for (const r of allReqs) {
+      if (
+        (r.senderId === session.userId && r.receiverId === blockedId) ||
+        (r.senderId === blockedId && r.receiverId === session.userId)
+      ) {
+        await db.friendRequest.update({
+          where: { id: r.id },
+          data: { status: 'DECLINED' },
+        });
+      }
+    }
+
     // Also automatically end the active conversation
     const conv = await db.conversation.findUnique({ where: { id: conversationId } });
     if (conv && conv.status === 'ACTIVE') {
@@ -48,6 +63,9 @@ export async function POST(
       });
       broadcastEndConversation(conversationId, session.userId, 'USER_BLOCKED');
     }
+
+    invalidateConversationCache();
+    db.store.saveToDisk();
 
     return NextResponse.json({
       success: true,

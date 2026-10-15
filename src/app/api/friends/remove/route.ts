@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { invalidateConversationCache } from '@/lib/conversation';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,30 +19,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. If requestId provided, find by id
-    let friendReq = requestId
-      ? await db.friendRequest.findUnique({ where: { id: requestId } })
-      : null;
-
-    // 2. Find request between current user and target user
-    if (!friendReq && targetUserId) {
-      friendReq =
-        (await db.friendRequest.findFirst({
-          where: { senderId: session.userId, receiverId: targetUserId },
-        })) ||
-        (await db.friendRequest.findFirst({
-          where: { senderId: targetUserId, receiverId: session.userId },
-        }));
-    }
-
-    if (friendReq) {
-      // Mark as DECLINED / un-friended
-      await db.friendRequest.update({
-        where: { id: friendReq.id },
-        data: { status: 'DECLINED' },
+    if (targetUserId) {
+      const allRequests = await db.friendRequest.findMany({
+        where: {
+          OR: [
+            { senderId: session.userId, receiverId: targetUserId },
+            { senderId: targetUserId, receiverId: session.userId },
+          ],
+        },
       });
-      db.store.saveToDisk();
+      for (const fr of allRequests) {
+        await db.friendRequest.update({
+          where: { id: fr.id },
+          data: { status: 'DECLINED' },
+        });
+      }
     }
+
+    if (requestId) {
+      await db.friendRequest.update({
+        where: { id: requestId },
+        data: { status: 'DECLINED' },
+      }).catch(() => {});
+    }
+
+    // Invalidate permission cache so new messages/calls are blocked immediately
+    invalidateConversationCache();
+    db.store.saveToDisk();
 
     return NextResponse.json({
       success: true,

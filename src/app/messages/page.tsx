@@ -30,6 +30,8 @@ import {
 import { format, isToday, isYesterday } from 'date-fns';
 import VideoCallModal from '@/components/VideoCallModal';
 import { useChat } from '@/context/ChatContext';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { StudentProfileModal } from '@/components/StudentProfileModal';
 
 export default function MessagesPage() {
   const router = useRouter();
@@ -71,8 +73,29 @@ export default function MessagesPage() {
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
 
   // Partner Profile Modal & Dropdown Menus
+  const [profileModalUserId, setProfileModalUserId] = useState<string | null>(null);
   const [profileModalUser, setProfileModalUser] = useState<any | null>(null);
   const [openItemMenuId, setOpenItemMenuId] = useState<string | null>(null);
+
+  // In-app ConfirmDialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText: string;
+    cancelText?: string;
+    variant: 'danger' | 'warning' | 'primary';
+    action: () => Promise<void>;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    variant: 'danger',
+    action: async () => {},
+  });
+  const [confirmDialogLoading, setConfirmDialogLoading] = useState(false);
 
   // Active chat state
   const [messages, setMessages] = useState<any[]>([]);
@@ -664,135 +687,159 @@ export default function MessagesPage() {
     }
   };
 
-  const handleRemoveFriend = async (targetPartner?: any) => {
+  const handleRemoveFriend = (targetPartner?: any) => {
     const p = targetPartner || chatPartner;
     if (!p?.id) return;
-    if (
-      !confirm(
-        `Are you sure you want to remove ${p.displayName} from your friends list? Your chat history will be kept.`
-      )
-    ) {
-      return;
-    }
+    setActiveMenuOpen(false);
+    setOpenItemMenuId(null);
 
-    try {
-      const res = await fetch('/api/friends/remove', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetUserId: p.id }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Failed to remove friend');
-      }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Remove Friend',
+      description: `Are you sure you want to remove ${p.displayName} from your friends list? Your chat history will be kept, but messaging and calling will require a new friend request.`,
+      confirmText: 'Remove Friend',
+      variant: 'danger',
+      action: async () => {
+        setConfirmDialogLoading(true);
+        try {
+          const res = await fetch('/api/friends/remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ targetUserId: p.id }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.message || 'Failed to remove friend');
+          }
 
-      if (chatPartner?.id === p.id) {
-        setChatPartner((prev: any) => ({ ...prev, isFriend: false }));
-      }
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.partner?.id === p.id ? { ...c, partner: { ...c.partner, isFriend: false } } : c
-        )
-      );
-      setActiveMenuOpen(false);
-      setOpenItemMenuId(null);
-      showToast(`${p.displayName} removed from friends.`);
-      fetchFriends();
-      fetchConversations();
-    } catch (err: any) {
-      alert(err.message);
-    }
+          if (chatPartner?.id === p.id) {
+            setChatPartner((prev: any) => ({ ...prev, isFriend: false }));
+          }
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.partner?.id === p.id ? { ...c, partner: { ...c.partner, isFriend: false }, isFriend: false } : c
+            )
+          );
+          showToast(`${p.displayName} removed from friends.`);
+          fetchFriends();
+          fetchConversations();
+          setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+        } catch (err: any) {
+          showToast(err.message || 'Failed to remove friend');
+        } finally {
+          setConfirmDialogLoading(false);
+        }
+      },
+    });
   };
 
-  const handleBlockUser = async (targetPartner?: any) => {
+  const handleBlockUser = (targetPartner?: any) => {
     const p = targetPartner || chatPartner;
     if (!p?.id) return;
-    if (
-      !confirm(
-        `Are you sure you want to block ${p.displayName}? They will not be able to send messages, call, or match with you again.`
-      )
-    ) {
-      return;
-    }
+    setActiveMenuOpen(false);
+    setOpenItemMenuId(null);
 
-    try {
-      const res = await fetch('/api/friends/block', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetUserId: p.id }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Failed to block user');
-      }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Block Student',
+      description: `Are you sure you want to block ${p.displayName}? They will not be able to send messages, call, or match with you. Existing message history is preserved in your chat.`,
+      confirmText: 'Block Student',
+      variant: 'danger',
+      action: async () => {
+        setConfirmDialogLoading(true);
+        try {
+          const res = await fetch('/api/friends/block', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ targetUserId: p.id }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.message || 'Failed to block user');
+          }
 
-      setActiveMenuOpen(false);
-      setOpenItemMenuId(null);
-      if (chatPartner?.id === p.id) {
-        setSelectedConvId(null);
-        setChatPartner(null);
-      }
-      showToast(`${p.displayName} blocked.`);
-      await Promise.all([fetchConversations(), fetchFriends()]);
-    } catch (err: any) {
-      alert(err.message);
-    }
+          if (chatPartner?.id === p.id) {
+            setChatPartner((prev: any) => ({ ...prev, isBlockedByMe: true, isFriend: false }));
+          }
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.partner?.id === p.id
+                ? { ...c, isBlockedByMe: true, isFriend: false, partner: { ...c.partner, isBlockedByMe: true, isFriend: false } }
+                : c
+            )
+          );
+          showToast(`${p.displayName} blocked.`);
+          await Promise.all([fetchConversations(), fetchFriends()]);
+          setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+        } catch (err: any) {
+          showToast(err.message || 'Failed to block student');
+        } finally {
+          setConfirmDialogLoading(false);
+        }
+      },
+    });
   };
 
-  const handleDeleteChat = async (convId?: string) => {
+  const handleDeleteChat = (convId?: string) => {
     const idToDelete = convId || selectedConvId;
     if (!idToDelete) return;
 
     const convToDelete = conversations.find((c) => c.id === idToDelete);
     const partnerName = convToDelete?.partner?.displayName || chatPartner?.displayName || 'this student';
-
-    if (
-      !confirm(
-        `Are you sure you want to delete this conversation with ${partnerName}? The conversation will be removed from your inbox. Your copy of the message history will be hidden.`
-      )
-    ) {
-      return;
-    }
-
-    // 1. Immediate optimistic UI update (0ms delay)
-    const previousConversations = [...conversations];
-    const previousFiltered = [...filteredConversations];
-    setConversations((prev) => prev.filter((c) => c.id !== idToDelete));
-    setFilteredConversations((prev) => prev.filter((c) => c.id !== idToDelete));
     setActiveMenuOpen(false);
     setOpenItemMenuId(null);
 
-    if (selectedConvId === idToDelete) {
-      setSelectedConvId(null);
-      setChatPartner(null);
-      window.dispatchEvent(new CustomEvent('cc_mobile_chat_open', { detail: { isOpen: false } }));
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Conversation',
+      description: `Are you sure you want to delete this conversation with ${partnerName}? The conversation will be removed from your inbox only. Your partner's conversation history will not be affected.`,
+      confirmText: 'Delete Conversation',
+      variant: 'danger',
+      action: async () => {
+        setConfirmDialogLoading(true);
+        // 1. Immediate optimistic UI update (0ms delay)
+        const previousConversations = [...conversations];
+        const previousFiltered = [...filteredConversations];
+        setConversations((prev) => prev.filter((c) => c.id !== idToDelete));
+        setFilteredConversations((prev) => prev.filter((c) => c.id !== idToDelete));
 
-    // Clean up local storage caches
-    try {
-      localStorage.removeItem(`campusconnect_cache_conv_${idToDelete}`);
-      const cached = localStorage.getItem('campusconnect_cached_conversations');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        const filtered = parsed.filter((c: any) => c.id !== idToDelete);
-        localStorage.setItem('campusconnect_cached_conversations', JSON.stringify(filtered));
-      }
-    } catch {}
+        if (selectedConvId === idToDelete) {
+          setSelectedConvId(null);
+          setChatPartner(null);
+          window.dispatchEvent(new CustomEvent('cc_mobile_chat_open', { detail: { isOpen: false } }));
+        }
 
-    // 2. Persist to PostgreSQL via delete API in background
-    try {
-      const res = await fetch(`/api/chat/${idToDelete}/delete`, { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Failed to delete conversation');
-      }
-      showToast('Conversation deleted.');
-    } catch (err: any) {
-      // Restore previous state if database operation fails
-      setConversations(previousConversations);
-      setFilteredConversations(previousFiltered);
-      showToast(err.message || 'Failed to delete conversation. Please try again.');
-    }
+        // Clean up local storage caches
+        try {
+          localStorage.removeItem(`campusconnect_cache_conv_${idToDelete}`);
+          const cached = localStorage.getItem('campusconnect_cached_conversations');
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            const filtered = parsed.filter((c: any) => c.id !== idToDelete);
+            localStorage.setItem('campusconnect_cached_conversations', JSON.stringify(filtered));
+          }
+        } catch {}
+
+        setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+
+        // 2. Persist to PostgreSQL via delete API in background
+        try {
+          const res = await fetch(`/api/chat/${idToDelete}/delete`, { method: 'POST' });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.message || 'Failed to delete conversation');
+          }
+          showToast('Conversation deleted.');
+        } catch (err: any) {
+          // Restore previous state if database operation fails
+          setConversations(previousConversations);
+          setFilteredConversations(previousFiltered);
+          showToast(err.message || 'Failed to delete conversation. Please try again.');
+        } finally {
+          setConfirmDialogLoading(false);
+        }
+      },
+    });
   };
 
   const handleUnblockUser = async (userId: string) => {
@@ -809,10 +856,20 @@ export default function MessagesPage() {
       }
 
       setBlockedUsers((prev) => prev.filter((b) => b.userId !== userId));
+      if (chatPartner?.id === userId) {
+        setChatPartner((prev: any) => ({ ...prev, isBlockedByMe: false }));
+      }
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.partner?.id === userId
+            ? { ...c, isBlockedByMe: false, partner: { ...c.partner, isBlockedByMe: false } }
+            : c
+        )
+      );
       showToast('Student unblocked successfully.');
       fetchConversations();
     } catch (err: any) {
-      alert(err.message);
+      showToast(err.message || 'Failed to unblock student');
     } finally {
       setUnblockingId(null);
     }
@@ -1029,7 +1086,14 @@ export default function MessagesPage() {
                       onClick={() => handleSelectConversation(conv.id)}
                       className="flex items-start gap-3 flex-1 min-w-0 cursor-pointer"
                     >
-                      <div className="relative shrink-0">
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (partner?.id) setProfileModalUserId(partner.id);
+                        }}
+                        className="relative shrink-0 hover:opacity-85 transition-opacity"
+                        title="View Student Profile"
+                      >
                         {partner?.avatarUrl ? (
                           <img
                             src={partner.avatarUrl}
@@ -1104,7 +1168,7 @@ export default function MessagesPage() {
                         <MoreVertical className="w-3.5 h-3.5" />
                       </button>
 
-                      {openItemMenuId === conv.id && (
+                       {openItemMenuId === conv.id && (
                         <div
                           onClick={(e) => e.stopPropagation()}
                           className="absolute right-0 top-full mt-1 w-44 rounded-2xl bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-750 shadow-xl py-1.5 z-40 text-xs text-slate-700 dark:text-slate-200"
@@ -1112,7 +1176,7 @@ export default function MessagesPage() {
                           <button
                             onClick={() => {
                               setOpenItemMenuId(null);
-                              setProfileModalUser(partner);
+                              if (partner?.id) setProfileModalUserId(partner.id);
                             }}
                             className="w-full px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-navy-800 flex items-center gap-2 cursor-pointer"
                           >
@@ -1174,9 +1238,18 @@ export default function MessagesPage() {
             <>
               {/* Active Chat Header - Instagram DM Clean Style */}
               <div className="p-3 sm:p-4 border-b border-slate-200 dark:border-navy-800 bg-white/95 dark:bg-navy-900/95 backdrop-blur-md flex items-center justify-between z-10 shrink-0">
-                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <div
+                  onClick={() => {
+                    if (chatPartner?.id) setProfileModalUserId(chatPartner.id);
+                  }}
+                  className="flex items-center gap-2.5 sm:gap-3 min-w-0 cursor-pointer hover:opacity-90 transition-opacity"
+                  title="View Student Profile"
+                >
                   <button
-                    onClick={() => setSelectedConvId(null)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedConvId(null);
+                    }}
                     className="md:hidden p-1.5 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-navy-850 active:scale-95 shrink-0"
                     title="Back to conversation list"
                   >
@@ -1214,7 +1287,10 @@ export default function MessagesPage() {
                         </span>
                       ) : (
                         <button
-                          onClick={handleSendFriendRequest}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSendFriendRequest();
+                          }}
                           disabled={addingFriend}
                           className="px-2 py-0.5 rounded-full bg-purple-50 hover:bg-brand-purple hover:text-white dark:bg-purple-500/15 border border-purple-200 dark:border-purple-500/30 text-purple-700 dark:text-purple-300 text-[10px] font-semibold flex items-center gap-1 transition-colors cursor-pointer shrink-0"
                         >
@@ -1235,11 +1311,32 @@ export default function MessagesPage() {
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <button
                     onClick={() => {
+                      if (chatPartner.isBlockedByMe || chatPartner.isBlockedByPartner) {
+                        showToast('Communication is blocked between these accounts.');
+                        return;
+                      }
+                      if (!chatPartner.isFriend) {
+                        showToast('Only friends can call each other.');
+                        return;
+                      }
                       setIsCallInitiator(true);
                       setIsVideoModalOpen(true);
                     }}
-                    className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
-                    title="Start Live Video Call"
+                    disabled={chatPartner.isBlockedByMe || chatPartner.isBlockedByPartner || !chatPartner.isFriend}
+                    className={`px-3 py-1.5 rounded-xl text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all ${
+                      chatPartner.isBlockedByMe || chatPartner.isBlockedByPartner || !chatPartner.isFriend
+                        ? 'bg-slate-200 dark:bg-navy-800 text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-60'
+                        : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 cursor-pointer'
+                    }`}
+                    title={
+                      chatPartner.isBlockedByMe
+                        ? 'You blocked this person'
+                        : chatPartner.isBlockedByPartner
+                        ? 'This user is unavailable'
+                        : !chatPartner.isFriend
+                        ? 'Only friends can call each other'
+                        : 'Start Live Video Call'
+                    }
                   >
                     <Video className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Video Call</span>
@@ -1273,7 +1370,7 @@ export default function MessagesPage() {
                         <button
                           onClick={() => {
                             setActiveMenuOpen(false);
-                            setProfileModalUser(chatPartner);
+                            if (chatPartner?.id) setProfileModalUserId(chatPartner.id);
                           }}
                           className="w-full px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-navy-800 flex items-center gap-2 cursor-pointer"
                         >
@@ -1316,6 +1413,47 @@ export default function MessagesPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Instagram-Style Notice Banners */}
+              {chatPartner.isBlockedByMe && (
+                <div className="mx-4 mt-3 p-3 rounded-2xl bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-750 flex items-center justify-between gap-3 text-xs shrink-0 shadow-xs animate-fade-in">
+                  <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-medium">
+                    <Ban className="w-4 h-4 text-red-500 shrink-0" />
+                    <span>You blocked this person.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleUnblockUser(chatPartner.id)}
+                    disabled={unblockingId === chatPartner.id}
+                    className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs shadow-xs transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
+                  >
+                    {unblockingId === chatPartner.id ? 'Unblocking...' : 'Unblock'}
+                  </button>
+                </div>
+              )}
+
+              {chatPartner.isBlockedByPartner && (
+                <div className="mx-4 mt-3 p-3 rounded-2xl bg-slate-100 dark:bg-navy-900 border border-slate-200 dark:border-navy-750 text-center text-xs text-slate-600 dark:text-slate-400 font-medium shrink-0 shadow-xs animate-fade-in">
+                  This user is unavailable. You cannot message or call this account.
+                </div>
+              )}
+
+              {!chatPartner.isFriend && !chatPartner.isBlockedByMe && !chatPartner.isBlockedByPartner && (
+                <div className="mx-4 mt-3 p-3 rounded-2xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/40 flex items-center justify-between gap-3 text-xs shrink-0 shadow-xs animate-fade-in">
+                  <div className="flex items-center gap-2 text-purple-950 dark:text-purple-200 font-medium">
+                    <UserPlus className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                    <span>You are no longer friends. Send a friend request to start messaging again.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleSendFriendRequest()}
+                    disabled={addingFriend}
+                    className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs shadow-xs transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
+                  >
+                    {addingFriend ? 'Sending...' : 'Add Friend'}
+                  </button>
+                </div>
+              )}
 
               {/* Messages Body (Independently scrollable message area) */}
               <div
@@ -1416,15 +1554,33 @@ export default function MessagesPage() {
               >
                 <input
                   type="text"
-                  placeholder={`Message ${chatPartner.displayName}...`}
+                  placeholder={
+                    chatPartner.isBlockedByMe
+                      ? 'You blocked this person.'
+                      : chatPartner.isBlockedByPartner
+                      ? 'This user is unavailable.'
+                      : !chatPartner.isFriend
+                      ? 'Add friend to send a message...'
+                      : `Message ${chatPartner.displayName}...`
+                  }
+                  disabled={
+                    chatPartner.isBlockedByMe ||
+                    chatPartner.isBlockedByPartner ||
+                    !chatPartner.isFriend
+                  }
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  className="flex-1 px-4 py-2.5 rounded-full bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-750 text-slate-900 dark:text-white placeholder-slate-400 text-xs focus:bg-white focus:outline-none focus:border-brand-purple transition-all shadow-inner"
+                  className="flex-1 px-4 py-2.5 rounded-full bg-slate-100 dark:bg-navy-950 border border-slate-200 dark:border-navy-750 text-slate-900 dark:text-white placeholder-slate-400 text-xs focus:bg-white focus:outline-none focus:border-brand-purple transition-all shadow-inner disabled:opacity-60 disabled:cursor-not-allowed"
                 />
                 <button
                   type="submit"
-                  disabled={!inputValue.trim()}
-                  className="p-2.5 sm:px-5 sm:py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-95 disabled:opacity-40 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer shrink-0"
+                  disabled={
+                    !inputValue.trim() ||
+                    chatPartner.isBlockedByMe ||
+                    chatPartner.isBlockedByPartner ||
+                    !chatPartner.isFriend
+                  }
+                  className="p-2.5 sm:px-5 sm:py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-95 disabled:opacity-40 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer shrink-0 disabled:cursor-not-allowed"
                 >
                   <Send className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                   <span className="hidden sm:inline">Send</span>
@@ -1517,61 +1673,42 @@ export default function MessagesPage() {
         </div>
       )}
 
-      {/* Partner Profile Modal */}
-      {profileModalUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-navy-950/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-800 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center text-slate-900 dark:text-white relative">
-            <button
-              onClick={() => setProfileModalUser(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white"
-            >
-              <X className="w-4 h-4" />
-            </button>
+      {/* Complete Student Profile Modal */}
+      <StudentProfileModal
+        userId={profileModalUserId}
+        isOpen={Boolean(profileModalUserId)}
+        onClose={() => setProfileModalUserId(null)}
+        onFriendshipChange={() => {
+          fetchFriends();
+          fetchConversations();
+          if (selectedConvId) fetchMessages(selectedConvId);
+        }}
+        onBlockChange={() => {
+          fetchConversations();
+          fetchFriends();
+          if (selectedConvId) fetchMessages(selectedConvId);
+        }}
+        onMessageClick={(uid) => {
+          setProfileModalUserId(null);
+          const existing = conversations.find((c) => c.partner?.id === uid);
+          if (existing) {
+            handleSelectConversation(existing.id);
+          }
+        }}
+      />
 
-            <div className="w-20 h-20 rounded-full mx-auto overflow-hidden border-2 border-brand-purple">
-              {profileModalUser.avatarUrl ? (
-                <img
-                  src={profileModalUser.avatarUrl}
-                  alt={profileModalUser.displayName}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-tr from-brand-purple to-indigo-600 flex items-center justify-center text-white text-2xl font-bold">
-                  {profileModalUser.displayName?.[0] || 'S'}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center justify-center gap-1.5">
-                <span>{profileModalUser.displayName}</span>
-                {profileModalUser.isVerified && (
-                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                )}
-              </h3>
-              <p className="text-xs text-brand-purple font-medium mt-0.5">{profileModalUser.universityName}</p>
-              {profileModalUser.course && (
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{profileModalUser.course}</p>
-              )}
-            </div>
-
-            {profileModalUser.bio && (
-              <p className="text-xs text-slate-600 dark:text-slate-300 italic px-2">
-                &quot;{profileModalUser.bio}&quot;
-              </p>
-            )}
-
-            <div className="pt-2 flex items-center justify-center gap-2">
-              <button
-                onClick={() => setProfileModalUser(null)}
-                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-navy-800 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-200"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* In-App Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDialog.action}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        confirmText={confirmDialog.confirmText}
+        cancelText={confirmDialog.cancelText}
+        variant={confirmDialog.variant}
+        isLoading={confirmDialogLoading}
+      />
 
       {/* Video Call Modal */}
       {isVideoModalOpen && chatPartner && (

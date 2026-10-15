@@ -89,6 +89,32 @@
         "createdAt": "2026-10-13T14:29:50.418Z",
         "updatedAt": "2026-10-13T14:29:50.418Z"
       }
+    ],
+    [
+      "user-1792051407531-z50xk",
+      {
+        "id": "user-1792051407531-z50xk",
+        "email": "student_a_test@campusconnect.test",
+        "passwordHash": "hash",
+        "role": "VERIFIED_STUDENT",
+        "status": "ACTIVE",
+        "universityId": "uni-lpu-01",
+        "createdAt": "2026-10-15T08:03:27.531Z",
+        "updatedAt": "2026-10-15T08:03:27.531Z"
+      }
+    ],
+    [
+      "user-1792051407536-kwcr0",
+      {
+        "id": "user-1792051407536-kwcr0",
+        "email": "student_b_test@campusconnect.test",
+        "passwordHash": "hash",
+        "role": "VERIFIED_STUDENT",
+        "status": "ACTIVE",
+        "universityId": "uni-lpu-01",
+        "createdAt": "2026-10-15T08:03:27.536Z",
+        "updatedAt": "2026-10-15T08:03:27.536Z"
+      }
     ]
   ],
   "profiles": [
@@ -240,6 +266,79 @@
         "createdAt": "2026-10-13T14:29:50.418Z",
         "updatedAt": "2026-10-13T14:29:50.418Z"
       }
+    ],
+    [
+      "user-1792051407531-z50xk",
+      {
+        "id": "profile-1792051448183",
+        "userId": "user-1792051407531-z50xk",
+        "displayName": "Alice Student",
+        "gender": "FEMALE",
+        "avatarUrl": null,
+        "bio": "Passionate about machine learning and hackathons.",
+        "course": "B.Tech CSE",
+        "branch": "AI & Data Science",
+        "academicYear": "3rd Year",
+        "semester": "6",
+        "language": "English",
+        "interests": [
+          "AI",
+          "React",
+          "Hackathons"
+        ],
+        "skills": [
+          "TypeScript",
+          "Python",
+          "Tailwind"
+        ],
+        "socialLinks": {
+          "username": "alice_cse",
+          "relationshipVisible": true,
+          "relationshipStatus": "Single",
+          "github": "alice-tech"
+        },
+        "isOnline": false,
+        "isDiscoverable": true,
+        "lastSeenAt": "2026-10-15T08:04:08.183Z",
+        "createdAt": "2026-10-15T08:04:08.183Z",
+        "updatedAt": "2026-10-15T08:04:08.183Z"
+      }
+    ],
+    [
+      "user-1792051407536-kwcr0",
+      {
+        "id": "profile-1792051448187",
+        "userId": "user-1792051407536-kwcr0",
+        "displayName": "Bob Student",
+        "gender": "MALE",
+        "avatarUrl": null,
+        "bio": "Cybersecurity and cloud infrastructure enthusiast.",
+        "course": "B.Tech IT",
+        "branch": "Information Technology",
+        "academicYear": "2nd Year",
+        "semester": "4",
+        "language": "English",
+        "interests": [
+          "Cloud",
+          "Linux",
+          "CaptureTheFlag"
+        ],
+        "skills": [
+          "Go",
+          "Docker",
+          "Next.js"
+        ],
+        "socialLinks": {
+          "username": "bob_sec",
+          "relationshipVisible": false,
+          "relationshipStatus": "In a relationship"
+        },
+        "isOnline": false,
+        "isDiscoverable": true,
+        "lastSeenAt": "2026-10-15T08:04:08.187Z",
+        "createdAt": "2026-10-15T08:04:08.187Z",
+        "updatedAt": "2026-10-15T08:04:08.187Z"
+      }
     ]
   ],
   "universities": [
@@ -258,8 +357,8 @@
         ],
         "isActive": true,
         "verificationRequirements": "Official @lpu.in email address or valid physical Student ID card",
-        "createdAt": "2026-10-13T18:31:18.739Z",
-        "updatedAt": "2026-10-13T18:31:18.739Z"
+        "createdAt": "2026-10-15T08:04:08.029Z",
+        "updatedAt": "2026-10-15T08:04:08.029Z"
       }
     ],
     [
@@ -276,8 +375,8 @@
         ],
         "isActive": true,
         "verificationRequirements": "University Roll Number and official college email or Student ID",
-        "createdAt": "2026-10-13T18:31:18.741Z",
-        "updatedAt": "2026-10-13T18:31:18.741Z"
+        "createdAt": "2026-10-15T08:04:08.031Z",
+        "updatedAt": "2026-10-15T08:04:08.031Z"
       }
     ],
     [
@@ -295,8 +394,8 @@
         ],
         "isActive": true,
         "verificationRequirements": "Official @vitstudent.ac.in student ID or VTOP profile snapshot",
-        "createdAt": "2026-10-13T18:31:18.744Z",
-        "updatedAt": "2026-10-13T18:31:18.744Z"
+        "createdAt": "2026-10-15T08:04:08.033Z",
+        "updatedAt": "2026-10-15T08:04:08.033Z"
       }
     ],
     [
@@ -315,8 +414,8 @@
         ],
         "isActive": true,
         "verificationRequirements": "Official BITS email account verification",
-        "createdAt": "2026-10-13T18:31:18.747Z",
-        "updatedAt": "2026-10-13T18:31:18.747Z"
+        "createdAt": "2026-10-15T08:04:08.034Z",
+        "updatedAt": "2026-10-15T08:04:08.034Z"
       }
     ]
   ],
@@ -331,9 +430,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-13T18:31:18.931Z",
-        "createdAt": "2026-10-13T18:31:18.931Z",
-        "updatedAt": "2026-10-13T18:31:18.931Z"
+        "reviewedAt": "2026-10-15T08:04:08.159Z",
+        "createdAt": "2026-10-15T08:04:08.159Z",
+        "updatedAt": "2026-10-15T08:04:08.159Z"
       }
     ],
     [
@@ -346,9 +445,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-13T18:31:18.934Z",
-        "createdAt": "2026-10-13T18:31:18.934Z",
-        "updatedAt": "2026-10-13T18:31:18.934Z"
+        "reviewedAt": "2026-10-15T08:04:08.162Z",
+        "createdAt": "2026-10-15T08:04:08.162Z",
+        "updatedAt": "2026-10-15T08:04:08.162Z"
       }
     ],
     [
@@ -361,9 +460,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-13T18:31:18.938Z",
-        "createdAt": "2026-10-13T18:31:18.938Z",
-        "updatedAt": "2026-10-13T18:31:18.938Z"
+        "reviewedAt": "2026-10-15T08:04:08.164Z",
+        "createdAt": "2026-10-15T08:04:08.164Z",
+        "updatedAt": "2026-10-15T08:04:08.164Z"
       }
     ],
     [
@@ -376,9 +475,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-13T18:31:18.940Z",
-        "createdAt": "2026-10-13T18:31:18.940Z",
-        "updatedAt": "2026-10-13T18:31:18.940Z"
+        "reviewedAt": "2026-10-15T08:04:08.169Z",
+        "createdAt": "2026-10-15T08:04:08.169Z",
+        "updatedAt": "2026-10-15T08:04:08.169Z"
       }
     ],
     [
@@ -391,9 +490,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-13T18:31:18.944Z",
-        "createdAt": "2026-10-13T18:31:18.944Z",
-        "updatedAt": "2026-10-13T18:31:18.944Z"
+        "reviewedAt": "2026-10-15T08:04:08.171Z",
+        "createdAt": "2026-10-15T08:04:08.171Z",
+        "updatedAt": "2026-10-15T08:04:08.171Z"
       }
     ]
   ],
@@ -428,6 +527,15 @@
         "creditDeducted": true,
         "startedAt": "2026-10-12T10:05:00.000Z",
         "endedAt": null
+      }
+    ],
+    [
+      "conv_user-1792051407531-z50xk__user-1792051407536-kwcr0__a2d1cdfe04bd91c4",
+      {
+        "id": "conv_user-1792051407531-z50xk__user-1792051407536-kwcr0__a2d1cdfe04bd91c4",
+        "status": "ACTIVE",
+        "creditDeducted": true,
+        "startedAt": "2026-10-15T08:04:08.207Z"
       }
     ]
   ],
@@ -503,6 +611,101 @@
         "clearedAt": null,
         "hidden": false
       }
+    ],
+    [
+      "conv_user-student-1__user-student-krish__5f26ba590eb70a6f:user-student-1",
+      {
+        "id": "part-conv_user-student-1__user-student-krish__5f26ba590eb70a6f-user-student-1",
+        "conversationId": "conv_user-student-1__user-student-krish__5f26ba590eb70a6f",
+        "userId": "user-student-1",
+        "hasUnread": false,
+        "joinedAt": "2026-10-12T10:05:00.000Z",
+        "clearedAt": null,
+        "hidden": false
+      }
+    ],
+    [
+      "conv_user-student-1__user-student-krish__5f26ba590eb70a6f:user-student-krish",
+      {
+        "id": "part-conv_user-student-1__user-student-krish__5f26ba590eb70a6f-user-student-krish",
+        "conversationId": "conv_user-student-1__user-student-krish__5f26ba590eb70a6f",
+        "userId": "user-student-krish",
+        "hasUnread": false,
+        "joinedAt": "2026-10-12T10:05:00.000Z",
+        "clearedAt": null,
+        "hidden": false
+      }
+    ],
+    [
+      "conv_user-student-2__user-student-krish__693362988835865e:user-student-2",
+      {
+        "id": "part-conv_user-student-2__user-student-krish__693362988835865e-user-student-2",
+        "conversationId": "conv_user-student-2__user-student-krish__693362988835865e",
+        "userId": "user-student-2",
+        "hasUnread": false,
+        "joinedAt": "2026-10-12T10:05:00.000Z",
+        "clearedAt": null,
+        "hidden": false
+      }
+    ],
+    [
+      "conv_user-student-2__user-student-krish__693362988835865e:user-student-krish",
+      {
+        "id": "part-conv_user-student-2__user-student-krish__693362988835865e-user-student-krish",
+        "conversationId": "conv_user-student-2__user-student-krish__693362988835865e",
+        "userId": "user-student-krish",
+        "hasUnread": false,
+        "joinedAt": "2026-10-12T10:05:00.000Z",
+        "clearedAt": null,
+        "hidden": false
+      }
+    ],
+    [
+      "conv_user-student-1__user-student-2__2793898ef75c35e1:user-student-1",
+      {
+        "id": "part-conv_user-student-1__user-student-2__2793898ef75c35e1-user-student-1",
+        "conversationId": "conv_user-student-1__user-student-2__2793898ef75c35e1",
+        "userId": "user-student-1",
+        "hasUnread": false,
+        "joinedAt": "2026-10-12T10:05:00.000Z",
+        "clearedAt": null,
+        "hidden": false
+      }
+    ],
+    [
+      "conv_user-student-1__user-student-2__2793898ef75c35e1:user-student-2",
+      {
+        "id": "part-conv_user-student-1__user-student-2__2793898ef75c35e1-user-student-2",
+        "conversationId": "conv_user-student-1__user-student-2__2793898ef75c35e1",
+        "userId": "user-student-2",
+        "hasUnread": false,
+        "joinedAt": "2026-10-12T10:05:00.000Z",
+        "clearedAt": null,
+        "hidden": false
+      }
+    ],
+    [
+      "part-conv_user-1792051407531-z50xk__user-1792051407536-kwcr0__a2d1cdfe04bd91c4-user-1792051407531-z50xk",
+      {
+        "id": "part-conv_user-1792051407531-z50xk__user-1792051407536-kwcr0__a2d1cdfe04bd91c4-user-1792051407531-z50xk",
+        "conversationId": "conv_user-1792051407531-z50xk__user-1792051407536-kwcr0__a2d1cdfe04bd91c4",
+        "userId": "user-1792051407531-z50xk",
+        "hasUnread": false,
+        "joinedAt": "2026-10-15T08:04:08.212Z",
+        "hidden": true,
+        "clearedAt": "2026-10-15T08:04:08.251Z",
+        "leftAt": "2026-10-15T08:04:08.252Z"
+      }
+    ],
+    [
+      "part-conv_user-1792051407531-z50xk__user-1792051407536-kwcr0__a2d1cdfe04bd91c4-user-1792051407536-kwcr0",
+      {
+        "id": "part-conv_user-1792051407531-z50xk__user-1792051407536-kwcr0__a2d1cdfe04bd91c4-user-1792051407536-kwcr0",
+        "conversationId": "conv_user-1792051407531-z50xk__user-1792051407536-kwcr0__a2d1cdfe04bd91c4",
+        "userId": "user-1792051407536-kwcr0",
+        "hasUnread": false,
+        "joinedAt": "2026-10-15T08:04:08.215Z"
+      }
     ]
   ],
   "messages": [
@@ -538,6 +741,17 @@
         "isRead": true,
         "createdAt": "2026-10-12T10:06:00.000Z"
       }
+    ],
+    [
+      "msg_test_init_1792051448218",
+      {
+        "id": "msg_test_init_1792051448218",
+        "conversationId": "conv_user-1792051407531-z50xk__user-1792051407536-kwcr0__a2d1cdfe04bd91c4",
+        "senderId": "user-1792051407531-z50xk",
+        "content": "Hello Bob! This is an important past message.",
+        "isRead": true,
+        "createdAt": "2026-10-15T08:04:08.219Z"
+      }
     ]
   ],
   "creditPackages": [
@@ -551,8 +765,8 @@
         "description": "5 Conversation credits. Great starter pack for new connections.",
         "isPopular": false,
         "isActive": true,
-        "createdAt": "2026-10-13T18:31:18.749Z",
-        "updatedAt": "2026-10-13T18:31:18.749Z"
+        "createdAt": "2026-10-15T08:04:08.035Z",
+        "updatedAt": "2026-10-15T08:04:08.035Z"
       }
     ],
     [
@@ -565,8 +779,8 @@
         "description": "15 Conversation credits. Best value for active students (₹5.2/chat).",
         "isPopular": true,
         "isActive": true,
-        "createdAt": "2026-10-13T18:31:18.751Z",
-        "updatedAt": "2026-10-13T18:31:18.751Z"
+        "createdAt": "2026-10-15T08:04:08.036Z",
+        "updatedAt": "2026-10-15T08:04:08.036Z"
       }
     ],
     [
@@ -579,8 +793,8 @@
         "description": "35 Conversation credits. Maximum value across campus networks (₹4.2/chat).",
         "isPopular": false,
         "isActive": true,
-        "createdAt": "2026-10-13T18:31:18.753Z",
-        "updatedAt": "2026-10-13T18:31:18.753Z"
+        "createdAt": "2026-10-15T08:04:08.037Z",
+        "updatedAt": "2026-10-15T08:04:08.037Z"
       }
     ]
   ],
@@ -651,7 +865,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-13T18:31:18.929Z"
+        "createdAt": "2026-10-15T08:04:08.158Z"
       }
     ],
     [
@@ -664,7 +878,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-13T18:31:18.932Z"
+        "createdAt": "2026-10-15T08:04:08.161Z"
       }
     ],
     [
@@ -677,7 +891,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-13T18:31:18.936Z"
+        "createdAt": "2026-10-15T08:04:08.163Z"
       }
     ],
     [
@@ -690,7 +904,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-13T18:31:18.939Z"
+        "createdAt": "2026-10-15T08:04:08.167Z"
       }
     ],
     [
@@ -703,7 +917,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-13T18:31:18.942Z"
+        "createdAt": "2026-10-15T08:04:08.170Z"
       }
     ]
   ],
@@ -744,6 +958,17 @@
         "status": "ACCEPTED",
         "createdAt": "2026-10-12T10:00:00.000Z",
         "updatedAt": "2026-10-12T10:05:00.000Z"
+      }
+    ],
+    [
+      "freq-1792051448225-wlxxn",
+      {
+        "id": "freq-1792051448225-wlxxn",
+        "senderId": "user-1792051407531-z50xk",
+        "receiverId": "user-1792051407536-kwcr0",
+        "status": "DECLINED",
+        "createdAt": "2026-10-15T08:04:08.225Z",
+        "updatedAt": "2026-10-15T08:04:08.245Z"
       }
     ]
   ],

@@ -35,6 +35,7 @@ import {
   Palette,
   Ban,
 } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 const BANNER_PRESETS = [
   { id: 'campus-violet', name: 'Campus Violet', gradient: 'from-purple-600 via-indigo-600 to-purple-800', preview: 'bg-gradient-to-r from-purple-600 to-indigo-700' },
@@ -64,6 +65,21 @@ export default function ProfilePage() {
   const [showBlockedModal, setShowBlockedModal] = useState(false);
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText: string;
+    variant: 'danger' | 'warning' | 'primary';
+    action: () => Promise<void>;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    variant: 'danger',
+    action: async () => {},
+  });
 
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -254,31 +270,40 @@ export default function ProfilePage() {
     }
   };
 
-  const handleRemovePhoto = async () => {
-    if (!confirm('Are you sure you want to remove your profile photo?')) return;
-    setUploadingPhoto(true);
-    setMessage(null);
+  const handleRemovePhoto = () => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Remove Profile Photo',
+      description: 'Are you sure you want to remove your profile photo? Your profile will display your neutral student initials instead.',
+      confirmText: 'Remove Photo',
+      variant: 'danger',
+      action: async () => {
+        setUploadingPhoto(true);
+        setMessage(null);
 
-    try {
-      const res = await fetch('/api/profile/photo', { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Failed to remove photo');
-      }
+        try {
+          const res = await fetch('/api/profile/photo', { method: 'DELETE' });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.message || 'Failed to remove photo');
+          }
 
-      setProfile((prev: any) => ({ ...prev, avatarUrl: null }));
-      try {
-        if (profile?.userId) {
-          localStorage.removeItem('campusconnect_avatar_' + profile.userId);
+          setProfile((prev: any) => ({ ...prev, avatarUrl: null }));
+          try {
+            if (profile?.userId) {
+              localStorage.removeItem('campusconnect_avatar_' + profile.userId);
+            }
+            localStorage.removeItem('campusconnect_avatar');
+          } catch {}
+          setMessage({ type: 'success', text: 'Profile photo removed.' });
+        } catch (err: any) {
+          setMessage({ type: 'error', text: err.message || 'Failed to remove photo.' });
+        } finally {
+          setUploadingPhoto(false);
+          setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
         }
-        localStorage.removeItem('campusconnect_avatar');
-      } catch {}
-      setMessage({ type: 'success', text: 'Profile photo removed.' });
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to remove photo.' });
-    } finally {
-      setUploadingPhoto(false);
-    }
+      },
+    });
   };
 
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -330,26 +355,35 @@ export default function ProfilePage() {
     }
   };
 
-  const handleRemoveBanner = async () => {
-    if (!confirm('Revert banner to default preset palette?')) return;
-    setUploadingBanner(true);
-    setMessage(null);
+  const handleRemoveBanner = () => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Reset Profile Banner',
+      description: 'Revert your custom banner to the default campus preset palette?',
+      confirmText: 'Reset Banner',
+      variant: 'warning',
+      action: async () => {
+        setUploadingBanner(true);
+        setMessage(null);
 
-    try {
-      const res = await fetch('/api/profile/banner', { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Failed to reset banner');
-      }
+        try {
+          const res = await fetch('/api/profile/banner', { method: 'DELETE' });
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.message || 'Failed to reset banner');
+          }
 
-      setProfile((prev: any) => ({ ...prev, bannerUrl: null, bannerPattern: 'campus-violet' }));
-      setEditForm((prev) => ({ ...prev, bannerUrl: null, bannerPattern: 'campus-violet' }));
-      setMessage({ type: 'success', text: 'Profile banner reverted to default preset.' });
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to reset banner.' });
-    } finally {
-      setUploadingBanner(false);
-    }
+          setProfile((prev: any) => ({ ...prev, bannerUrl: null, bannerPattern: 'campus-violet' }));
+          setEditForm((prev) => ({ ...prev, bannerUrl: null, bannerPattern: 'campus-violet' }));
+          setMessage({ type: 'success', text: 'Profile banner reverted to default preset.' });
+        } catch (err: any) {
+          setMessage({ type: 'error', text: err.message || 'Failed to reset banner.' });
+        } finally {
+          setUploadingBanner(false);
+          setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+        }
+      },
+    });
   };
 
   const handleSelectPreset = async (presetId: string) => {
@@ -1589,6 +1623,17 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* In-App Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDialog.action}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        confirmText={confirmDialog.confirmText}
+        variant={confirmDialog.variant}
+      />
     </div>
   );
 }

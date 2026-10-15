@@ -68,7 +68,10 @@ export async function GET(req: NextRequest) {
 
         if (!conv) return null;
         const partnerPart = allParts.find((x) => x.userId !== session.userId);
-        if (!partnerPart || blockedUserIds.has(partnerPart.userId)) return null;
+        if (!partnerPart) return null;
+
+        const isBlockedByMe = userBlocks.some((b) => b.blockedId === partnerPart.userId);
+        const isBlockedByPartner = partnerBlocks.some((b) => b.blockerId === partnerPart.userId);
 
         const [partnerUser, partnerProfile] = await Promise.all([
           db.user.findUnique({ where: { id: partnerPart.userId } }),
@@ -93,10 +96,14 @@ export async function GET(req: NextRequest) {
           status: conv.status,
           startedAt: conv.startedAt,
           endedAt: conv.endedAt,
+          isBlockedByMe,
+          isBlockedByPartner,
+          isFriend,
           partner: {
             id: partnerPart.userId,
-            displayName: partnerProfile?.displayName || 'Student',
-            avatarUrl: partnerProfile?.avatarUrl,
+            displayName: isBlockedByPartner ? 'Campus User' : (partnerProfile?.displayName || 'Student'),
+            username: isBlockedByPartner ? '' : ((partnerProfile as any)?.username || (partnerProfile?.socialLinks as any)?.username || (partnerUser as any)?.username || ''),
+            avatarUrl: isBlockedByPartner ? null : partnerProfile?.avatarUrl,
             course: partnerProfile?.course,
             branch: partnerProfile?.branch,
             academicYear: partnerProfile?.academicYear,
@@ -104,6 +111,8 @@ export async function GET(req: NextRequest) {
             isOnline: partnerProfile?.isOnline || false,
             isVerified: partnerUser?.role === 'VERIFIED_STUDENT',
             isFriend,
+            isBlockedByMe,
+            isBlockedByPartner,
             universityName: partnerUni?.name || 'University',
             universityCode: partnerUni?.code || 'UNI',
           },

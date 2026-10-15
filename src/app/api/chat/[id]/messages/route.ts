@@ -92,19 +92,10 @@ export async function GET(
     // =========================================================================
     // 3. FULL INITIAL CONVERSATION LOAD
     // =========================================================================
-    // Check permission (cached for 30s)
-    const perm = await isConnectionPermitted(session.userId, verified.partnerId, conversationId);
-    if (!perm.permitted) {
-      return NextResponse.json(
-        { success: false, message: perm.reason || 'Friend request must be accepted first.' },
-        { status: 403 }
-      );
-    }
-
     const partnerId = verified.partnerId;
 
     // Run independent database fetches in parallel
-    const [conv, myParticipant, rawMessages, pProfile, pUser, fr1, fr2] = await Promise.all([
+    const [conv, myParticipant, rawMessages, pProfile, pUser, fr1, fr2, myBlock, partnerBlock, activeMatch] = await Promise.all([
       db.conversation.findUnique({ where: { id: conversationId } }),
       db.conversationParticipant.findFirst({
         where: { conversationId, userId: session.userId },
@@ -126,6 +117,15 @@ export async function GET(
             where: { senderId: partnerId, receiverId: session.userId, status: 'ACCEPTED' },
           })
         : Promise.resolve(null),
+      partnerId
+        ? db.block.findFirst({ where: { blockerId: session.userId, blockedId: partnerId } })
+        : Promise.resolve(null),
+      partnerId
+        ? db.block.findFirst({ where: { blockerId: partnerId, blockedId: session.userId } })
+        : Promise.resolve(null),
+      db.matchQueue.findFirst({
+        where: { matchedConversationId: conversationId, status: 'MATCHED' },
+      }),
     ]);
 
     // Ensure conversation exists in DB
@@ -157,25 +157,42 @@ export async function GET(
     }
 
     const isFriend = Boolean(fr1 || fr2);
+    const isBlockedByMe = Boolean(myBlock);
+    const isBlockedByPartner = Boolean(partnerBlock);
+    const isMatch = Boolean(activeMatch);
+    const canMessage = !isBlockedByMe && !isBlockedByPartner && (isFriend || isMatch);
+    const canCall = !isBlockedByMe && !isBlockedByPartner && isFriend;
+
+    let notice: string | null = null;
+    if (isBlockedByMe) {
+      notice = 'You blocked this person.';
+    } else if (isBlockedByPartner) {
+      notice = 'This user is unavailable. You cannot message or call this account.';
+    } else if (!isFriend && !isMatch) {
+      notice = 'You are no longer friends. Send a friend request to start messaging again.';
+    }
 
     const partner = partnerId
       ? {
           id: partnerId,
-          displayName: pProfile?.displayName || 'Student',
-          gender: pProfile?.gender,
-          avatarUrl: pProfile?.avatarUrl,
-          course: pProfile?.course,
-          branch: pProfile?.branch,
-          academicYear: pProfile?.academicYear,
-          semester: pProfile?.semester,
-          bio: pProfile?.bio,
-          interests: pProfile?.interests,
-          skills: pProfile?.skills,
-          isOnline: pProfile?.isOnline || false,
-          isVerified: pUser?.role === 'VERIFIED_STUDENT',
+          displayName: isBlockedByPartner ? 'Campus User' : (pProfile?.displayName || 'Student'),
+          username: isBlockedByPartner ? '' : ((pProfile as any)?.username || (pProfile?.socialLinks as any)?.username || (pUser as any)?.username || ''),
+          gender: isBlockedByPartner ? null : pProfile?.gender,
+          avatarUrl: isBlockedByPartner ? null : pProfile?.avatarUrl,
+          course: isBlockedByPartner ? null : pProfile?.course,
+          branch: isBlockedByPartner ? null : pProfile?.branch,
+          academicYear: isBlockedByPartner ? null : pProfile?.academicYear,
+          semester: isBlockedByPartner ? null : pProfile?.semester,
+          bio: isBlockedByPartner ? null : pProfile?.bio,
+          interests: isBlockedByPartner ? [] : (pProfile?.interests || []),
+          skills: isBlockedByPartner ? [] : (pProfile?.skills || []),
+          isOnline: isBlockedByPartner ? false : (pProfile?.isOnline || false),
+          isVerified: !isBlockedByPartner && pUser?.role === 'VERIFIED_STUDENT',
           isFriend,
-          universityName: pUni?.name || 'University',
-          universityCode: pUni?.code || 'UNI',
+          isBlockedByMe,
+          isBlockedByPartner,
+          universityName: isBlockedByPartner ? 'Campus' : (pUni?.name || 'University'),
+          universityCode: isBlockedByPartner ? 'CC' : (pUni?.code || 'UNI'),
         }
       : null;
 
@@ -191,11 +208,23 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
+      isBlockedByMe,
+      isBlockedByPartner,
+      isFriend,
+      canMessage,
+      canCall,
+      notice,
       conversation: {
         id: activeConv.id,
         status: activeConv.status,
         startedAt: activeConv.startedAt,
         endedAt: activeConv.endedAt,
+        isBlockedByMe,
+        isBlockedByPartner,
+        isFriend,
+        canMessage,
+        canCall,
+        notice,
         partner,
       },
       messages: filteredMessages.map((m) => ({

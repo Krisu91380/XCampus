@@ -1455,6 +1455,17 @@ export const db = {
   },
 
   matchQueue: {
+    findFirst: async (args?: { where?: { matchedConversationId?: string; status?: string; userId?: string } }): Promise<MatchQueueEntry | null> => {
+      store.syncFromDiskIfNeeded();
+      const all = Array.from(store.matchQueue.values());
+      const found = all.find((q) => {
+        if (args?.where?.userId && q.userId !== args.where.userId) return false;
+        if (args?.where?.matchedConversationId && q.matchedConversationId !== args.where.matchedConversationId) return false;
+        if (args?.where?.status && q.status !== args.where.status) return false;
+        return true;
+      });
+      return found || null;
+    },
     findUnique: async ({ where }: { where: { userId: string } }): Promise<MatchQueueEntry | null> => {
       store.syncFromDiskIfNeeded();
       return store.matchQueue.get(where.userId) || null;
