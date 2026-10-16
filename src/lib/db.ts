@@ -2876,14 +2876,16 @@ export const db = {
     },
     update: async ({ where, data }: { where: { id: string }; data: Partial<FriendRequest> }) => {
       const now = new Date();
+      const updateData: any = { updatedAt: now };
+      if (data.status) updateData.status = data.status;
+      if (data.senderId) updateData.senderId = data.senderId;
+      if (data.receiverId) updateData.receiverId = data.receiverId;
+
       if (prismaInstance && (await canUsePrisma())) {
         try {
           const row = await prismaInstance.friendRequest.update({
             where: { id: where.id },
-            data: {
-              ...(data.status ? { status: data.status } : {}),
-              updatedAt: now,
-            },
+            data: updateData,
           });
           store.friendRequests.set(where.id, row as unknown as FriendRequest);
           return row as unknown as FriendRequest;
@@ -2895,10 +2897,8 @@ export const db = {
       const sb = getSupabaseClient();
       if (sb) {
         try {
-          await sb.from('FriendRequest').update({
-            ...(data.status ? { status: data.status } : {}),
-            updatedAt: now.toISOString(),
-          }).eq('id', where.id);
+          const sbUpdateData = { ...updateData, updatedAt: now.toISOString() };
+          await sb.from('FriendRequest').update(sbUpdateData).eq('id', where.id);
         } catch {}
       }
 

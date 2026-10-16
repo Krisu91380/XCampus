@@ -119,15 +119,18 @@ async function run() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ targetUserId: userB.id }),
   }, cookieA);
+  console.log('[DEBUG] frReq status and body:', frReq.res.status, frReq.json);
 
   const frListB = await request(`${PROD_URL}/api/friends`, {}, cookieB);
-  const pendingReq = frListB.json?.incoming?.find((r) => r.senderId === userA.id || r.fromUser?.id === userA.id);
+  console.log('[DEBUG] frListB:', JSON.stringify(frListB.json));
+  const pendingReq = frListB.json?.incoming?.find((r) => r.senderId === userA.id || r.fromUser?.userId === userA.id || r.sender?.userId === userA.id);
   if (pendingReq) {
-    await request(`${PROD_URL}/api/friends/respond`, {
+    const resp = await request(`${PROD_URL}/api/friends/respond`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ requestId: pendingReq.id, action: 'ACCEPT' }),
     }, cookieB);
+    console.log('[DEBUG] respond body:', resp.json);
   }
 
   // Get conversations for Student A
@@ -136,17 +139,21 @@ async function run() {
   let convWithB = convsARes.json?.conversations?.find((c) => c.partner?.id === userB.id);
 
   if (!convWithB) {
-    // If Student A previously deleted the conversation, find it from Student B and send a message to unhide it
+    console.log('[DEBUG] convWithB not found for User A. User A ID:', userA.id, 'User B ID:', userB.id);
     const convsBRes = await request(`${PROD_URL}/api/chat/conversations`, {}, cookieB);
+    console.log('[DEBUG] Convs for User B:', JSON.stringify(convsBRes.json?.conversations?.map(c => ({ id: c.id, partner: c.partner }))));
     const convFromB = convsBRes.json?.conversations?.find((c) => c.partner?.id === userA.id);
+    console.log('[DEBUG] convFromB:', convFromB);
     if (convFromB) {
-      await request(`${PROD_URL}/api/chat/${convFromB.id}/messages`, {
+      const msgRes = await request(`${PROD_URL}/api/chat/${convFromB.id}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: 'Reactivating chat ' + Date.now() }),
       }, cookieB);
-      await new Promise((r) => setTimeout(r, 1200));
+      console.log('[DEBUG] Message send res:', msgRes.res.status, msgRes.json);
+      await new Promise((r) => setTimeout(r, 1500));
       const reloadedA = await request(`${PROD_URL}/api/chat/conversations`, {}, cookieA);
+      console.log('[DEBUG] Reloaded A convs:', JSON.stringify(reloadedA.json?.conversations?.map(c => ({ id: c.id, partner: c.partner }))));
       convWithB = reloadedA.json?.conversations?.find((c) => c.partner?.id === userB.id);
     }
   }

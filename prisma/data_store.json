@@ -443,8 +443,8 @@
         ],
         "isActive": true,
         "verificationRequirements": "Official @lpu.in email address or valid physical Student ID card",
-        "createdAt": "2026-10-16T19:04:49.755Z",
-        "updatedAt": "2026-10-16T19:04:49.755Z"
+        "createdAt": "2026-10-16T19:34:39.634Z",
+        "updatedAt": "2026-10-16T19:34:39.634Z"
       }
     ],
     [
@@ -461,8 +461,8 @@
         ],
         "isActive": true,
         "verificationRequirements": "University Roll Number and official college email or Student ID",
-        "createdAt": "2026-10-16T19:04:49.761Z",
-        "updatedAt": "2026-10-16T19:04:49.761Z"
+        "createdAt": "2026-10-16T19:34:39.637Z",
+        "updatedAt": "2026-10-16T19:34:39.637Z"
       }
     ],
     [
@@ -480,8 +480,8 @@
         ],
         "isActive": true,
         "verificationRequirements": "Official @vitstudent.ac.in student ID or VTOP profile snapshot",
-        "createdAt": "2026-10-16T19:04:49.766Z",
-        "updatedAt": "2026-10-16T19:04:49.766Z"
+        "createdAt": "2026-10-16T19:34:39.638Z",
+        "updatedAt": "2026-10-16T19:34:39.638Z"
       }
     ],
     [
@@ -500,8 +500,8 @@
         ],
         "isActive": true,
         "verificationRequirements": "Official BITS email account verification",
-        "createdAt": "2026-10-16T19:04:49.771Z",
-        "updatedAt": "2026-10-16T19:04:49.771Z"
+        "createdAt": "2026-10-16T19:34:39.640Z",
+        "updatedAt": "2026-10-16T19:34:39.640Z"
       }
     ]
   ],
@@ -516,9 +516,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-16T19:04:49.965Z",
-        "createdAt": "2026-10-16T19:04:49.965Z",
-        "updatedAt": "2026-10-16T19:04:49.965Z"
+        "reviewedAt": "2026-10-16T19:34:39.816Z",
+        "createdAt": "2026-10-16T19:34:39.816Z",
+        "updatedAt": "2026-10-16T19:34:39.816Z"
       }
     ],
     [
@@ -531,9 +531,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-16T19:04:49.968Z",
-        "createdAt": "2026-10-16T19:04:49.968Z",
-        "updatedAt": "2026-10-16T19:04:49.968Z"
+        "reviewedAt": "2026-10-16T19:34:39.819Z",
+        "createdAt": "2026-10-16T19:34:39.819Z",
+        "updatedAt": "2026-10-16T19:34:39.819Z"
       }
     ],
     [
@@ -546,9 +546,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-16T19:04:49.970Z",
-        "createdAt": "2026-10-16T19:04:49.970Z",
-        "updatedAt": "2026-10-16T19:04:49.970Z"
+        "reviewedAt": "2026-10-16T19:34:39.822Z",
+        "createdAt": "2026-10-16T19:34:39.822Z",
+        "updatedAt": "2026-10-16T19:34:39.822Z"
       }
     ],
     [
@@ -561,9 +561,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-16T19:04:49.973Z",
-        "createdAt": "2026-10-16T19:04:49.973Z",
-        "updatedAt": "2026-10-16T19:04:49.973Z"
+        "reviewedAt": "2026-10-16T19:34:39.825Z",
+        "createdAt": "2026-10-16T19:34:39.825Z",
+        "updatedAt": "2026-10-16T19:34:39.825Z"
       }
     ],
     [
@@ -576,9 +576,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-16T19:04:49.976Z",
-        "createdAt": "2026-10-16T19:04:49.976Z",
-        "updatedAt": "2026-10-16T19:04:49.976Z"
+        "reviewedAt": "2026-10-16T19:34:39.829Z",
+        "createdAt": "2026-10-16T19:34:39.829Z",
+        "updatedAt": "2026-10-16T19:34:39.829Z"
       }
     ]
   ],
@@ -917,8 +917,8 @@
         "description": "5 Conversation credits. Great starter pack for new connections.",
         "isPopular": false,
         "isActive": true,
-        "createdAt": "2026-10-16T19:04:49.774Z",
-        "updatedAt": "2026-10-16T19:04:49.774Z"
+        "createdAt": "2026-10-16T19:34:39.641Z",
+        "updatedAt": "2026-10-16T19:34:39.641Z"
       }
     ],
     [
@@ -931,8 +931,8 @@
         "description": "15 Conversation credits. Best value for active students (₹5.2/chat).",
         "isPopular": true,
         "isActive": true,
-        "createdAt": "2026-10-16T19:04:49.780Z",
-        "updatedAt": "2026-10-16T19:04:49.780Z"
+        "createdAt": "2026-10-16T19:34:39.643Z",
+        "updatedAt": "2026-10-16T19:34:39.643Z"
       }
     ],
     [
@@ -945,8 +945,8 @@
         "description": "35 Conversation credits. Maximum value across campus networks (₹4.2/chat).",
         "isPopular": false,
         "isActive": true,
-        "createdAt": "2026-10-16T19:04:49.784Z",
-        "updatedAt": "2026-10-16T19:04:49.784Z"
+        "createdAt": "2026-10-16T19:34:39.644Z",
+        "updatedAt": "2026-10-16T19:34:39.644Z"
       }
     ]
   ],
@@ -1017,7 +1017,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-16T19:04:49.962Z"
+        "createdAt": "2026-10-16T19:34:39.814Z"
       }
     ],
     [
@@ -1030,7 +1030,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-16T19:04:49.966Z"
+        "createdAt": "2026-10-16T19:34:39.818Z"
       }
     ],
     [
@@ -1043,7 +1043,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-16T19:04:49.969Z"
+        "createdAt": "2026-10-16T19:34:39.821Z"
       }
     ],
     [
@@ -1056,7 +1056,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-16T19:04:49.972Z"
+        "createdAt": "2026-10-16T19:34:39.823Z"
       }
     ],
     [
@@ -1069,7 +1069,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-16T19:04:49.974Z"
+        "createdAt": "2026-10-16T19:34:39.827Z"
       }
     ]
   ],
