@@ -75,13 +75,6 @@ export default function BottomNav() {
       isActive: pathname === '/pricing',
     },
     {
-      label: 'Monkey Room',
-      shortLabel: 'Monkey Room',
-      href: '/match',
-      icon: Video,
-      isActive: pathname === '/match',
-    },
-    {
       label: 'Messages',
       shortLabel: 'Messages',
       href: '/messages',

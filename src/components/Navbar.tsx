@@ -89,7 +89,6 @@ export default function Navbar() {
           {[
             { label: 'Discover Students', href: '/browse', icon: Compass },
             { label: 'Passes & Pricing', href: '/pricing', icon: Coins },
-            { label: 'Monkey Room', href: '/match', icon: Video },
             {
               label: 'Messages',
               href: '/messages',

@@ -1776,6 +1776,7 @@ export const db = {
     create: async ({ data }: { data: Omit<ConversationParticipant, 'id' | 'joinedAt'> }) => {
       const id = `part-${data.conversationId}-${data.userId}`;
       const joinedAt = new Date();
+      const leftAt = data.leftAt ? new Date(data.leftAt) : (data.hidden ? new Date() : null);
 
       if (prismaInstance && (await canUsePrisma())) {
         try {
@@ -1791,14 +1792,21 @@ export const db = {
               conversationId: data.conversationId,
               userId: data.userId,
               joinedAt,
+              leftAt,
               hasUnread: Boolean(data.hasUnread),
             },
             update: {
+              leftAt,
               hasUnread: Boolean(data.hasUnread),
             },
           });
-          store.conversationParticipants.set(id, row as unknown as ConversationParticipant);
-          return row as unknown as ConversationParticipant;
+          const mapped = {
+            ...row,
+            hidden: Boolean(row.leftAt),
+            clearedAt: row.leftAt ? new Date(row.leftAt) : undefined,
+          } as ConversationParticipant;
+          store.conversationParticipants.set(id, mapped);
+          return mapped;
         } catch (err: any) {
           console.error('[DATABASE] PostgreSQL conversationParticipant.create error:', err.message);
         }
@@ -1820,7 +1828,10 @@ export const db = {
           if (existingPart) {
             const res = await sb
               .from('ConversationParticipant')
-              .update({ hasUnread: Boolean(data.hasUnread) })
+              .update({
+                hasUnread: Boolean(data.hasUnread),
+                leftAt: leftAt ? leftAt.toISOString() : null,
+              })
               .eq('id', existingPart.id)
               .select()
               .single();
@@ -1834,6 +1845,7 @@ export const db = {
                 conversationId: data.conversationId,
                 userId: data.userId,
                 joinedAt: joinedAt.toISOString(),
+                leftAt: leftAt ? leftAt.toISOString() : null,
                 hasUnread: Boolean(data.hasUnread),
               })
               .select()
@@ -1843,8 +1855,13 @@ export const db = {
           }
 
           if (!error && row) {
-            store.conversationParticipants.set(id, row as unknown as ConversationParticipant);
-            return row as unknown as ConversationParticipant;
+            const mapped = {
+              ...row,
+              hidden: Boolean(row.leftAt),
+              clearedAt: row.leftAt ? new Date(row.leftAt) : undefined,
+            } as ConversationParticipant;
+            store.conversationParticipants.set(id, mapped);
+            return mapped;
           }
         } catch {}
       }
@@ -1854,6 +1871,9 @@ export const db = {
         id,
         ...data,
         joinedAt,
+        leftAt: leftAt || undefined,
+        hidden: Boolean(leftAt),
+        clearedAt: leftAt || undefined,
       };
       store.conversationParticipants.set(id, part);
       store.saveToDisk();
@@ -1937,11 +1957,27 @@ export const db = {
         id = where.id;
       }
 
+      if (!existing && convId && uId) {
+        id = `part-${convId}-${uId}`;
+        existing = {
+          id,
+          conversationId: convId,
+          userId: uId,
+          joinedAt: new Date(),
+          hasUnread: false,
+        };
+      }
+
       if (!existing) return null;
       const updated = { ...existing, ...data };
-      if (data.hidden !== undefined) {
+      if (dbData.leftAt !== undefined) {
+        updated.leftAt = dbData.leftAt || undefined;
+        updated.hidden = Boolean(dbData.leftAt);
+        updated.clearedAt = dbData.leftAt || undefined;
+      } else if (data.hidden !== undefined) {
         updated.hidden = data.hidden;
         updated.leftAt = data.hidden ? new Date() : undefined;
+        updated.clearedAt = data.hidden ? new Date() : undefined;
       }
       store.conversationParticipants.set(existing.id || id, updated);
       store.saveToDisk();

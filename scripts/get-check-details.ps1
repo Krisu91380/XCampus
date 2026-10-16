@@ -39,7 +39,7 @@ $headers = @{
     "Accept" = "application/vnd.github.v3+json"
 }
 
-$commitSha = "cf38ef8e6f20ab30f3403f3a2495506166358161"
+$commitSha = "2450068b4b732200ffbc46efdb9c90d9c96140d6"
 $statuses = Invoke-RestMethod -Uri "https://api.github.com/repos/Krisu91380/XCampus/commits/$commitSha/statuses" -Headers $headers
 $statuses | ForEach-Object {
     Write-Host "===================="

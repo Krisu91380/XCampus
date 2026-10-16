@@ -115,6 +115,34 @@
         "createdAt": "2026-10-15T08:03:27.536Z",
         "updatedAt": "2026-10-15T08:03:27.536Z"
       }
+    ],
+    [
+      "user-1792177490001-ngujs",
+      {
+        "id": "user-1792177490001-ngujs",
+        "email": "student_vc_a@campusconnect.test",
+        "passwordHash": "hash",
+        "role": "VERIFIED_STUDENT",
+        "status": "ACTIVE",
+        "isAgeVerified": true,
+        "universityId": "uni-lpu-01",
+        "createdAt": "2026-10-16T19:04:50.001Z",
+        "updatedAt": "2026-10-16T19:04:50.001Z"
+      }
+    ],
+    [
+      "user-1792177490008-ja6xl",
+      {
+        "id": "user-1792177490008-ja6xl",
+        "email": "student_vc_b@campusconnect.test",
+        "passwordHash": "hash",
+        "role": "VERIFIED_STUDENT",
+        "status": "ACTIVE",
+        "isAgeVerified": true,
+        "universityId": "uni-lpu-01",
+        "createdAt": "2026-10-16T19:04:50.008Z",
+        "updatedAt": "2026-10-16T19:04:50.008Z"
+      }
     ]
   ],
   "profiles": [
@@ -339,6 +367,64 @@
         "createdAt": "2026-10-15T08:04:08.187Z",
         "updatedAt": "2026-10-15T08:04:08.187Z"
       }
+    ],
+    [
+      "user-1792177490001-ngujs",
+      {
+        "id": "profile-1792177490013",
+        "userId": "user-1792177490001-ngujs",
+        "displayName": "Call Student A",
+        "gender": "FEMALE",
+        "avatarUrl": null,
+        "bio": "Ready for video calls.",
+        "course": "B.Tech CSE",
+        "branch": "",
+        "academicYear": "3rd Year",
+        "semester": "",
+        "language": "English",
+        "interests": [
+          "WebRTC",
+          "Next.js"
+        ],
+        "skills": [
+          "TypeScript"
+        ],
+        "socialLinks": {},
+        "isOnline": false,
+        "isDiscoverable": true,
+        "lastSeenAt": "2026-10-16T19:04:50.013Z",
+        "createdAt": "2026-10-16T19:04:50.013Z",
+        "updatedAt": "2026-10-16T19:04:50.013Z"
+      }
+    ],
+    [
+      "user-1792177490008-ja6xl",
+      {
+        "id": "profile-1792177490018",
+        "userId": "user-1792177490008-ja6xl",
+        "displayName": "Call Student B",
+        "gender": "MALE",
+        "avatarUrl": null,
+        "bio": "Enthusiastic collaborator.",
+        "course": "B.Tech IT",
+        "branch": "",
+        "academicYear": "2nd Year",
+        "semester": "",
+        "language": "English",
+        "interests": [
+          "P2P",
+          "React"
+        ],
+        "skills": [
+          "Go"
+        ],
+        "socialLinks": {},
+        "isOnline": false,
+        "isDiscoverable": true,
+        "lastSeenAt": "2026-10-16T19:04:50.018Z",
+        "createdAt": "2026-10-16T19:04:50.018Z",
+        "updatedAt": "2026-10-16T19:04:50.018Z"
+      }
     ]
   ],
   "universities": [
@@ -357,8 +443,8 @@
         ],
         "isActive": true,
         "verificationRequirements": "Official @lpu.in email address or valid physical Student ID card",
-        "createdAt": "2026-10-15T08:04:08.029Z",
-        "updatedAt": "2026-10-15T08:04:08.029Z"
+        "createdAt": "2026-10-16T19:04:49.755Z",
+        "updatedAt": "2026-10-16T19:04:49.755Z"
       }
     ],
     [
@@ -375,8 +461,8 @@
         ],
         "isActive": true,
         "verificationRequirements": "University Roll Number and official college email or Student ID",
-        "createdAt": "2026-10-15T08:04:08.031Z",
-        "updatedAt": "2026-10-15T08:04:08.031Z"
+        "createdAt": "2026-10-16T19:04:49.761Z",
+        "updatedAt": "2026-10-16T19:04:49.761Z"
       }
     ],
     [
@@ -394,8 +480,8 @@
         ],
         "isActive": true,
         "verificationRequirements": "Official @vitstudent.ac.in student ID or VTOP profile snapshot",
-        "createdAt": "2026-10-15T08:04:08.033Z",
-        "updatedAt": "2026-10-15T08:04:08.033Z"
+        "createdAt": "2026-10-16T19:04:49.766Z",
+        "updatedAt": "2026-10-16T19:04:49.766Z"
       }
     ],
     [
@@ -414,8 +500,8 @@
         ],
         "isActive": true,
         "verificationRequirements": "Official BITS email account verification",
-        "createdAt": "2026-10-15T08:04:08.034Z",
-        "updatedAt": "2026-10-15T08:04:08.034Z"
+        "createdAt": "2026-10-16T19:04:49.771Z",
+        "updatedAt": "2026-10-16T19:04:49.771Z"
       }
     ]
   ],
@@ -430,9 +516,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-15T08:04:08.159Z",
-        "createdAt": "2026-10-15T08:04:08.159Z",
-        "updatedAt": "2026-10-15T08:04:08.159Z"
+        "reviewedAt": "2026-10-16T19:04:49.965Z",
+        "createdAt": "2026-10-16T19:04:49.965Z",
+        "updatedAt": "2026-10-16T19:04:49.965Z"
       }
     ],
     [
@@ -445,9 +531,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-15T08:04:08.162Z",
-        "createdAt": "2026-10-15T08:04:08.162Z",
-        "updatedAt": "2026-10-15T08:04:08.162Z"
+        "reviewedAt": "2026-10-16T19:04:49.968Z",
+        "createdAt": "2026-10-16T19:04:49.968Z",
+        "updatedAt": "2026-10-16T19:04:49.968Z"
       }
     ],
     [
@@ -460,9 +546,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-15T08:04:08.164Z",
-        "createdAt": "2026-10-15T08:04:08.164Z",
-        "updatedAt": "2026-10-15T08:04:08.164Z"
+        "reviewedAt": "2026-10-16T19:04:49.970Z",
+        "createdAt": "2026-10-16T19:04:49.970Z",
+        "updatedAt": "2026-10-16T19:04:49.970Z"
       }
     ],
     [
@@ -475,9 +561,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-15T08:04:08.169Z",
-        "createdAt": "2026-10-15T08:04:08.169Z",
-        "updatedAt": "2026-10-15T08:04:08.169Z"
+        "reviewedAt": "2026-10-16T19:04:49.973Z",
+        "createdAt": "2026-10-16T19:04:49.973Z",
+        "updatedAt": "2026-10-16T19:04:49.973Z"
       }
     ],
     [
@@ -490,9 +576,9 @@
         "documentType": "INSTITUTION_EMAIL",
         "status": "APPROVED",
         "reviewedBy": "user-admin-1",
-        "reviewedAt": "2026-10-15T08:04:08.171Z",
-        "createdAt": "2026-10-15T08:04:08.171Z",
-        "updatedAt": "2026-10-15T08:04:08.171Z"
+        "reviewedAt": "2026-10-16T19:04:49.976Z",
+        "createdAt": "2026-10-16T19:04:49.976Z",
+        "updatedAt": "2026-10-16T19:04:49.976Z"
       }
     ]
   ],
@@ -536,6 +622,15 @@
         "status": "ACTIVE",
         "creditDeducted": true,
         "startedAt": "2026-10-15T08:04:08.207Z"
+      }
+    ],
+    [
+      "conv_user-1792177490001-ngujs__user-1792177490008-ja6xl__3696b802aa6c8cb0",
+      {
+        "id": "conv_user-1792177490001-ngujs__user-1792177490008-ja6xl__3696b802aa6c8cb0",
+        "status": "ACTIVE",
+        "creditDeducted": true,
+        "startedAt": "2026-10-16T19:04:50.031Z"
       }
     ]
   ],
@@ -706,6 +801,30 @@
         "hasUnread": false,
         "joinedAt": "2026-10-15T08:04:08.215Z"
       }
+    ],
+    [
+      "part-conv_user-1792177490001-ngujs__user-1792177490008-ja6xl__3696b802aa6c8cb0-user-1792177490001-ngujs",
+      {
+        "id": "part-conv_user-1792177490001-ngujs__user-1792177490008-ja6xl__3696b802aa6c8cb0-user-1792177490001-ngujs",
+        "conversationId": "conv_user-1792177490001-ngujs__user-1792177490008-ja6xl__3696b802aa6c8cb0",
+        "userId": "user-1792177490001-ngujs",
+        "hasUnread": false,
+        "joinedAt": "2026-10-16T19:04:50.034Z",
+        "hidden": true,
+        "leftAt": "2026-10-16T19:04:50.139Z",
+        "clearedAt": "2026-10-16T19:04:50.139Z"
+      }
+    ],
+    [
+      "part-conv_user-1792177490001-ngujs__user-1792177490008-ja6xl__3696b802aa6c8cb0-user-1792177490008-ja6xl",
+      {
+        "id": "part-conv_user-1792177490001-ngujs__user-1792177490008-ja6xl__3696b802aa6c8cb0-user-1792177490008-ja6xl",
+        "conversationId": "conv_user-1792177490001-ngujs__user-1792177490008-ja6xl__3696b802aa6c8cb0",
+        "userId": "user-1792177490008-ja6xl",
+        "hasUnread": false,
+        "joinedAt": "2026-10-16T19:04:50.038Z",
+        "hidden": false
+      }
     ]
   ],
   "messages": [
@@ -752,6 +871,39 @@
         "isRead": true,
         "createdAt": "2026-10-15T08:04:08.219Z"
       }
+    ],
+    [
+      "msg_del_test_1_1792177490125",
+      {
+        "id": "msg_del_test_1_1792177490125",
+        "conversationId": "conv_user-1792177490001-ngujs__user-1792177490008-ja6xl__3696b802aa6c8cb0",
+        "senderId": "user-1792177490001-ngujs",
+        "content": "Hey Bob, this message should hide for Alice when deleted.",
+        "isRead": true,
+        "createdAt": "2026-10-16T19:04:50.125Z"
+      }
+    ],
+    [
+      "msg_del_test_2_1792177490133",
+      {
+        "id": "msg_del_test_2_1792177490133",
+        "conversationId": "conv_user-1792177490001-ngujs__user-1792177490008-ja6xl__3696b802aa6c8cb0",
+        "senderId": "user-1792177490008-ja6xl",
+        "content": "Sure Alice, but I should still see it!",
+        "isRead": true,
+        "createdAt": "2026-10-16T19:04:50.133Z"
+      }
+    ],
+    [
+      "msg_del_test_new_1792177490147",
+      {
+        "id": "msg_del_test_new_1792177490147",
+        "conversationId": "conv_user-1792177490001-ngujs__user-1792177490008-ja6xl__3696b802aa6c8cb0",
+        "senderId": "user-1792177490008-ja6xl",
+        "content": "A new message after deletion!",
+        "isRead": false,
+        "createdAt": "2026-10-16T19:04:50.147Z"
+      }
     ]
   ],
   "creditPackages": [
@@ -765,8 +917,8 @@
         "description": "5 Conversation credits. Great starter pack for new connections.",
         "isPopular": false,
         "isActive": true,
-        "createdAt": "2026-10-15T08:04:08.035Z",
-        "updatedAt": "2026-10-15T08:04:08.035Z"
+        "createdAt": "2026-10-16T19:04:49.774Z",
+        "updatedAt": "2026-10-16T19:04:49.774Z"
       }
     ],
     [
@@ -779,8 +931,8 @@
         "description": "15 Conversation credits. Best value for active students (₹5.2/chat).",
         "isPopular": true,
         "isActive": true,
-        "createdAt": "2026-10-15T08:04:08.036Z",
-        "updatedAt": "2026-10-15T08:04:08.036Z"
+        "createdAt": "2026-10-16T19:04:49.780Z",
+        "updatedAt": "2026-10-16T19:04:49.780Z"
       }
     ],
     [
@@ -793,8 +945,8 @@
         "description": "35 Conversation credits. Maximum value across campus networks (₹4.2/chat).",
         "isPopular": false,
         "isActive": true,
-        "createdAt": "2026-10-15T08:04:08.037Z",
-        "updatedAt": "2026-10-15T08:04:08.037Z"
+        "createdAt": "2026-10-16T19:04:49.784Z",
+        "updatedAt": "2026-10-16T19:04:49.784Z"
       }
     ]
   ],
@@ -865,7 +1017,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-15T08:04:08.158Z"
+        "createdAt": "2026-10-16T19:04:49.962Z"
       }
     ],
     [
@@ -878,7 +1030,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-15T08:04:08.161Z"
+        "createdAt": "2026-10-16T19:04:49.966Z"
       }
     ],
     [
@@ -891,7 +1043,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-15T08:04:08.163Z"
+        "createdAt": "2026-10-16T19:04:49.969Z"
       }
     ],
     [
@@ -904,7 +1056,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-15T08:04:08.167Z"
+        "createdAt": "2026-10-16T19:04:49.972Z"
       }
     ],
     [
@@ -917,7 +1069,7 @@
         "reason": "SIGNUP_BONUS",
         "referenceId": "welcome-package",
         "metadata": "{\"note\":\"Complimentary onboarding credits\"}",
-        "createdAt": "2026-10-15T08:04:08.170Z"
+        "createdAt": "2026-10-16T19:04:49.974Z"
       }
     ]
   ],
@@ -969,6 +1121,17 @@
         "status": "DECLINED",
         "createdAt": "2026-10-15T08:04:08.225Z",
         "updatedAt": "2026-10-15T08:04:08.245Z"
+      }
+    ],
+    [
+      "freq-1792177490025-l577e",
+      {
+        "id": "freq-1792177490025-l577e",
+        "senderId": "user-1792177490001-ngujs",
+        "receiverId": "user-1792177490008-ja6xl",
+        "status": "ACCEPTED",
+        "createdAt": "2026-10-16T19:04:50.025Z",
+        "updatedAt": "2026-10-16T19:04:50.025Z"
       }
     ]
   ],

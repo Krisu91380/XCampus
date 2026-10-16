@@ -36,7 +36,9 @@ function ChatRoomContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roomParam = searchParams.get('room');
-  const isMatchMode = searchParams.get('match') === 'true' || searchParams.get('autoCall') === 'true';
+  const autoCallParam = searchParams.get('autoCall') === 'true';
+  const autoAcceptParam = searchParams.get('autoAccept') === 'true';
+  const isMatchMode = searchParams.get('match') === 'true' || autoCallParam || autoAcceptParam;
   const conversationId = params?.id ? decodeURIComponent(params.id as string) : '';
   const callSessionIdRef = useRef<string>('');
 
@@ -143,7 +145,7 @@ function ChatRoomContent() {
 
   // Friend State
   const [isFriend, setIsFriend] = useState(() => Boolean(conversation?.partner?.isFriend));
-  const isMoneyRoom = isFriend || roomParam === 'money';
+  const isPersonalRoom = isFriend || roomParam === 'personal' || roomParam === 'call';
   const [friendRequestPending, setFriendRequestPending] = useState(false);
   const [addingFriend, setAddingFriend] = useState(false);
 
@@ -442,8 +444,15 @@ function ChatRoomContent() {
     seenSignalsRef.current.clear();
     iceCandidatesQueueRef.current = [];
 
-    // Deterministic Initiator: Lexicographical comparison prevents offer collisions
-    const isInitiator = currentUserId < conversation.partner.id;
+    // Call Role Determination:
+    // If autoCall is present, we are the caller (isInitiator = true).
+    // If autoAccept is present, we are the callee (isInitiator = false).
+    let isInitiator = autoCallParam;
+    if (autoAcceptParam) {
+      isInitiator = false;
+    } else if (!autoCallParam) {
+      isInitiator = currentUserId < conversation.partner.id;
+    }
 
     const flushIceQueue = async (targetPc: RTCPeerConnection) => {
       if (iceCandidatesQueueRef.current.length === 0) return;
@@ -484,7 +493,7 @@ function ChatRoomContent() {
         }
 
         // B. Configure STUN & TURN
-        const iceServers: RTCIceServer[] = [
+        let iceServers: RTCIceServer[] = [
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
           { urls: 'stun:stun2.l.google.com:19302' },
@@ -501,17 +510,15 @@ function ChatRoomContent() {
           },
         ];
 
-        if (process.env.NEXT_PUBLIC_STUN_SERVER_URL) {
-          iceServers.unshift({ urls: process.env.NEXT_PUBLIC_STUN_SERVER_URL });
-        }
-
-        if (process.env.NEXT_PUBLIC_TURN_SERVER_URL) {
-          iceServers.unshift({
-            urls: process.env.NEXT_PUBLIC_TURN_SERVER_URL,
-            username: process.env.NEXT_PUBLIC_TURN_USERNAME || undefined,
-            credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL || undefined,
-          });
-        }
+        try {
+          const iceRes = await fetch('/api/calls/ice-servers');
+          if (iceRes.ok) {
+            const iceData = await iceRes.json();
+            if (Array.isArray(iceData.iceServers) && iceData.iceServers.length > 0) {
+              iceServers = iceData.iceServers;
+            }
+          }
+        } catch {}
 
         const pc = new RTCPeerConnection({ iceServers });
         pcRef.current = pc;
@@ -537,9 +544,7 @@ function ChatRoomContent() {
 
         pc.onconnectionstatechange = () => {
           if (pc.connectionState === 'connected') {
-            if (remoteVideoRef.current?.srcObject) {
-              setCallState('CONNECTED');
-            }
+            setCallState('CONNECTED');
           } else if (pc.connectionState === 'disconnected') {
             setCallState('RECONNECTING');
           } else if (pc.connectionState === 'failed') {
@@ -547,7 +552,7 @@ function ChatRoomContent() {
           }
         };
 
-        // C. Deterministic Role Negotiation
+        // C. Role Negotiation
         if (isInitiator) {
           setCallState('CONNECTING');
           await sendSignal('call-request', { isVideo: true });
@@ -556,6 +561,7 @@ function ChatRoomContent() {
           await sendSignal('offer', offer);
         } else {
           setCallState('CONNECTING');
+          await sendSignal('call-accept');
         }
 
         // D. Signaling Poller (Every 1000ms)
@@ -578,15 +584,8 @@ function ChatRoomContent() {
                 const sigSessionId = rawPayload?.sessionId;
                 const payloadData = rawPayload?.data !== undefined ? rawPayload.data : rawPayload;
 
-                // Stale signal rejection: ignore signals from previous call sessions
-                if (sigSessionId && callSessionIdRef.current && sigSessionId !== callSessionIdRef.current) {
-                  if (sig.type === 'offer' && !isInitiator) {
-                    callSessionIdRef.current = sigSessionId;
-                  } else if (sig.type === 'ice-candidate' && !isInitiator && !pc.remoteDescription) {
-                    // Cache early ICE candidate from initiator before offer arrives
-                  } else {
-                    continue;
-                  }
+                if (sigSessionId && (!callSessionIdRef.current || !isInitiator)) {
+                  callSessionIdRef.current = sigSessionId;
                 }
 
                 // Partner skipped to next match!
@@ -594,13 +593,20 @@ function ChatRoomContent() {
                   setCallState('PARTNER_SKIPPED');
                   showToast('Your partner skipped to the next student match.');
                   cleanupWebRTC();
+                  setIsVideoActive(false);
                   return;
                 }
 
                 if (sig.type === 'call-end' || sig.type === 'call-reject') {
                   setCallState('ENDED');
                   cleanupWebRTC();
+                  setIsVideoActive(false);
+                  showToast('Call ended by partner.');
                   return;
+                }
+
+                if (sig.type === 'call-accept' && isInitiator) {
+                  setCallState('CONNECTING');
                 }
 
                 if (sig.type === 'offer' && !isInitiator) {
@@ -1064,14 +1070,14 @@ function ChatRoomContent() {
                   <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
                 </span>
               )}
-              {isMoneyRoom ? (
-                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-[10px] font-bold items-center gap-1 shadow-sm shrink-0">
-                  <Sparkles className="w-3 h-3 text-amber-500" />
-                  <span>Monkey Room</span>
+              {isPersonalRoom ? (
+                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-700 dark:text-purple-300 text-[10px] font-bold items-center gap-1 shadow-sm shrink-0">
+                  <Video className="w-3 h-3 text-purple-500" />
+                  <span>Video Call</span>
                 </span>
               ) : (
-                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-700 dark:text-purple-300 text-[10px] font-bold items-center gap-1 shadow-sm shrink-0">
-                  <Sparkles className="w-3 h-3 text-purple-500" />
+                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold items-center gap-1 shadow-sm shrink-0">
+                  <Sparkles className="w-3 h-3 text-indigo-500" />
                   <span>Match Room</span>
                 </span>
               )}
@@ -1135,8 +1141,8 @@ function ChatRoomContent() {
             </button>
           )}
 
-          {/* Omegle Next Match Button (Only in Match Room, NEVER in Money Room) */}
-          {!isMoneyRoom && (
+          {/* Match Room Next Match Button (Only in Match Room, never in personal video calls) */}
+          {!isPersonalRoom && (
             <button
               onClick={handleNextMatch}
               className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-95 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
@@ -1276,15 +1282,15 @@ function ChatRoomContent() {
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-white">
-                      {isMoneyRoom ? 'Call Ended' : 'Partner Skipped'}
+                      {isPersonalRoom ? 'Call Ended' : 'Partner Skipped'}
                     </h3>
                     <p className="text-xs text-slate-300 mt-1">
-                      {isMoneyRoom
+                      {isPersonalRoom
                         ? `${partner?.displayName || 'Your friend'} has ended the video call. Your chat and friendship remain active.`
                         : `${partner?.displayName || 'Student'} skipped to the next match.`}
                     </p>
                   </div>
-                  {isMoneyRoom ? (
+                  {isPersonalRoom ? (
                     <button
                       onClick={() => setIsVideoActive(false)}
                       className="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-purple to-electric-500 text-white font-bold text-xs shadow-xl shadow-brand-purple/30 hover:opacity-95 transition-all cursor-pointer"
@@ -1335,8 +1341,8 @@ function ChatRoomContent() {
                         <p className="text-xs text-slate-400 mt-1 flex items-center justify-center gap-1.5">
                           <Loader2 className="w-3.5 h-3.5 animate-spin text-electric-400" />
                           <span>
-                            {isMoneyRoom
-                              ? 'Establishing secure Monkey Room video feed...'
+                            {isPersonalRoom
+                              ? 'Establishing secure video feed...'
                               : 'Establishing live Match Room video connection...'}
                           </span>
                         </p>
@@ -1385,7 +1391,7 @@ function ChatRoomContent() {
               </button>
 
               {/* Next Match Skip Button (Only in Match Room and when not minimized) */}
-              {!isMoneyRoom && !isCallMinimized && (
+              {!isPersonalRoom && !isCallMinimized && (
                 <button
                   onClick={handleNextMatch}
                   className="px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-95 text-navy-950 font-bold text-xs flex items-center gap-1.5 shadow-xl shadow-amber-500/30 hover:scale-105 transition-all cursor-pointer"

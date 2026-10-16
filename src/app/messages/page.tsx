@@ -1319,8 +1319,7 @@ export default function MessagesPage() {
                         showToast('Only friends can call each other.');
                         return;
                       }
-                      setIsCallInitiator(true);
-                      setIsVideoModalOpen(true);
+                      router.push(`/chat/${selectedConvId}?autoCall=true`);
                     }}
                     disabled={chatPartner.isBlockedByMe || chatPartner.isBlockedByPartner || !chatPartner.isFriend}
                     className={`px-3 py-1.5 rounded-xl text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all ${

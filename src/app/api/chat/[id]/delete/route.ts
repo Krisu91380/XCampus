@@ -34,7 +34,12 @@ export async function POST(
 
     if (existingPart) {
       await db.conversationParticipant.update({
-        where: { id: existingPart.id },
+        where: {
+          conversationId_userId: { conversationId, userId: session.userId },
+          conversationId,
+          userId: session.userId,
+          id: existingPart.id,
+        },
         data: {
           hidden: true,
           leftAt: now,

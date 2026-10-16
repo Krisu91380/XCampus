@@ -49,8 +49,8 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/match" className="hover:text-electric-500 dark:hover:text-electric-400 transition-colors">
-                  Monkey Room
+                <Link href="/messages" className="hover:text-electric-500 dark:hover:text-electric-400 transition-colors">
+                  Direct Messages
                 </Link>
               </li>
               <li>

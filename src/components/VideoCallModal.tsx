@@ -252,12 +252,11 @@ export default function VideoCallModal({
         }
 
         // 2. Configure ICE Servers (Google STUN + Resilient TURN Relay)
-        const iceServers: RTCIceServer[] = [
+        let iceServers: RTCIceServer[] = [
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
           { urls: 'stun:stun2.l.google.com:19302' },
           { urls: 'stun:stun.services.mozilla.com' },
-          // High-reliability TURN relay for NAT traversal & restrictive firewalls
           {
             urls: [
               'turn:global.relay.metered.ca:80',
@@ -265,23 +264,20 @@ export default function VideoCallModal({
               'turn:global.relay.metered.ca:443',
               'turns:global.relay.metered.ca:443?transport=tcp',
             ],
-            username: process.env.NEXT_PUBLIC_TURN_USERNAME || 'openrelayproject',
-            credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL || 'openrelayproject',
+            username: 'openrelayproject',
+            credential: 'openrelayproject',
           },
         ];
 
-        if (process.env.NEXT_PUBLIC_STUN_SERVER_URL) {
-          iceServers.unshift({ urls: process.env.NEXT_PUBLIC_STUN_SERVER_URL });
-        }
-
-        if (process.env.NEXT_PUBLIC_TURN_SERVER_URL) {
-          const turnServer: RTCIceServer = {
-            urls: process.env.NEXT_PUBLIC_TURN_SERVER_URL,
-            username: process.env.NEXT_PUBLIC_TURN_USERNAME || undefined,
-            credential: process.env.NEXT_PUBLIC_TURN_CREDENTIAL || undefined,
-          };
-          iceServers.unshift(turnServer);
-        }
+        try {
+          const iceRes = await fetch('/api/calls/ice-servers');
+          if (iceRes.ok) {
+            const iceData = await iceRes.json();
+            if (Array.isArray(iceData.iceServers) && iceData.iceServers.length > 0) {
+              iceServers = iceData.iceServers;
+            }
+          }
+        } catch {}
 
         const pc = new RTCPeerConnection({ iceServers });
         pcRef.current = pc;

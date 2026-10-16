@@ -32,14 +32,26 @@ export async function GET(
     const limitParam = parseInt(searchParams.get('limit') || '40', 10);
     const limit = Math.min(Math.max(limitParam, 1), 100);
 
+    // Fetch current user's participant state (contains leftAt / clearedAt for per-user chat deletion)
+    const myParticipant = await db.conversationParticipant.findFirst({
+      where: { conversationId, userId: session.userId },
+    });
+    const userClearedAt = myParticipant?.clearedAt || myParticipant?.leftAt;
+
     // =========================================================================
     // 1. FAST DELTA POLLING SYNC: If client passes ?since=<timestamp>
     // =========================================================================
     if (since) {
+      const sinceDate = new Date(since);
+      const afterTimestamp =
+        userClearedAt && new Date(userClearedAt).getTime() > sinceDate.getTime()
+          ? userClearedAt
+          : since;
+
       const deltaMessages = await db.message.findMany({
         where: {
           conversationId,
-          afterTimestamp: since,
+          afterTimestamp,
         },
         orderBy: { createdAt: 'asc' },
       });
@@ -66,6 +78,7 @@ export async function GET(
         where: {
           conversationId,
           beforeTimestamp: before,
+          afterTimestamp: userClearedAt || undefined,
         },
         orderBy: { createdAt: 'desc' },
         take: limit,
@@ -95,13 +108,13 @@ export async function GET(
     const partnerId = verified.partnerId;
 
     // Run independent database fetches in parallel
-    const [conv, myParticipant, rawMessages, pProfile, pUser, fr1, fr2, myBlock, partnerBlock, activeMatch] = await Promise.all([
+    const [conv, rawMessages, pProfile, pUser, fr1, fr2, myBlock, partnerBlock, activeMatch] = await Promise.all([
       db.conversation.findUnique({ where: { id: conversationId } }),
-      db.conversationParticipant.findFirst({
-        where: { conversationId, userId: session.userId },
-      }),
       db.message.findMany({
-        where: { conversationId },
+        where: {
+          conversationId,
+          afterTimestamp: userClearedAt || undefined,
+        },
         orderBy: { createdAt: 'desc' },
         take: limit,
       }),

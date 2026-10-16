@@ -218,7 +218,7 @@ function MatchmakingContent() {
       <div className="text-center max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-600 dark:text-purple-400 text-xs font-semibold mb-3">
           <Sparkles className="w-4 h-4 text-purple-500" />
-          <span>Monkey Room • Real-Time Student Matchmaking</span>
+          <span>Real-Time Student Matchmaking</span>
         </div>
         <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">Find Your Student Match</h1>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">

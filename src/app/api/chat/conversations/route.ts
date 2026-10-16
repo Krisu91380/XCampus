@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     ]);
 
     const hiddenConvIds = new Set<string>(
-      participations.filter((p) => p.hidden).map((p) => p.conversationId)
+      participations.filter((p) => p.hidden || Boolean(p.leftAt)).map((p) => p.conversationId)
     );
 
     const myAcceptedFriendships = allFriendRequests.filter(
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
     const seenConvIds = new Set<string>();
 
     // 2. Process active participations in parallel
-    const validParticipations = participations.filter((p) => !p.hidden);
+    const validParticipations = participations.filter((p) => !p.hidden && !p.leftAt);
 
     const convDetails = await Promise.all(
       validParticipations.map(async (p) => {
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
           db.message.findMany({
             where: {
               conversationId: p.conversationId,
-              afterTimestamp: p.clearedAt || undefined,
+              afterTimestamp: p.clearedAt || p.leftAt || undefined,
             },
             orderBy: { createdAt: 'desc' },
             take: 1,

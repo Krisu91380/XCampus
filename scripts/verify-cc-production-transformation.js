@@ -47,7 +47,7 @@ async function run() {
   assert(home.res.status === 200, `Homepage returns 200 OK (${home.res.status})`);
   assert(home.text.includes('CC') || home.text.includes('cc_theme'), 'Homepage contains CC branding and theme loader');
   assert(!home.text.includes('Money Room'), 'No visible legacy "Money Room" on landing page');
-  assert(home.text.includes('Monkey Room'), 'Monkey Room navigation link present');
+  assert(!home.text.includes('Monkey Room'), 'No "Monkey Room" reference on landing page');
 
   // 2. Authentication with 2 Student Accounts + Admin
   console.log('\n--- 2. Authenticating Student A & Student B & Admin ---');
@@ -260,15 +260,15 @@ async function run() {
   const logoutAdmin = await request(`${PROD_URL}/api/auth/logout`, { method: 'POST' }, adminCookie);
   assert(logoutAdmin.res.status === 200, 'Admin successfully logged out');
 
-  // 8. Testing Pricing, Monkey Room & Banner Endpoints
-  console.log('\n--- 8. Testing Pricing, Monkey Room & Banner Endpoints ---');
+  // 8. Testing Pricing, Match Room & Banner Endpoints
+  console.log('\n--- 8. Testing Pricing, Match Room & Banner Endpoints ---');
   const pricingPage = await request(`${PROD_URL}/pricing`);
   assert(pricingPage.res.status === 200, 'Pricing page returns 200 OK');
   assert(pricingPage.text.includes('Pricing') || pricingPage.text.includes('CampusConnect') || pricingPage.text.includes('CC'), 'Pricing page renders immediately');
 
   const matchPage = await request(`${PROD_URL}/match`);
-  assert(matchPage.res.status === 200, 'Monkey Room /match page returns 200 OK');
-  assert(matchPage.text.includes('Monkey Room'), 'Monkey Room branding rendered on /match');
+  assert(matchPage.res.status === 200, 'Match page /match returns 200 OK');
+  assert(!matchPage.text.includes('Monkey Room'), 'No "Monkey Room" branding rendered on /match');
 
   const bannerAuthCheck = await request(`${PROD_URL}/api/profile/banner`, { method: 'POST' });
   assert(bannerAuthCheck.res.status === 401, 'Profile banner endpoint requires authentication (401)');
