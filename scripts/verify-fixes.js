@@ -133,7 +133,23 @@ async function run() {
   // Get conversations for Student A
   const convsARes = await request(`${PROD_URL}/api/chat/conversations`, {}, cookieA);
   assert(convsARes.res.status === 200 && convsARes.json?.success, 'Student A conversations loaded');
-  const convWithB = convsARes.json?.conversations?.find((c) => c.partner?.id === userB.id);
+  let convWithB = convsARes.json?.conversations?.find((c) => c.partner?.id === userB.id);
+
+  if (!convWithB) {
+    // If Student A previously deleted the conversation, find it from Student B and send a message to unhide it
+    const convsBRes = await request(`${PROD_URL}/api/chat/conversations`, {}, cookieB);
+    const convFromB = convsBRes.json?.conversations?.find((c) => c.partner?.id === userA.id);
+    if (convFromB) {
+      await request(`${PROD_URL}/api/chat/${convFromB.id}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: 'Reactivating chat ' + Date.now() }),
+      }, cookieB);
+      await new Promise((r) => setTimeout(r, 1200));
+      const reloadedA = await request(`${PROD_URL}/api/chat/conversations`, {}, cookieA);
+      convWithB = reloadedA.json?.conversations?.find((c) => c.partner?.id === userB.id);
+    }
+  }
   assert(Boolean(convWithB), 'Conversation with Student B exists');
 
   if (convWithB) {

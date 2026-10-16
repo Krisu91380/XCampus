@@ -39,7 +39,7 @@ $headers = @{
     "Accept" = "application/vnd.github.v3+json"
 }
 
-$sha = "2450068b4b732200ffbc46efdb9c90d9c96140d6"
+$sha = "a71e7f65952725e96f31d349dcd99f48a1c2d26f"
 Write-Host "Monitoring commit: $sha"
 
 for ($i = 0; $i -lt 30; $i++) {

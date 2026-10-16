@@ -354,19 +354,13 @@ export async function POST(
         const updates: Promise<any>[] = [
           db.conversationParticipant.update({
             where: { conversationId_userId: { conversationId, userId: session.userId } },
-            data: { hidden: false, leftAt: undefined },
+            data: { hidden: false, leftAt: null as any },
+          }),
+          db.conversationParticipant.update({
+            where: { conversationId_userId: { conversationId, userId: verified.partnerId } },
+            data: { hidden: false, leftAt: null as any, hasUnread: true },
           }),
         ];
-
-        // Only mark unread for partner if partner has NOT deleted/hidden this conversation
-        if (partnerPart && !partnerPart.leftAt && !partnerPart.hidden) {
-          updates.push(
-            db.conversationParticipant.update({
-              where: { conversationId_userId: { conversationId, userId: verified.partnerId } },
-              data: { hasUnread: true },
-            })
-          );
-        }
 
         await Promise.all(updates);
       } catch (err: any) {
