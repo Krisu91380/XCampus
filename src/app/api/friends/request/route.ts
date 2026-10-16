@@ -99,9 +99,11 @@ export async function POST(req: NextRequest) {
       }
 
       if (existing.status === 'DECLINED') {
-        // Reset to PENDING if re-sending
-        const updated = await db.friendRequest.update({
-          where: { id: existing.id },
+        // Cleanly recreate request so senderId and receiverId are definitively set in DB
+        try {
+          await db.friendRequest.delete({ where: { id: existing.id } });
+        } catch {}
+        const updated = await db.friendRequest.create({
           data: {
             senderId: session.userId,
             receiverId: targetUserId,

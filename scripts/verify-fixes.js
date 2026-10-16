@@ -131,6 +131,15 @@ async function run() {
       body: JSON.stringify({ requestId: pendingReq.id, action: 'ACCEPT' }),
     }, cookieB);
     console.log('[DEBUG] respond body:', resp.json);
+    const convId = resp.json?.conversationId;
+    if (convId) {
+      await request(`${PROD_URL}/api/chat/${convId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: 'Hello after re-friending!' }),
+      }, cookieB);
+      await new Promise((r) => setTimeout(r, 1000));
+    }
   }
 
   // Get conversations for Student A
